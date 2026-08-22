@@ -3,10 +3,35 @@
   "state_id": "intent-payload-30-chassis-fixed",
   "title": "User intent",
   "objective": "Increase the rover's payload capacity by 30% while keeping the current chassis.",
+  "input": {
+    "text": "Increase the rover's payload capacity by 30% while keeping the current chassis.",
+    "images": [],
+    "videos": [],
+    "documents": ["doc-motor-m4"]
+  },
   "extracted": [
     { "label": "Objective", "value": "Increase payload" },
     { "label": "Target", "value": "+30%" },
     { "label": "Fixed constraint", "value": "Keep current chassis" }
+  ],
+  "sources": [
+    { "type": "text", "id": "builder-text-001" },
+    { "type": "document", "id": "doc-motor-m4", "filename": "motor_M4_datasheet.pdf" }
+  ],
+  "document_context": [
+    {
+      "source_id": "doc-motor-m4",
+      "artifact_type": "component_specification",
+      "component": "Motor M4",
+      "interpretation_mode": "mock",
+      "inference_performed": false,
+      "future_parser": "nvidia/NVIDIA-Nemotron-Parse-2.0",
+      "properties": {
+        "voltage": { "value": "24 V", "source": "motor_M4_datasheet.pdf" },
+        "peak_current": { "value": "11.2 A", "source": "motor_M4_datasheet.pdf" },
+        "torque": { "value": "8.4 Nm", "source": "motor_M4_datasheet.pdf" }
+      }
+    }
   ],
   "source": "builder_text",
   "product_id": "rover-alpha",

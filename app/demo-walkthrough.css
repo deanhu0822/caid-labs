@@ -104,6 +104,10 @@
 .demo-extracted div:last-child { border: 0; }
 .demo-extracted span { color: #8391a6; font-size: 11px; }
 .demo-extracted b { font-size: 12px; }
+.demo-document-source { margin-top: 9px; padding: 9px 10px; display: flex; align-items: center; gap: 8px; border: 1px solid #31405a; border-radius: 7px; color: #8da5d8; background: #0b121d; }
+.demo-document-source span { display: flex; flex-direction: column; gap: 3px; }
+.demo-document-source b { color: #c9d4e7; font-size: 8px; }
+.demo-document-source small { color: #62718a; font: 6px var(--font-geist-mono), monospace; }
 
 .demo-constraint-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .demo-constraint-columns section { border: 1px solid #29364a; border-radius: 10px; padding: 11px; background: #0c1420; }

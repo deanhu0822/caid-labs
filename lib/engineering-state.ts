@@ -34,6 +34,22 @@ export type EngineeringMetric = {
   tone?: 'positive' | 'negative' | 'neutral';
 };
 
+export type EngineeringDocumentRecord = {
+  artifactId: string;
+  sourceId: string;
+  filename: string;
+  title: string;
+  artifactType: string;
+  component: string | null;
+  mode: 'local' | 'mock' | 'unavailable';
+  inferencePerformed: boolean;
+  parserRole: string;
+  summary: string;
+  previewUrl?: string;
+  mimeType?: string;
+  properties: Array<{ key: string; label: string; value: string; sourceId: string; sourceName: string }>;
+};
+
 export type EngineeringProposal = {
   id: string;
   objective: string;
@@ -77,7 +93,7 @@ export type EngineeringState = {
   experienceMode: ExperienceMode;
   currentRevision: string;
   viewingRevision: string;
-  selectedArtifactId: string;
+  selectedArtifactId: string | null;
   objective: string;
   constraints: EngineeringConstraint[];
   fixedArtifactIds: string[];
@@ -87,11 +103,13 @@ export type EngineeringState = {
   artifactOverrides: Record<string, { label?: string; meta?: string }>;
   revisions: RevisionRecord[];
   physicalRealizations: OpenCadRealizationRecord[];
+  documents: EngineeringDocumentRecord[];
 };
 
 export type EngineeringAction =
   | { type: 'SET_EXPERIENCE'; mode: ExperienceMode }
   | { type: 'SELECT_ARTIFACT'; artifactId: string }
+  | { type: 'CLEAR_SELECTION' }
   | { type: 'SET_OBJECTIVE'; objective: string }
   | { type: 'SET_CONSTRAINT'; constraint: EngineeringConstraint }
   | { type: 'REMOVE_CONSTRAINT'; key: string }
@@ -111,6 +129,24 @@ const INITIAL_REVISIONS: RevisionRecord[] = [
   { id: 'Rev C', date: 'Aug 18', title: 'DVT release', changedArtifactIds: ['j12', 'camera-module', 'battery', 'camera-service'], preservedArtifactIds: [], mutations: [], artifactOverrides: {} },
 ];
 
+const INITIAL_DOCUMENTS: EngineeringDocumentRecord[] = [{
+  artifactId: 'motor-m4-datasheet',
+  sourceId: 'doc-motor-m4',
+  filename: 'motor_M4_datasheet.pdf',
+  title: 'Motor M4 Datasheet',
+  artifactType: 'component-specification',
+  component: 'Motor M4',
+  mode: 'mock',
+  inferencePerformed: false,
+  parserRole: 'nvidia/NVIDIA-Nemotron-Parse-2.0',
+  summary: 'Prototype document interpretation. No model inference was performed.',
+  properties: [
+    { key: 'voltage', label: 'Voltage', value: '24 V', sourceId: 'doc-motor-m4', sourceName: 'motor_M4_datasheet.pdf' },
+    { key: 'peak-current', label: 'Peak current', value: '11.2 A', sourceId: 'doc-motor-m4', sourceName: 'motor_M4_datasheet.pdf' },
+    { key: 'torque', label: 'Torque', value: '8.4 Nm', sourceId: 'doc-motor-m4', sourceName: 'motor_M4_datasheet.pdf' },
+  ],
+}];
+
 export const initialEngineeringState: EngineeringState = {
   project: { kind: 'existing', id: 'rover-alpha', name: 'Autonomous Inspection Rover' },
   experienceMode: 'pro',
@@ -126,6 +162,7 @@ export const initialEngineeringState: EngineeringState = {
   artifactOverrides: {},
   revisions: INITIAL_REVISIONS,
   physicalRealizations: [],
+  documents: INITIAL_DOCUMENTS,
 };
 
 function nextRevision(revision: string) {
@@ -424,6 +461,24 @@ export function engineeringReducer(state: EngineeringState, action: EngineeringA
         { key: 'priority', label: 'Design priority', value: action.build.clarifications.priority, source: 'guided' },
         { key: 'budget', label: 'Budget target', value: action.build.clarifications.budget, source: 'guided' },
       ];
+      const documents: EngineeringDocumentRecord[] = action.build.intent.documentObservations.map((document) => {
+        const source = action.build.sources.find((item) => item.id === document.sourceId);
+        return {
+          artifactId: `document-${document.sourceId}`,
+          sourceId: document.sourceId,
+          filename: document.sourceName,
+          title: document.title,
+          artifactType: document.artifactType,
+          component: document.component,
+          mode: document.mode,
+          inferencePerformed: document.inferencePerformed,
+          parserRole: document.parserRole,
+          summary: document.summary,
+          previewUrl: source?.url,
+          mimeType: source?.mimeType,
+          properties: document.properties,
+        };
+      });
       return {
         ...initialEngineeringState,
         project: { kind: 'generated', id: action.build.id, name: action.build.displayName, build: action.build },
@@ -435,6 +490,7 @@ export function engineeringReducer(state: EngineeringState, action: EngineeringA
         constraints: [...extractedConstraints, ...clarificationConstraints],
         focusArtifactIds: action.build.architecture.artifacts.slice(0, 6).map((artifact) => artifact.id),
         revisions: [revision],
+        documents,
       };
     }
     case 'RESET_TO_EXISTING':
@@ -443,6 +499,8 @@ export function engineeringReducer(state: EngineeringState, action: EngineeringA
       return { ...state, experienceMode: action.mode };
     case 'SELECT_ARTIFACT':
       return { ...state, selectedArtifactId: action.artifactId };
+    case 'CLEAR_SELECTION':
+      return { ...state, selectedArtifactId: null, focusArtifactIds: [] };
     case 'SET_OBJECTIVE':
       return { ...state, objective: action.objective };
     case 'SET_CONSTRAINT': {

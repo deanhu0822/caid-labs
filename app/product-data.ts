@@ -7,7 +7,8 @@ export type Category =
   | 'manufacturing'
   | 'suppliers'
   | 'tests'
-  | 'agents';
+  | 'agents'
+  | 'documents';
 
 export type EdgeKind =
   | 'contains'
@@ -46,6 +47,7 @@ export const CATEGORY_META: Record<Category, { label: string; color: string }> =
   suppliers: { label: 'Suppliers', color: '#6eb8f0' },
   tests: { label: 'Tests', color: '#a989e9' },
   agents: { label: 'Agents', color: '#adff5b' },
+  documents: { label: 'Documents', color: '#8da5d8' },
 };
 
 export const EDGE_META: Record<EdgeKind, { label: string; color: string }> = {
@@ -93,6 +95,7 @@ export const ARTIFACTS: Artifact[] = [
   { id: 'product-agent', label: 'Product Agent', category: 'agents', code: 'AGENT · LOCAL', meta: 'dependency reasoning', x: 755, y: 1010 },
   { id: 'supply-agent', label: 'Supply Agent', category: 'agents', code: 'AGENT · LOCAL', meta: 'availability watch', x: 1010, y: 1010 },
   { id: 'build-agent', label: 'Build Agent', category: 'agents', code: 'AGENT · LOCAL', meta: 'assembly reasoning', x: 245, y: 1040 },
+  { id: 'motor-m4-datasheet', label: 'Motor M4 Datasheet', category: 'documents', code: 'DOC · PDF', meta: 'motor_M4_datasheet.pdf', x: 5, y: 1045, revision: 'Rev C' },
 ];
 
 const r = (source: string, target: string, kind: EdgeKind): Relation => ({ id: `${source}-${target}-${kind}`, source, target, kind });
@@ -105,6 +108,7 @@ export const RELATIONS: Relation[] = [
   r('j12-bom', 'molex', 'sourced'), r('cable-routing', 'j12', 'depends'),
   r('motor-controller', 'motor-control', 'drives'), r('motor-controller', 'motor-driver', 'depends'), r('motor-control', 'motor-bom', 'drives'),
   r('motor-bom', 'motor-supplier', 'sourced'), r('motor-install', 'motor-bom', 'depends'), r('motor-housing', 'motor-bom', 'contains'),
+  r('motor-bom', 'motor-m4-datasheet', 'sourced'),
   r('power-board', 'battery-mgmt', 'drives'), r('power-board', 'battery', 'depends'), r('battery-enclosure', 'battery', 'contains'),
   r('camera-mount', 'camera-module', 'contains'), r('camera-service', 'camera-module', 'depends'), r('camera-module', 'camera-supplier', 'sourced'),
   r('navigation', 'motor-control', 'depends'), r('navigation', 'camera-service', 'depends'),
@@ -129,6 +133,7 @@ export const DETAIL_OVERRIDES: Record<string, Record<string, string>> = {
   'main-board': { Type: 'Printed Circuit Board', Revision: 'C4', Owner: 'Electrical', Layers: '6', Status: 'Released' },
   chassis: { Type: 'Mechanical Assembly', Revision: 'C3', Material: '6061-T6 Aluminum', Mass: '2.4 kg', Status: 'Released' },
   'motor-bom': { Type: 'Purchased Part', Revision: 'B', Supplier: 'Motion Dynamics', Stock: '384', 'Unit Cost': '$42.10' },
+  'motor-m4-datasheet': { Type: 'Engineering Document', Revision: 'Rev C', File: 'motor_M4_datasheet.pdf', Status: 'Prototype document interpretation', Parser: 'Future · Nemotron Parse 2.0' },
 };
 
 export const IMPACT_ITEMS = [

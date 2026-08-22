@@ -1,6 +1,6 @@
-import { mockFormaInferenceProvider } from './forma-inference';
+import { FORMA_MODEL_ROLES, mockFormaInferenceProvider, type FormaInferenceMode } from './forma-inference';
 
-export type PrototypeSourceKind = 'image' | 'video';
+export type PrototypeSourceKind = 'image' | 'video' | 'document';
 
 export type PrototypeInputSource = {
   id: string;
@@ -18,14 +18,30 @@ export type ExtractedRequirement = {
   key: string;
   label: string;
   value: string;
-  source: 'text' | 'reference' | 'prototype-default';
+  source: 'text' | 'reference' | 'document' | 'prototype-default';
+  sourceId?: string;
+  sourceName?: string;
 };
 
 export type PrototypeMediaObservation = {
   sourceId: string;
-  kind: PrototypeSourceKind;
+  kind: 'image' | 'video';
   summary: string;
   inferenceConnected: false;
+};
+
+export type PrototypeDocumentObservation = {
+  sourceId: string;
+  sourceName: string;
+  title: string;
+  artifactType: string;
+  component: string | null;
+  partNumbers: string[];
+  properties: Array<{ key: string; label: string; value: string; sourceId: string; sourceName: string }>;
+  mode: FormaInferenceMode;
+  inferencePerformed: boolean;
+  parserRole: typeof FORMA_MODEL_ROLES.parse;
+  summary: string;
 };
 
 export type PrototypeIntent = {
@@ -36,6 +52,7 @@ export type PrototypeIntent = {
   requirements: ExtractedRequirement[];
   missingDecisions: string[];
   mediaObservations: PrototypeMediaObservation[];
+  documentObservations: PrototypeDocumentObservation[];
 };
 
 export type ClarificationAnswers = {
@@ -53,7 +70,8 @@ export type GeneratedArtifactCategory =
   | 'manufacturing'
   | 'suppliers'
   | 'tests'
-  | 'agents';
+  | 'agents'
+  | 'documents';
 
 export type GeneratedEdgeKind = 'contains' | 'routes' | 'drives' | 'sourced' | 'validated' | 'depends' | 'changed';
 
@@ -118,6 +136,7 @@ export interface NewBuildPrototypeAdapter {
   analyzeIntent(input: { text: string; sources: PrototypeInputSource[]; additionalNotes: string }): Promise<PrototypeIntent>;
   analyzeImage(source: PrototypeInputSource): Promise<PrototypeMediaObservation>;
   analyzeVideo(source: PrototypeInputSource): Promise<PrototypeMediaObservation>;
+  analyzeDocument(source: PrototypeInputSource): Promise<PrototypeDocumentObservation>;
   synthesizeArchitecture(intent: PrototypeIntent, clarifications: ClarificationAnswers): Promise<PrototypeArchitecture>;
   validateDesign(architecture: PrototypeArchitecture): Promise<string[]>;
   realizeWithOpenCAD(architecture: PrototypeArchitecture): Promise<{ connected: false; note: string }>;
@@ -137,7 +156,18 @@ function findMeasure(text: string, pattern: RegExp, fallback: string) {
   return match ? `${match[1]} ${match[2]}` : fallback;
 }
 
-function roverIntent(text: string, mediaObservations: PrototypeMediaObservation[]): PrototypeIntent {
+function documentRequirements(documentObservations: PrototypeDocumentObservation[]): ExtractedRequirement[] {
+  return documentObservations.flatMap((document) => document.properties.map((property) => ({
+    key: `document:${document.sourceId}:${property.key}`,
+    label: property.label,
+    value: property.value,
+    source: 'document' as const,
+    sourceId: document.sourceId,
+    sourceName: document.sourceName,
+  })));
+}
+
+function roverIntent(text: string, mediaObservations: PrototypeMediaObservation[], documentObservations: PrototypeDocumentObservation[]): PrototypeIntent {
   return {
     prototype: true,
     scenario: 'inspection-rover',
@@ -150,13 +180,15 @@ function roverIntent(text: string, mediaObservations: PrototypeMediaObservation[
       { key: 'environment', label: 'Environment', value: /industrial/i.test(text) ? 'Industrial indoor' : 'Indoor inspection', source: 'text' },
       { key: 'mobility', label: 'Mobility', value: 'Wheeled', source: 'prototype-default' },
       { key: 'function', label: 'Primary function', value: 'Visual inspection', source: 'text' },
+      ...documentRequirements(documentObservations),
     ],
     missingDecisions: ['Target speed', 'Maximum budget', 'Camera type', 'Terrain tolerance'],
     mediaObservations,
+    documentObservations,
   };
 }
 
-function scenarioIntent(scenario: Exclude<PrototypeScenario, 'inspection-rover'>, mediaObservations: PrototypeMediaObservation[]): PrototypeIntent {
+function scenarioIntent(scenario: Exclude<PrototypeScenario, 'inspection-rover'>, mediaObservations: PrototypeMediaObservation[], documentObservations: PrototypeDocumentObservation[]): PrototypeIntent {
   const presets = {
     'air-monitor': {
       buildGoal: 'Portable air-quality monitor',
@@ -198,9 +230,10 @@ function scenarioIntent(scenario: Exclude<PrototypeScenario, 'inspection-rover'>
     scenario,
     buildGoal: preset.buildGoal,
     goalSummary: preset.goalSummary,
-    requirements: preset.requirements.map(([key, label, value]) => ({ key, label, value, source: 'text' as const })),
+    requirements: [...preset.requirements.map(([key, label, value]) => ({ key, label, value, source: 'text' as const })), ...documentRequirements(documentObservations)],
     missingDecisions: [...preset.missing],
     mediaObservations,
+    documentObservations,
   };
 }
 
@@ -224,7 +257,17 @@ function roverArchitecture(intent: PrototypeIntent, clarifications: Clarificatio
     { id: 'scratch-assembly', label: 'Prototype Assembly', category: 'manufacturing', code: 'MFG · DRAFT', meta: 'ROUTE-A0', x: 590, y: 930 },
     { id: 'scratch-drive-test', label: 'Drive Validation Placeholder', category: 'tests', code: 'TEST · DRAFT', meta: 'T-DRIVE-A0', x: 285, y: 900 },
   ];
-  const relations = [
+  intent.documentObservations.forEach((document, index) => artifacts.push({
+    id: `document-${document.sourceId}`,
+    label: document.title,
+    category: 'documents',
+    code: 'DOC · LOCAL',
+    meta: document.sourceName,
+    x: 20 + index * 190,
+    y: 1110,
+    revision: 'Rev A',
+  }));
+  const relations: GeneratedRelation[] = [
     relation('scratch-rover', 'scratch-chassis', 'contains'),
     relation('scratch-rover', 'scratch-compute', 'contains'),
     relation('scratch-rover', 'scratch-camera-mount', 'contains'),
@@ -245,6 +288,7 @@ function roverArchitecture(intent: PrototypeIntent, clarifications: Clarificatio
     relation('scratch-drive-test', 'scratch-drive', 'validated'),
     relation('scratch-assembly', 'scratch-chassis', 'depends'),
   ];
+  intent.documentObservations.forEach((document) => relations.push(relation('scratch-left-motor', `document-${document.sourceId}`, 'sourced')));
   return {
     prototype: true,
     name: intent.buildGoal,
@@ -279,7 +323,9 @@ function compactArchitecture(intent: PrototypeIntent, clarifications: Clarificat
     { id: rootId, label: intent.buildGoal, category: 'overview', code: 'PRODUCT · REV A', meta: intent.scenario, x: 470, y: 0, revision: 'Rev A' },
     ...parts.map((label, index) => ({ id: `${rootId}-${index + 1}`, label, category: categories[index], code: `${categories[index].toUpperCase()} · CONCEPT`, meta: `TBD-${String(index + 1).padStart(2, '0')}`, x: 80 + (index % 3) * 360, y: 220 + Math.floor(index / 3) * 330 })),
   ];
-  const relations = parts.map((_, index) => relation(rootId, `${rootId}-${index + 1}`, index > 2 ? 'depends' : 'contains'));
+  intent.documentObservations.forEach((document, index) => artifacts.push({ id: `document-${document.sourceId}`, label: document.title, category: 'documents', code: 'DOC · LOCAL', meta: document.sourceName, x: 80 + index * 240, y: 850, revision: 'Rev A' }));
+  const relations: GeneratedRelation[] = parts.map((_, index) => relation(rootId, `${rootId}-${index + 1}`, index > 2 ? 'depends' : 'contains'));
+  intent.documentObservations.forEach((document) => relations.push(relation(rootId, `document-${document.sourceId}`, 'sourced')));
   return {
     prototype: true,
     name: intent.buildGoal,
@@ -314,11 +360,33 @@ export const newBuildPrototypeAdapter: NewBuildPrototypeAdapter = {
     const observation = await mockFormaInferenceProvider.observeMedia({ sourceId: source.id, kind: 'video', name: source.name, mimeType: source.mimeType });
     return { sourceId: source.id, kind: 'video', summary: observation.summary, inferenceConnected: false };
   },
+  async analyzeDocument(source) {
+    await wait(140);
+    const parsed = await mockFormaInferenceProvider.parseDocument({ sourceId: source.id, name: source.name, mimeType: source.mimeType });
+    return {
+      sourceId: source.id,
+      sourceName: source.name,
+      title: parsed.structured.title,
+      artifactType: parsed.structured.artifactType,
+      component: parsed.structured.component,
+      partNumbers: parsed.structured.partNumbers,
+      properties: parsed.structured.properties,
+      mode: parsed.mode,
+      inferencePerformed: parsed.inferencePerformed,
+      parserRole: FORMA_MODEL_ROLES.parse,
+      summary: parsed.summary,
+    };
+  },
   async analyzeIntent({ text, sources }) {
-    const mediaObservations = await Promise.all(sources.map((source) => source.kind === 'image' ? this.analyzeImage(source) : this.analyzeVideo(source)));
+    const mediaSources = sources.filter((source): source is PrototypeInputSource & { kind: 'image' | 'video' } => source.kind === 'image' || source.kind === 'video');
+    const documentSources = sources.filter((source) => source.kind === 'document');
+    const [mediaObservations, documentObservations] = await Promise.all([
+      Promise.all(mediaSources.map((source) => source.kind === 'image' ? this.analyzeImage(source) : this.analyzeVideo(source))),
+      Promise.all(documentSources.map((source) => this.analyzeDocument(source))),
+    ]);
     await wait(240);
     const scenario = detectScenario(text);
-    const deterministicIntent = scenario === 'inspection-rover' ? roverIntent(text, mediaObservations) : scenarioIntent(scenario, mediaObservations);
+    const deterministicIntent = scenario === 'inspection-rover' ? roverIntent(text, mediaObservations, documentObservations) : scenarioIntent(scenario, mediaObservations, documentObservations);
     const routed = await mockFormaInferenceProvider.reason({
       objective: text,
       engineeringState: { sources: sources.map(({ id, kind, name, mimeType }) => ({ id, kind, name, mimeType })) },
@@ -358,6 +426,7 @@ export const newBuildPrototypeAdapter: NewBuildPrototypeAdapter = {
 export const analyzeIntent = newBuildPrototypeAdapter.analyzeIntent.bind(newBuildPrototypeAdapter);
 export const analyzeImage = newBuildPrototypeAdapter.analyzeImage.bind(newBuildPrototypeAdapter);
 export const analyzeVideo = newBuildPrototypeAdapter.analyzeVideo.bind(newBuildPrototypeAdapter);
+export const analyzeDocument = newBuildPrototypeAdapter.analyzeDocument.bind(newBuildPrototypeAdapter);
 export const synthesizeArchitecture = newBuildPrototypeAdapter.synthesizeArchitecture.bind(newBuildPrototypeAdapter);
 export const validateDesign = newBuildPrototypeAdapter.validateDesign.bind(newBuildPrototypeAdapter);
 export const realizeWithOpenCAD = newBuildPrototypeAdapter.realizeWithOpenCAD.bind(newBuildPrototypeAdapter);

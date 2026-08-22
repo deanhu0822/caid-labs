@@ -5,6 +5,7 @@ import {
   Check,
   CheckCircle2,
   CircleX,
+  FileText,
   FileJson2,
   Gauge,
   Pause,
@@ -42,6 +43,7 @@ function IntentStage() {
       <div className="demo-extracted">
         {data.extracted.map((item) => <div key={item.label}><span>{item.label}</span><b>{item.value}</b></div>)}
       </div>
+      <div className="demo-document-source"><FileText size={13} /><span><b>Motor M4 Datasheet</b><small>Prototype document interpretation · no model inference</small></span></div>
     </>
   );
 }

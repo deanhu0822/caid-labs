@@ -2,8 +2,8 @@
 
 /* eslint-disable @next/next/no-img-element -- Local object URLs cannot use the Next image optimizer. */
 
-import { useRef, useState, type DragEvent } from 'react';
-import { ArrowLeft, ArrowRight, Check, FileImage, Film, Info, LoaderCircle, Plus, Sparkles, Upload, X } from 'lucide-react';
+import { useEffect, useRef, useState, type DragEvent } from 'react';
+import { ArrowLeft, ArrowRight, Check, FileImage, FileText, Film, Info, LoaderCircle, Plus, Sparkles, Upload, X } from 'lucide-react';
 import {
   analyzeIntent,
   synthesizeArchitecture,
@@ -17,6 +17,7 @@ import {
 import { CATEGORY_META } from './product-data';
 
 type Phase = 'input' | 'analyzing' | 'review' | 'architecture';
+type InputMode = 'text' | 'image' | 'video' | 'document' | 'mixed';
 
 const EXAMPLE_PROMPTS = [
   'Build a warehouse inspection rover',
@@ -27,6 +28,7 @@ const EXAMPLE_PROMPTS = [
 
 const ANALYSIS_STAGES = [
   'Understanding objective',
+  'Interpreting document sources',
   'Extracting constraints',
   'Identifying product systems',
   'Mapping reference media',
@@ -73,10 +75,28 @@ function readVideoDuration(url: string) {
   });
 }
 
+const DOCUMENT_EXTENSIONS = /\.(pdf|docx?|xlsx?|csv|txt|md|pptx?)$/i;
+
+function isDocumentFile(file: File) {
+  return file.type === 'application/pdf'
+    || file.type.startsWith('text/')
+    || /officedocument|msword|ms-excel|spreadsheet|presentation/.test(file.type)
+    || DOCUMENT_EXTENSIONS.test(file.name);
+}
+
+function documentTypeLabel(source: PrototypeInputSource) {
+  const extension = source.name.split('.').pop()?.toUpperCase();
+  return extension ? `${extension} document` : 'Engineering document';
+}
+
 export function StartFromScratch({ onClose, onCreate }: { onClose: () => void; onCreate: (build: PrototypeBuildDefinition) => void }) {
   const imageInput = useRef<HTMLInputElement>(null);
   const videoInput = useRef<HTMLInputElement>(null);
+  const documentInput = useRef<HTMLInputElement>(null);
+  const replaceDocumentInput = useRef<HTMLInputElement>(null);
+  const sourceRef = useRef<PrototypeInputSource[]>([]);
   const [phase, setPhase] = useState<Phase>('input');
+  const [inputMode, setInputMode] = useState<InputMode>('mixed');
   const [prompt, setPrompt] = useState('');
   const [additionalNotes, setAdditionalNotes] = useState('');
   const [sources, setSources] = useState<PrototypeInputSource[]>([]);
@@ -85,14 +105,24 @@ export function StartFromScratch({ onClose, onCreate }: { onClose: () => void; o
   const [analysisIndex, setAnalysisIndex] = useState(0);
   const [answers, setAnswers] = useState<Partial<ClarificationAnswers>>({});
   const [error, setError] = useState('');
+  const [previewDocumentId, setPreviewDocumentId] = useState<string | null>(null);
+  const [replaceDocumentId, setReplaceDocumentId] = useState<string | null>(null);
 
-  const addFiles = async (files: File[], kind: PrototypeSourceKind) => {
-    const validFiles = files.filter((file) => file.type.startsWith(`${kind}/`));
+  useEffect(() => {
+    sourceRef.current = sources;
+  }, [sources]);
+
+  useEffect(() => () => {
+    sourceRef.current.forEach((source) => URL.revokeObjectURL(source.url));
+  }, []);
+
+  const addFiles = async (files: File[], kind: PrototypeSourceKind, replaceId?: string | null) => {
+    const validFiles = files.filter((file) => kind === 'document' ? isDocumentFile(file) : file.type.startsWith(`${kind}/`));
     if (!validFiles.length) { setError(`Choose a valid ${kind} file.`); return; }
-    const maxBytes = kind === 'image' ? 15 * 1024 * 1024 : 120 * 1024 * 1024;
-    if (validFiles.some((file) => file.size > maxBytes)) { setError(`${kind === 'image' ? 'Images' : 'Videos'} must be smaller than ${kind === 'image' ? '15' : '120'} MB.`); return; }
+    const maxBytes = kind === 'image' ? 15 * 1024 * 1024 : kind === 'video' ? 120 * 1024 * 1024 : 25 * 1024 * 1024;
+    if (validFiles.some((file) => file.size > maxBytes)) { setError(`${kind === 'image' ? 'Images' : kind === 'video' ? 'Videos' : 'Documents'} must be smaller than ${kind === 'image' ? '15' : kind === 'video' ? '120' : '25'} MB.`); return; }
 
-    const selectedFiles = kind === 'video' ? validFiles.slice(0, 1) : validFiles.slice(0, 3);
+    const selectedFiles = replaceId || kind === 'video' ? validFiles.slice(0, 1) : validFiles.slice(0, kind === 'document' ? 4 : 3);
     const nextSources: PrototypeInputSource[] = [];
     for (const [index, file] of selectedFiles.entries()) {
       const url = URL.createObjectURL(file);
@@ -100,7 +130,7 @@ export function StartFromScratch({ onClose, onCreate }: { onClose: () => void; o
         id: `${kind}-${Date.now()}-${index}`,
         kind,
         name: file.name,
-        mimeType: file.type,
+        mimeType: file.type || (kind === 'document' ? 'application/octet-stream' : `${kind}/unknown`),
         url,
         sizeBytes: file.size,
         durationSeconds: kind === 'video' ? await readVideoDuration(url) : undefined,
@@ -108,11 +138,21 @@ export function StartFromScratch({ onClose, onCreate }: { onClose: () => void; o
     }
 
     setSources((current) => {
+      if (replaceId) {
+        const replaced = current.find((source) => source.id === replaceId);
+        if (replaced) URL.revokeObjectURL(replaced.url);
+        return current.map((source) => source.id === replaceId ? nextSources[0] : source);
+      }
       if (kind === 'video') {
         current.filter((source) => source.kind === 'video').forEach((source) => URL.revokeObjectURL(source.url));
         return [...current.filter((source) => source.kind !== 'video'), ...nextSources];
       }
-      return [...current, ...nextSources].slice(0, 4);
+      const limit = kind === 'document' ? 4 : 3;
+      const existingKind = current.filter((source) => source.kind === kind);
+      const combinedKind = [...existingKind, ...nextSources].slice(0, limit);
+      const discarded = [...existingKind, ...nextSources].slice(limit);
+      discarded.forEach((source) => URL.revokeObjectURL(source.url));
+      return [...current.filter((source) => source.kind !== kind), ...combinedKind];
     });
     setError('');
   };
@@ -123,6 +163,7 @@ export function StartFromScratch({ onClose, onCreate }: { onClose: () => void; o
   };
 
   const removeSource = (id: string) => {
+    if (previewDocumentId === id) setPreviewDocumentId(null);
     setSources((current) => {
       const removed = current.find((source) => source.id === id);
       if (removed) URL.revokeObjectURL(removed.url);
@@ -160,7 +201,7 @@ export function StartFromScratch({ onClose, onCreate }: { onClose: () => void; o
   const generateArchitecture = async () => {
     if (!intent || !answers.terrain || !answers.priority || !answers.budget) return;
     setPhase('analyzing');
-    setAnalysisIndex(4);
+    setAnalysisIndex(ANALYSIS_STAGES.length - 1);
     const result = await synthesizeArchitecture(intent, answers as ClarificationAnswers);
     setArchitecture(result);
     setPhase('architecture');
@@ -188,6 +229,15 @@ export function StartFromScratch({ onClose, onCreate }: { onClose: () => void; o
         return groups;
       }, {}))
     : [];
+  const previewDocument = sources.find((source) => source.id === previewDocumentId && source.kind === 'document') ?? null;
+  const showImageInput = inputMode === 'image' || inputMode === 'mixed';
+  const showVideoInput = inputMode === 'video' || inputMode === 'mixed';
+  const showDocumentInput = inputMode === 'document' || inputMode === 'mixed';
+  const sourceCounts = {
+    image: sources.filter((source) => source.kind === 'image').length,
+    video: sources.filter((source) => source.kind === 'video').length,
+    document: sources.filter((source) => source.kind === 'document').length,
+  };
 
   return (
     <div className="scratch-overlay overlay-enter">
@@ -204,28 +254,38 @@ export function StartFromScratch({ onClose, onCreate }: { onClose: () => void; o
         <div className="scratch-body">
           {phase === 'input' && (
             <div className="scratch-input-phase phase-enter">
-              <div className="scratch-intro"><span>TEXT · IMAGE · VIDEO</span><h2>What are you trying to build?</h2><p>Describe the result in your own words. Add references only if they help explain shape, motion, components, or context.</p></div>
+              <div className="scratch-intro"><span>TEXT · IMAGE · VIDEO · DOCUMENT · MIXED</span><h2>What are you trying to build?</h2><p>Describe the result in your own words. Add references only if they help explain shape, motion, components, requirements, or context.</p></div>
+              <div className="scratch-modality-tabs" aria-label="Input modality">{(['text', 'image', 'video', 'document', 'mixed'] as InputMode[]).map((item) => <button className={inputMode === item ? 'active' : ''} key={item} onClick={() => setInputMode(item)}>{item[0].toUpperCase() + item.slice(1)}{item !== 'text' && item !== 'mixed' && sourceCounts[item] > 0 && <span>{sourceCounts[item]}</span>}</button>)}</div>
               <textarea className="scratch-primary-input" autoFocus value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder="I want to build a compact inspection rover that can carry 20 lb, run for 4 hours, and fit through narrow industrial spaces." />
               <div className="scratch-examples">{EXAMPLE_PROMPTS.map((example) => <button key={example} onClick={() => setPrompt(example)}>{example}<ArrowRight size={12} /></button>)}</div>
 
-              <div className="scratch-section-title"><div><span>OPTIONAL REFERENCES</span><b>Add context</b></div><small>Files stay in this browser</small></div>
-              <div className="scratch-media-grid">
+              {inputMode !== 'text' && <><div className="scratch-section-title"><div><span>OPTIONAL REFERENCES</span><b>{inputMode === 'document' ? 'Add engineering documents' : 'Add context'}</b></div><small>Files stay in this browser</small></div>
+              <div className={`scratch-media-grid ${inputMode === 'mixed' ? 'mixed' : 'single'}`}>
+                {showImageInput &&
                 <div className="scratch-dropzone" onDragOver={(event) => event.preventDefault()} onDrop={(event) => handleDrop(event, 'image')}>
                   <FileImage size={20} /><b>Image references</b><span>Sketches, products, components, or diagrams</span>
                   <div><button onClick={() => imageInput.current?.click()}><Upload size={12} /> Choose images</button><button onClick={() => void loadDemoImage()}><Sparkles size={12} /> Demo rover image</button></div>
                   <input ref={imageInput} hidden type="file" accept="image/*" multiple onChange={(event) => void addFiles(Array.from(event.target.files ?? []), 'image')} />
-                </div>
+                </div>}
+                {showVideoInput &&
                 <div className="scratch-dropzone" onDragOver={(event) => event.preventDefault()} onDrop={(event) => handleDrop(event, 'video')}>
                   <Film size={20} /><b>Video reference</b><span>Motion, assembly, operation, or physical problems</span>
                   <div><button onClick={() => videoInput.current?.click()}><Upload size={12} /> {sources.some((source) => source.kind === 'video') ? 'Replace video' : 'Choose video'}</button></div>
                   <input ref={videoInput} hidden type="file" accept="video/*" onChange={(event) => void addFiles(Array.from(event.target.files ?? []), 'video')} />
-                </div>
-              </div>
+                </div>}
+                {showDocumentInput &&
+                <div className="scratch-dropzone document-dropzone" onDragOver={(event) => event.preventDefault()} onDrop={(event) => handleDrop(event, 'document')}>
+                  <FileText size={20} /><b>Engineering documents</b><span>PDFs, datasheets, BOMs, specifications, manuals, or reports</span>
+                  <div><button onClick={() => documentInput.current?.click()}><Upload size={12} /> Choose documents</button></div>
+                  <input ref={documentInput} hidden type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.md,.ppt,.pptx,application/pdf,text/*" multiple onChange={(event) => void addFiles(Array.from(event.target.files ?? []), 'document')} />
+                </div>}
+              </div></>}
 
-              {sources.length > 0 && <div className="scratch-source-previews">{sources.map((source) => <article key={source.id}>{source.kind === 'image' ? <img src={source.url} alt={`Local reference ${source.name}`} /> : <video src={source.url} controls preload="metadata" />}<button aria-label={`Remove ${source.name}`} onClick={() => removeSource(source.id)}><X size={12} /></button><div><b>{source.name}</b><span>{formatBytes(source.sizeBytes)} · {source.kind === 'video' ? formatDuration(source.durationSeconds) : 'Image'}</span></div></article>)}</div>}
+              {sources.length > 0 && <div className="scratch-source-previews">{sources.map((source) => <article className={source.kind === 'document' ? 'document-source' : ''} key={source.id}>{source.kind === 'image' ? <img src={source.url} alt={`Local reference ${source.name}`} /> : source.kind === 'video' ? <video src={source.url} controls preload="metadata" /> : <button className="document-preview-button" onClick={() => setPreviewDocumentId(source.id)}><FileText size={22} /><span>Preview</span></button>}<button className="remove-source" aria-label={`Remove ${source.name}`} onClick={() => removeSource(source.id)}><X size={12} /></button>{source.kind === 'document' && <button className="replace-document" onClick={() => { setReplaceDocumentId(source.id); replaceDocumentInput.current?.click(); }}>Replace</button>}<div><b>{source.name}</b><span>{formatBytes(source.sizeBytes)} · {source.kind === 'video' ? formatDuration(source.durationSeconds) : source.kind === 'image' ? 'Image' : documentTypeLabel(source)}</span></div></article>)}</div>}
+              <input ref={replaceDocumentInput} hidden type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.md,.ppt,.pptx,application/pdf,text/*" onChange={(event) => { void addFiles(Array.from(event.target.files ?? []), 'document', replaceDocumentId); event.currentTarget.value = ''; setReplaceDocumentId(null); }} />
 
               <label className="scratch-notes"><span>Additional notes</span><textarea value={additionalNotes} onChange={(event) => setAdditionalNotes(event.target.value)} placeholder="I want it to behave like the rover in this video, but smaller." /></label>
-              <div className="scratch-input-formula"><span>Text</span><i>+</i><span>Images</span><i>+</i><span>Videos</span><ArrowRight size={14} /><b>Structured build intent</b></div>
+              <div className="scratch-input-formula"><span>Text</span><i>+</i><span>Images</span><i>+</i><span>Video</span><i>+</i><span>Documents</span><ArrowRight size={14} /><b>Structured build intent</b></div>
               {error && <div className="backend-error">{error}</div>}
               <footer className="scratch-footer"><button className="secondary" onClick={onClose}>Cancel</button><button className="primary" onClick={() => void runAnalysis()}><Sparkles size={14} /> Analyze Build Intent</button></footer>
             </div>
@@ -248,6 +308,7 @@ export function StartFromScratch({ onClose, onCreate }: { onClose: () => void; o
                 <section><div className="scratch-section-title"><div><span>BUILD GOAL</span><b>Extracted requirements</b></div></div><div className="requirement-list">{intent.requirements.map((requirement) => <div key={requirement.key}><span>{requirement.label}</span><b>{requirement.value}</b><small>{requirement.source.replace('-', ' ')}</small></div>)}</div></section>
                 <section><div className="scratch-section-title"><div><span>OPEN QUESTIONS</span><b>Missing decisions</b></div></div><div className="missing-list">{intent.missingDecisions.map((decision) => <span key={decision}><Plus size={10} />{decision}</span>)}</div>{intent.mediaObservations.length > 0 && <div className="media-observation"><Info size={13} /><span><b>Reference media retained</b>{intent.mediaObservations.map((observation) => <small key={observation.sourceId}>{observation.summary}</small>)}</span></div>}</section>
               </div>
+              {intent.documentObservations.length > 0 && <section className="scratch-document-results"><div className="scratch-section-title"><div><span>DOCUMENT SOURCES</span><b>Prototype document interpretation</b></div><small>Future parser: Nemotron Parse 2.0</small></div>{intent.documentObservations.map((document) => <article key={document.sourceId}><header><FileText size={14} /><span><b>{document.title}</b><small>{document.sourceName} · {document.mode} · no model inference</small></span></header>{document.properties.length > 0 ? <dl>{document.properties.map((property) => <div key={property.key}><dt>{property.label}</dt><dd>{property.value}<small>Source · {property.sourceName}</small></dd></div>)}</dl> : <p>The file is retained as a local source. No deterministic demo extraction is defined for this filename.</p>}</article>)}</section>}
 
               <div className="clarification-heading"><span>ONLY THE DECISIONS THAT CHANGE THE DESIGN</span><h3>Clarify the important uncertainty</h3></div>
               <div className="clarification-grid">{QUESTIONS.map((question) => <section key={question.key}><b>{question.title}</b><div>{question.choices.map((choice) => <button className={answers[question.key] === choice ? 'active' : ''} onClick={() => setAnswers((current) => ({ ...current, [question.key]: choice }))} key={choice}>{choice}{answers[question.key] === choice && <Check size={11} />}</button>)}</div></section>)}</div>
@@ -273,6 +334,7 @@ export function StartFromScratch({ onClose, onCreate }: { onClose: () => void; o
           )}
         </div>
       </section>
+      {previewDocument && <div className="scratch-document-preview" role="dialog" aria-modal="true" aria-label={`Preview ${previewDocument.name}`} onMouseDown={(event) => { if (event.target === event.currentTarget) setPreviewDocumentId(null); }}><section><header><div><FileText size={16} /><span><b>{previewDocument.name}</b><small>{formatBytes(previewDocument.sizeBytes)} · browser-local preview</small></span></div><button aria-label="Close document preview" onClick={() => setPreviewDocumentId(null)}><X size={15} /></button></header>{previewDocument.mimeType === 'application/pdf' ? <iframe title={previewDocument.name} src={previewDocument.url} /> : <div className="document-preview-unavailable"><FileText size={30} /><b>Preview is not available for this file type</b><span>{documentTypeLabel(previewDocument)} is retained locally and will remain attached to the structured build intent.</span></div>}</section></div>}
     </div>
   );
 }

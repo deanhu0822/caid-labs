@@ -35,10 +35,20 @@ export type FormaReasoningResult<T = unknown> = {
 };
 
 export type FormaDocumentArtifacts = {
+  sourceId: string;
   title: string;
+  artifactType: 'component-specification' | 'bom' | 'requirements' | 'manual' | 'engineering-document';
+  component: string | null;
   sections: Array<{ heading: string; text: string }>;
   partNumbers: string[];
   requirements: Array<{ key: string; value: string }>;
+  properties: Array<{
+    key: string;
+    label: string;
+    value: string;
+    sourceId: string;
+    sourceName: string;
+  }>;
 };
 
 export type FormaInferenceConfig = {
@@ -60,16 +70,29 @@ export interface FormaInferenceProvider {
     context?: string;
   }): Promise<FormaMediaObservation>;
   reason<T>(input: { objective: string; engineeringState: unknown; featureContract?: unknown; mockResult: T }): Promise<FormaReasoningResult<T>>;
-  parseDocument(input: { name: string; mimeType?: string; text?: string; dataUrl?: string }): Promise<FormaReasoningResult<FormaDocumentArtifacts>>;
+  parseDocument(input: { sourceId: string; name: string; mimeType?: string; text?: string; dataUrl?: string }): Promise<FormaReasoningResult<FormaDocumentArtifacts>>;
 }
 
 export const FORMA_MODEL_ROLES = {
   reasoning: 'Llama-3.1-Nemotron-70B-Instruct',
   vision: 'Cosmos-Reason1-7B',
-  parse: 'Nemotron-Parse-2.0',
+  parse: 'nvidia/NVIDIA-Nemotron-Parse-2.0',
 } as const;
 
 const MOCK_DISCLOSURE = 'Deterministic demo output. No model inference was performed.';
+
+function emptyDocumentArtifacts(input: Parameters<FormaInferenceProvider['parseDocument']>[0]): FormaDocumentArtifacts {
+  return {
+    sourceId: input.sourceId,
+    title: input.name,
+    artifactType: 'engineering-document',
+    component: null,
+    sections: [],
+    partNumbers: [],
+    requirements: [],
+    properties: [],
+  };
+}
 
 export class MockFormaInferenceProvider implements FormaInferenceProvider {
   readonly name = 'mock' as const;
@@ -106,11 +129,28 @@ export class MockFormaInferenceProvider implements FormaInferenceProvider {
 
   async parseDocument(input: Parameters<FormaInferenceProvider['parseDocument']>[0]): Promise<FormaReasoningResult<FormaDocumentArtifacts>> {
     await Promise.resolve();
+    const looksLikeMotorM4 = /(?:motor[^a-z0-9]*m4|m4[^a-z0-9]*motor)/i.test(input.name);
+    const structured = looksLikeMotorM4
+      ? {
+          sourceId: input.sourceId,
+          title: 'Motor M4 Datasheet',
+          artifactType: 'component-specification' as const,
+          component: 'Motor M4',
+          sections: [{ heading: 'Prototype specification extraction', text: 'Deterministic values for the Forma document-input demonstration.' }],
+          partNumbers: ['MTR-24-290'],
+          requirements: [{ key: 'motor-voltage', value: '24 V' }, { key: 'motor-peak-current', value: '11.2 A' }, { key: 'motor-torque', value: '8.4 Nm' }],
+          properties: [
+            { key: 'voltage', label: 'Voltage', value: '24 V', sourceId: input.sourceId, sourceName: input.name },
+            { key: 'peak-current', label: 'Peak current', value: '11.2 A', sourceId: input.sourceId, sourceName: input.name },
+            { key: 'torque', label: 'Torque', value: '8.4 Nm', sourceId: input.sourceId, sourceName: input.name },
+          ],
+        }
+      : emptyDocumentArtifacts(input);
     return {
       mode: 'mock',
       inferencePerformed: false,
-      summary: MOCK_DISCLOSURE,
-      structured: { title: input.name, sections: [], partNumbers: [], requirements: [] },
+      summary: looksLikeMotorM4 ? 'Prototype document interpretation using deterministic Motor M4 demo values. No model inference was performed.' : MOCK_DISCLOSURE,
+      structured,
     };
   }
 }
@@ -186,10 +226,10 @@ export class NvidiaLocalInferenceProvider implements FormaInferenceProvider {
 
   async parseDocument(input: Parameters<FormaInferenceProvider['parseDocument']>[0]): Promise<FormaReasoningResult<FormaDocumentArtifacts>> {
     if (!this.config.parseUrl) {
-      if (this.config.allowMockFallback === false) return { mode: 'unavailable', inferencePerformed: false, summary: 'Local document parser endpoint is not configured.', structured: { title: input.name, sections: [], partNumbers: [], requirements: [] } };
+      if (this.config.allowMockFallback === false) return { mode: 'unavailable', inferencePerformed: false, summary: 'Local document parser endpoint is not configured.', structured: emptyDocumentArtifacts(input) };
       return this.fallback.parseDocument(input);
     }
-    const empty: FormaDocumentArtifacts = { title: input.name, sections: [], partNumbers: [], requirements: [] };
+    const empty = emptyDocumentArtifacts(input);
     try {
       const raw = await this.invoke<FormaDocumentArtifacts>(this.config.parseUrl, { model: FORMA_MODEL_ROLES.parse, task: 'extract_engineering_artifacts', input });
       return { mode: 'local', inferencePerformed: true, summary: raw.summary ?? 'Local document parsing completed.', structured: (raw.structured ?? raw.output ?? empty) as FormaDocumentArtifacts, raw };

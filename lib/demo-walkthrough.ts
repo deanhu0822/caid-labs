@@ -65,6 +65,7 @@ export function demoAgentResponse(): AgentResponse {
       'motor-control',
       'battery',
       'chassis',
+      'motor-m4-datasheet',
     ],
     evidence: [
       {
@@ -73,6 +74,13 @@ export function demoAgentResponse(): AgentResponse {
         excerpt: 'Motor M4 provides +32% torque, fits CHS-240, and is available within the BOM ceiling.',
         artifactIds: ['motor-bom', 'motor-controller', 'chassis'],
         score: 98,
+      },
+      {
+        sourceFile: 'motor_M4_datasheet.pdf',
+        title: 'Motor M4 component specification',
+        excerpt: 'Prototype document interpretation records 24 V, 11.2 A peak current, and 8.4 Nm torque. No model inference was performed.',
+        artifactIds: ['motor-bom', 'motor-m4-datasheet'],
+        score: 95,
       },
       {
         sourceFile: 'features/validation.json',
