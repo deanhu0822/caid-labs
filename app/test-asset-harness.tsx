@@ -14,15 +14,15 @@ export function TestAssetHarness({ onClose }: { onClose: () => void }) {
   const [result, setResult] = useState<EngineeringTestRunResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [parserMode, setParserMode] = useState<'checking' | 'mock' | 'local' | 'unavailable'>('checking');
+  const [parserMode, setParserMode] = useState<'checking' | 'nvidia-build' | 'mock' | 'local' | 'unavailable'>('checking');
   const asset = useMemo(() => ENGINEERING_TEST_ASSETS.find((item) => item.id === selectedId)!, [selectedId]);
-  const displayedStatus = result?.statusLabel ?? (parserMode === 'local' ? 'Local' : parserMode === 'mock' ? 'Prototype' : parserMode === 'unavailable' ? 'Unavailable' : 'Checking…');
+  const displayedStatus = result?.statusLabel ?? (parserMode === 'nvidia-build' ? 'NVIDIA Build' : parserMode === 'local' ? 'Local' : parserMode === 'mock' ? 'Prototype' : parserMode === 'unavailable' ? 'Unavailable' : 'Checking…');
   const displayedStatusClass = result?.status ?? (parserMode === 'local' ? 'local' : parserMode === 'unavailable' ? 'unavailable' : 'prototype');
 
   useEffect(() => {
     const controller = new AbortController();
     fetch('/api/inference/status', { signal: controller.signal })
-      .then((response) => response.ok ? response.json() as Promise<{ services: Array<{ capability: string; mode: 'mock' | 'local' | 'unavailable' }> }> : Promise.reject(new Error('Inference status unavailable')))
+      .then((response) => response.ok ? response.json() as Promise<{ services: Array<{ capability: string; mode: 'nvidia-build' | 'mock' | 'local' | 'unavailable' }> }> : Promise.reject(new Error('Inference status unavailable')))
       .then((status) => setParserMode(status.services.find((service) => service.capability === 'document-parse')?.mode ?? 'unavailable'))
       .catch((statusError: Error) => { if (statusError.name !== 'AbortError') setParserMode('unavailable'); });
     return () => controller.abort();

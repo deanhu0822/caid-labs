@@ -1,4 +1,4 @@
-export type FormaInferenceMode = 'local' | 'mock' | 'unavailable';
+export type FormaInferenceMode = 'nvidia-build' | 'local' | 'mock' | 'unavailable';
 
 export type FormaInferenceCapability = 'reasoning' | 'vision' | 'document-parse';
 
@@ -7,11 +7,16 @@ export type FormaInferenceServiceStatus = {
   mode: FormaInferenceMode;
   model: string;
   endpointConfigured: boolean;
+  connected?: boolean;
+  detail?: string;
 };
 
 export type FormaInferenceStatus = {
   mode: FormaInferenceMode;
-  provider: 'mock' | 'nvidia-local';
+  provider: 'mock' | 'nvidia-local' | 'nvidia-build';
+  connected?: boolean;
+  endpoint?: string;
+  checkedAt?: string;
   services: FormaInferenceServiceStatus[];
   disclosure: string;
 };
@@ -59,8 +64,9 @@ export type FormaInferenceConfig = {
 };
 
 export interface FormaInferenceProvider {
-  readonly name: 'mock' | 'nvidia-local';
+  readonly name: 'mock' | 'nvidia-local' | 'nvidia-build';
   getStatus(): FormaInferenceStatus;
+  checkHealth?(options?: { probe?: boolean }): Promise<FormaInferenceStatus>;
   observeMedia(input: {
     sourceId: string;
     kind: 'image' | 'video' | 'physical-state';

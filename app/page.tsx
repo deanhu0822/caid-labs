@@ -95,6 +95,7 @@ import type { PrototypeBuildDefinition } from '@/lib/new-build-adapter';
 import { DEMO_FEATURES, DEMO_IMPACT_IDS, DEMO_OBJECTIVE, DEMO_STAGES, demoAgentResponse } from '@/lib/demo-walkthrough';
 import type { OpenCadRealizationRecord } from '@/lib/opencad-adapter';
 import { mapProductToGraph, type ProductCandidateId } from '@/lib/product-state';
+import type { FormaInferenceStatus } from '@/lib/forma-inference';
 
 type ArtifactData = Artifact & { activeRevision: string };
 type ArtifactNode = Node<ArtifactData, 'artifact'>;
@@ -1350,16 +1351,21 @@ function AgentPanel({ productCandidateId, onClose, onArtifacts }: { productCandi
   const [question, setQuestion] = useState(AGENT_PROMPTS.product);
   const [answer, setAnswer] = useState<AgentResponse | null>(null);
   const [health, setHealth] = useState<CorpusHealth | null>(null);
+  const [inferenceStatus, setInferenceStatus] = useState<FormaInferenceStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [demoAnswer, setDemoAnswer] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
-    fetch('/api/health', { signal: controller.signal })
-      .then((response) => response.ok ? response.json() as Promise<CorpusHealth> : Promise.reject(new Error('Corpus unavailable')))
-      .then(setHealth)
-      .catch((cause: Error) => { if (cause.name !== 'AbortError') setError(cause.message); });
+    Promise.all([
+      fetch('/api/health', { signal: controller.signal })
+        .then((response) => response.ok ? response.json() as Promise<CorpusHealth> : Promise.reject(new Error('Corpus unavailable')))
+        .then(setHealth),
+      fetch('/api/inference/status', { signal: controller.signal })
+        .then((response) => response.ok ? response.json() as Promise<FormaInferenceStatus> : Promise.reject(new Error('Inference status unavailable')))
+        .then(setInferenceStatus),
+    ]).catch((cause: Error) => { if (cause.name !== 'AbortError') setError(cause.message); });
     return () => controller.abort();
   }, []);
 
@@ -1416,7 +1422,7 @@ function AgentPanel({ productCandidateId, onClose, onArtifacts }: { productCandi
           <EvidenceList evidence={answer.evidence} limit={3} />
         </div>
       )}
-      <div className="runtime-note"><Cable size={15} /><div><b>Runs locally</b><span>No database or cloud model is required.</span></div></div>
+      <div className="runtime-note"><Cable size={15} /><div><b>{inferenceStatus ? `${inferenceStatus.provider} · ${inferenceStatus.connected ? 'connected' : inferenceStatus.mode}` : 'Checking inference provider'}</b><span>{inferenceStatus ? `${inferenceStatus.services.find((service) => service.capability === 'reasoning')?.model ?? 'No reasoning model'} · ${inferenceStatus.disclosure}` : 'Loading server-only provider status…'}</span></div></div>
     </div>
   );
 }

@@ -51,7 +51,7 @@ async function routeReasoningThroughProvider(response: AgentResponse): Promise<A
     mockResult: response,
   });
 
-  if (assisted.mode !== 'local' || !assisted.inferencePerformed) return response;
+  if (!assisted.inferencePerformed) return response;
   const candidate = assisted.structured;
   return {
     ...response,
