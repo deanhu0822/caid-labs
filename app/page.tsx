@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Background,
   BackgroundVariant,
@@ -52,6 +52,7 @@ import {
   type Category,
   type EdgeKind,
 } from './product-data';
+import type { AgentKind, AgentResponse, CorpusHealth } from '@/lib/corpus-types';
 
 type ArtifactData = Artifact & { activeRevision: string };
 type ArtifactNode = Node<ArtifactData, 'artifact'>;
@@ -86,6 +87,17 @@ function sleep(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
+async function askAgent(agent: AgentKind, question: string): Promise<AgentResponse> {
+  const response = await fetch('/api/agents/query', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ agent, question }),
+  });
+  const payload = await response.json() as AgentResponse & { error?: string };
+  if (!response.ok) throw new Error(payload.error || 'The corpus agent could not answer that question.');
+  return payload;
+}
+
 export default function Home() {
   const [allNodes, , onNodesChange] = useNodesState<ArtifactNode>(initialNodes);
   const [activeCategories, setActiveCategories] = useState<Set<Category>>(new Set(Object.keys(CATEGORY_META) as Category[]));
@@ -95,6 +107,10 @@ export default function Home() {
   const [impactOpen, setImpactOpen] = useState(false);
   const [builderQuery, setBuilderQuery] = useState('');
   const [builderResult, setBuilderResult] = useState(false);
+  const [builderAnswer, setBuilderAnswer] = useState<AgentResponse | null>(null);
+  const [builderLoading, setBuilderLoading] = useState(false);
+  const [builderError, setBuilderError] = useState('');
+  const [reasonedArtifactIds, setReasonedArtifactIds] = useState<string[]>([]);
   const [scannerMatched, setScannerMatched] = useState(false);
   const [revision, setRevision] = useState('Rev C');
   const [searchOpen, setSearchOpen] = useState(false);
@@ -116,11 +132,12 @@ export default function Home() {
 
   const highlighted = useMemo(() => {
     if (impactOpen) return new Set(J12_BLAST);
-    if (mode === 'builder' && builderResult) return new Set(BUILDER_BLAST);
+    if (mode === 'builder' && builderResult) return new Set(reasonedArtifactIds.length ? reasonedArtifactIds : BUILDER_BLAST);
+    if (mode === 'agents' && reasonedArtifactIds.length) return new Set(reasonedArtifactIds);
     if (mode === 'scanner' && scannerMatched) return new Set(J12_BLAST);
     if (selectedId === 'j12') return new Set(J12_BLAST);
     return new Set([selectedId, ...connectedIds]);
-  }, [builderResult, connectedIds, impactOpen, mode, scannerMatched, selectedId]);
+  }, [builderResult, connectedIds, impactOpen, mode, reasonedArtifactIds, scannerMatched, selectedId]);
 
   const visibleNodes = useMemo(() => allNodes
     .filter((node) => activeCategories.has(node.data.category))
@@ -177,10 +194,24 @@ export default function Home() {
     }
   };
 
-  const runBuilder = (query = builderQuery) => {
-    setBuilderQuery(query || 'Increase payload capacity');
-    setBuilderResult(true);
-    setSelectedId('motor-bom');
+  const runBuilder = async (query = builderQuery) => {
+    const objective = (query || 'Increase payload capacity').trim();
+    setBuilderQuery(objective);
+    setBuilderResult(false);
+    setBuilderError('');
+    setBuilderLoading(true);
+    try {
+      const result = await askAgent('builder', objective);
+      setBuilderAnswer(result);
+      setBuilderResult(true);
+      setReasonedArtifactIds(result.artifactIds);
+      const firstVisibleId = result.artifactIds.find((id) => ARTIFACTS.some((artifact) => artifact.id === id));
+      if (firstVisibleId) setSelectedId(firstVisibleId);
+    } catch (error) {
+      setBuilderError(error instanceof Error ? error.message : 'Builder query failed.');
+    } finally {
+      setBuilderLoading(false);
+    }
   };
 
   const runDemo = async () => {
@@ -188,6 +219,9 @@ export default function Home() {
     const token = ++demoToken.current;
     setDemoRunning(true);
     setBuilderResult(false);
+    setBuilderAnswer(null);
+    setBuilderError('');
+    setReasonedArtifactIds([]);
     setScannerMatched(false);
     setImpactOpen(false);
     setMode('graph');
@@ -202,9 +236,8 @@ export default function Home() {
     setMode('builder');
     setBuilderQuery('Increase payload capacity');
     setDemoLabel('3 / 5 · Builder is narrowing the graph');
-    await sleep(1200);
-    setBuilderResult(true);
-    setSelectedId('motor-bom');
+    await sleep(600);
+    await runBuilder('Increase payload capacity');
     await sleep(2200);
     setMode('scanner');
     setScannerMatched(false);
@@ -248,7 +281,7 @@ export default function Home() {
         <div className="header-actions">
           <button onClick={() => setSearchOpen(true)}><Search size={15} /> <span>Search graph</span><kbd>/</kbd></button>
           <button className="demo-top" onClick={runDemo} disabled={demoRunning}><Play size={14} /> {demoRunning ? 'Running…' : 'Run Demo'}</button>
-          <button className="accent" onClick={() => { setMode('builder'); setBuilderResult(false); }}><Sparkles size={15} /> Builder</button>
+          <button className="accent" onClick={() => { setMode('builder'); setBuilderResult(false); setBuilderAnswer(null); setBuilderError(''); }}><Sparkles size={15} /> Builder</button>
         </div>
       </header>
 
@@ -315,16 +348,19 @@ export default function Home() {
             <section className="mode-panel builder-panel panel-enter" key="builder">
               <div className="mode-panel-head"><div><span className="mode-icon"><Sparkles size={15} /></span><div><div className="eyebrow">OBJECTIVE MODE</div><h3>Builder</h3></div></div><button onClick={() => setMode('graph')}><X size={15} /></button></div>
               <p>Describe the outcome. Builder surfaces only the product relationships relevant to it.</p>
-              <label className="builder-input"><input value={builderQuery} onChange={(e) => setBuilderQuery(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') runBuilder(); }} placeholder="What are you trying to build or change?" /><button onClick={() => runBuilder()}><Send size={14} /></button></label>
-              <div className="suggestions">{BUILDER_SUGGESTIONS.map((suggestion) => <button key={suggestion} onClick={() => runBuilder(suggestion)}>{suggestion}</button>)}</div>
+              <label className="builder-input"><input value={builderQuery} onChange={(e) => setBuilderQuery(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void runBuilder(); } }} placeholder="What are you trying to build or change?" /><button disabled={builderLoading} onClick={() => void runBuilder()} aria-label="Ask Builder"><Send size={14} /></button></label>
+              <div className="suggestions">{BUILDER_SUGGESTIONS.map((suggestion) => <button key={suggestion} disabled={builderLoading} onClick={() => void runBuilder(suggestion)}>{suggestion}</button>)}</div>
+              {builderLoading && <div className="backend-loading"><span className="pulse-dot" /> Reading the rover corpus and tracing dependencies...</div>}
+              {builderError && <div className="backend-error">{builderError}</div>}
               <>
-                {builderResult && (
+                {builderResult && builderAnswer && (
                   <div className="recommendation panel-enter">
-                    <div className="recommendation-label"><Zap size={13} /> BUILDER RECOMMENDATION</div>
-                    <h4>Upgrade Motor M2 → M4</h4>
-                    <div className="metric-row"><span><b>+32%</b> torque</span><span><b>+18%</b> power</span><span><b>+120g</b> mass</span></div>
-                    <p>Controller current limit must change. Battery runtime falls approximately 11% under peak load.</p>
-                    <div className="affected-line"><span>6 relevant artifacts isolated</span><button onClick={() => setMode('graph')}>View graph <ChevronRight size={12} /></button></div>
+                    <div className="recommendation-label"><Zap size={13} /> LIVE CORPUS RECOMMENDATION</div>
+                    <h4>{builderAnswer.matchedTask?.prompt ?? builderQuery}</h4>
+                    <div className="metric-row"><span><b>{Math.round(builderAnswer.confidence * 100)}%</b> confidence</span><span><b>{builderAnswer.artifactIds.length}</b> artifacts</span><span><b>{builderAnswer.latencyMs}ms</b> local query</span></div>
+                    <p>{builderAnswer.answer}</p>
+                    <EvidenceList evidence={builderAnswer.evidence} limit={3} />
+                    <div className="affected-line"><span>{builderAnswer.mode === 'ground-truth' ? 'Validated scenario match' : 'Ranked corpus retrieval'}</span><button onClick={() => setMode('graph')}>View graph <ChevronRight size={12} /></button></div>
                   </div>
                 )}
               </>
@@ -350,9 +386,16 @@ export default function Home() {
         </>
       </section>
 
-      <aside className="details">
+      <aside className={`details ${mode === 'agents' ? 'agents-open' : ''}`}>
         {mode === 'agents' ? (
-          <AgentPanel onClose={() => setMode('graph')} />
+          <AgentPanel
+            onClose={() => setMode('graph')}
+            onArtifacts={(ids) => {
+              setReasonedArtifactIds(ids);
+              const firstVisibleId = ids.find((id) => ARTIFACTS.some((artifact) => artifact.id === id));
+              if (firstVisibleId) setSelectedId(firstVisibleId);
+            }}
+          />
         ) : (
           <>
             <div className="detail-kicker"><span style={{ background: CATEGORY_META[selectedArtifact.category].color }} /> {selectedArtifact.code}</div>
@@ -412,18 +455,96 @@ export default function Home() {
   );
 }
 
-function AgentPanel({ onClose }: { onClose: () => void }) {
+function EvidenceList({ evidence, limit = 3 }: { evidence: AgentResponse['evidence']; limit?: number }) {
+  if (!evidence.length) return null;
+  return (
+    <div className="evidence-list" aria-label="Corpus evidence">
+      {evidence.slice(0, limit).map((item) => (
+        <div className="evidence-row" key={item.sourceFile}>
+          <span>{String(item.score).padStart(2, '0')}</span>
+          <div><b>{item.title}</b><small>{item.sourceFile}</small><p>{item.excerpt}</p></div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const AGENT_PROMPTS: Record<AgentKind, string> = {
+  product: 'What systems are affected if J12 changes?',
+  supply: 'J12 is unavailable. What replacement can we use and what are the tradeoffs?',
+  builder: 'Increase payload capacity by 30% using currently available parts. Produce a build/change plan.',
+};
+
+function AgentPanel({ onClose, onArtifacts }: { onClose: () => void; onArtifacts: (ids: string[]) => void }) {
   const agents = [
-    ['Product Agent', 'Understands product dependencies', '14 ms', Cpu],
-    ['Supply Agent', 'Checks availability and alternatives', 'idle', Activity],
-    ['Build Agent', 'Reasons about assembly changes', '22 ms', Box],
-  ] as const;
+    { kind: 'product' as const, name: 'Product Agent', copy: 'Traces dependencies and revision impact', Icon: Cpu },
+    { kind: 'supply' as const, name: 'Supply Agent', copy: 'Checks stock, lead time, and alternatives', Icon: Activity },
+    { kind: 'builder' as const, name: 'Builder Agent', copy: 'Creates evidence-backed change plans', Icon: Box },
+  ];
+  const [activeAgent, setActiveAgent] = useState<AgentKind>('product');
+  const [question, setQuestion] = useState(AGENT_PROMPTS.product);
+  const [answer, setAnswer] = useState<AgentResponse | null>(null);
+  const [health, setHealth] = useState<CorpusHealth | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch('/api/health', { signal: controller.signal })
+      .then((response) => response.ok ? response.json() as Promise<CorpusHealth> : Promise.reject(new Error('Corpus unavailable')))
+      .then(setHealth)
+      .catch((cause: Error) => { if (cause.name !== 'AbortError') setError(cause.message); });
+    return () => controller.abort();
+  }, []);
+
+  const selectAgent = (agent: AgentKind) => {
+    setActiveAgent(agent);
+    setQuestion(AGENT_PROMPTS[agent]);
+    setAnswer(null);
+    setError('');
+    onArtifacts([]);
+  };
+
+  const submit = async () => {
+    if (!question.trim() || loading) return;
+    setLoading(true);
+    setError('');
+    try {
+      const result = await askAgent(activeAgent, question.trim());
+      setAnswer(result);
+      onArtifacts(result.artifactIds);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Agent query failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="agent-panel">
-      <div className="mode-panel-head"><div><span className="mode-icon"><Bot size={16} /></span><div><div className="eyebrow">ON-DEVICE RUNTIME</div><h3>Local Agents</h3></div></div><button onClick={onClose}><X size={15} /></button></div>
-      <p>Mock reasoning services connected to the same versioned product graph.</p>
-      <div className="agent-list">{agents.map(([name, copy, latency, Icon], index) => <div key={name}><span className="agent-icon"><Icon size={16} /></span><div><h4>{name}<b>LOCAL</b></h4><p>{copy}</p><small><i /> READY · {latency}</small></div><button><ChevronRight size={14} /></button></div>)}</div>
-      <div className="runtime-note"><Cable size={15} /><div><b>No cloud connection</b><span>Prototype responses are deterministic mock data.</span></div></div>
+      <div className="mode-panel-head"><div><span className="mode-icon"><Bot size={16} /></span><div><div className="eyebrow">CORPUS RUNTIME</div><h3>Engineering Agents</h3></div></div><button onClick={onClose}><X size={15} /></button></div>
+      <p>Each agent uses the committed rover dataset and returns the files and graph artifacts behind its answer.</p>
+      <div className={`backend-state ${health ? 'online' : ''}`}><span /><div><b>{health ? 'Corpus backend online' : 'Connecting to corpus...'}</b><small>{health ? `${health.indexedDocuments} indexed documents · ${health.artifacts} artifacts · ${health.scenarios} scenarios` : 'Initializing the local dataset index'}</small></div></div>
+      <div className="agent-list">
+        {agents.map(({ kind, name, copy, Icon }) => (
+          <button className={`agent-card ${activeAgent === kind ? 'active' : ''}`} key={kind} onClick={() => selectAgent(kind)}>
+            <span className="agent-icon"><Icon size={16} /></span>
+            <span><strong>{name}<b>LIVE</b></strong><small>{copy}</small></span>
+            <ChevronRight size={14} />
+          </button>
+        ))}
+      </div>
+      <label className="agent-query"><span>ASK {activeAgent.toUpperCase()}</span><textarea value={question} onChange={(event) => setQuestion(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void submit(); } }} /><button disabled={loading} onClick={() => void submit()}><Send size={13} /> {loading ? 'Reading corpus...' : 'Run agent'}</button></label>
+      {error && <div className="backend-error">{error}</div>}
+      {answer && (
+        <div className="agent-response panel-enter">
+          <div className="agent-response-head"><span>{answer.mode === 'ground-truth' ? 'VALIDATED ANSWER' : 'CORPUS RETRIEVAL'}</span><b>{Math.round(answer.confidence * 100)}% · {answer.latencyMs}ms</b></div>
+          <p>{answer.answer}</p>
+          <div className="agent-artifacts">{answer.artifactIds.slice(0, 8).map((id) => <span key={id}>{id}</span>)}</div>
+          <EvidenceList evidence={answer.evidence} limit={3} />
+        </div>
+      )}
+      <div className="runtime-note"><Cable size={15} /><div><b>Local-first backend</b><span>No database or cloud model required.</span></div></div>
     </div>
   );
 }
