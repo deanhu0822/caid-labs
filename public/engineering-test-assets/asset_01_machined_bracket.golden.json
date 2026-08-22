@@ -1,0 +1,57 @@
+{
+  "parts": [
+    {
+      "name": "Mounting Bracket",
+      "quantity": 1,
+      "material": "Aluminum 6061-T6",
+      "confidence": 1.0
+    }
+  ],
+  "dimensions": [
+    {
+      "label": "Overall length",
+      "value_text": "220.0 \u00b10.2",
+      "unit": "mm",
+      "confidence": 1.0
+    },
+    {
+      "label": "Overall height",
+      "value_text": "120.0 \u00b10.2",
+      "unit": "mm",
+      "confidence": 1.0
+    },
+    {
+      "label": "Hole spacing (horizontal)",
+      "value_text": "160.0",
+      "unit": "mm",
+      "confidence": 1.0
+    },
+    {
+      "label": "Thickness",
+      "value_text": "10.0",
+      "unit": "mm",
+      "confidence": 1.0
+    },
+    {
+      "label": "Hole diameter",
+      "value_text": "18.0",
+      "unit": "mm",
+      "confidence": 1.0
+    }
+  ],
+  "risks": [
+    {
+      "title": "Edge-distance on \u00d818 holes may be marginal",
+      "severity": "low",
+      "rationale": "Holes are 30 mm from edges; adequate but no positional tolerance is called out on the pattern.",
+      "mitigation": "Add a position tolerance to the 4X hole pattern relative to datums.",
+      "confidence": 1.0
+    }
+  ],
+  "tasks": [
+    {
+      "title": "Confirm hole pattern position tolerance with design",
+      "source": "ai"
+    }
+  ]
+}

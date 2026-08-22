@@ -1,0 +1,76 @@
+{
+  "parts": [
+    {
+      "name": "Enclosure Housing",
+      "quantity": 1,
+      "material": "ABS",
+      "confidence": 1.0
+    }
+  ],
+  "dimensions": [
+    {
+      "label": "Nominal wall thickness",
+      "value_text": "1.5",
+      "unit": "mm",
+      "confidence": 1.0
+    },
+    {
+      "label": "Boss thickness",
+      "value_text": "4.0",
+      "unit": "mm",
+      "confidence": 1.0
+    },
+    {
+      "label": "Overall width",
+      "value_text": "120.0",
+      "unit": "mm",
+      "confidence": 1.0
+    },
+    {
+      "label": "Overall height",
+      "value_text": "70.0",
+      "unit": "mm",
+      "confidence": 1.0
+    }
+  ],
+  "risks": [
+    {
+      "title": "Wall thickness 1.5 mm may be too thin for moldability/strength",
+      "severity": "high",
+      "rationale": "1.5 mm ABS walls are near the lower bound for reliable fill and can warp; many guidelines recommend ~2.5-3 mm.",
+      "mitigation": "Increase nominal wall toward 2.5-3 mm or validate fill with mold-flow analysis.",
+      "confidence": 1.0
+    },
+    {
+      "title": "Thick boss (4.0 mm) risks sink marks",
+      "severity": "medium",
+      "rationale": "Boss is >2x nominal wall; thick sections cool slower and cause sink/voids.",
+      "mitigation": "Core out the boss and keep features <=60% of nominal wall, add ribs.",
+      "confidence": 1.0
+    },
+    {
+      "title": "Sharp internal corner (R0) is a stress concentrator",
+      "severity": "medium",
+      "rationale": "Zero-radius internal corners concentrate stress and impede flow.",
+      "mitigation": "Add an internal fillet (>=0.5x wall).",
+      "confidence": 1.0
+    },
+    {
+      "title": "No draft angle specified",
+      "severity": "medium",
+      "rationale": "Without draft, the part is hard to eject and may drag/scuff.",
+      "mitigation": "Specify >=1 deg draft on vertical faces.",
+      "confidence": 1.0
+    }
+  ],
+  "tasks": [
+    {
+      "title": "Run mold-flow analysis on 1.5 mm wall",
+      "source": "ai"
+    },
+    {
+      "title": "Add draft angle callout to vertical faces",
+      "source": "ai"
+    }
+  ]
+}

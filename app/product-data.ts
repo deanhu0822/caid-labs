@@ -35,6 +35,8 @@ export type Relation = {
   source: string;
   target: string;
   kind: EdgeKind;
+  description?: string;
+  productRelationship?: string;
 };
 
 export const CATEGORY_META: Record<Category, { label: string; color: string }> = {
@@ -98,15 +100,36 @@ export const ARTIFACTS: Artifact[] = [
   { id: 'motor-m4-datasheet', label: 'Motor M4 Datasheet', category: 'documents', code: 'DOC · PDF', meta: 'motor_M4_datasheet.pdf', x: 5, y: 1045, revision: 'Rev C' },
 ];
 
-const r = (source: string, target: string, kind: EdgeKind): Relation => ({ id: `${source}-${target}-${kind}`, source, target, kind });
+function describeRelation(source: string, target: string, kind: EdgeKind) {
+  const sourceLabel = ARTIFACTS.find((artifact) => artifact.id === source)?.label ?? source;
+  const targetLabel = ARTIFACTS.find((artifact) => artifact.id === target)?.label ?? target;
+  const descriptions: Record<EdgeKind, string> = {
+    contains: `${sourceLabel} physically contains or locates ${targetLabel}.`,
+    routes: `${sourceLabel} routes an engineering interface to ${targetLabel}.`,
+    drives: `${sourceLabel} sends control or power commands to ${targetLabel}.`,
+    sourced: `${sourceLabel} is sourced from ${targetLabel}.`,
+    validated: `${sourceLabel} is validated by ${targetLabel}.`,
+    depends: `${sourceLabel} depends on ${targetLabel}.`,
+    changed: `${sourceLabel} can be changed by ${targetLabel}.`,
+  };
+  return descriptions[kind];
+}
+
+const r = (source: string, target: string, kind: EdgeKind): Relation => ({
+  id: `${source}-${target}-${kind}`,
+  source,
+  target,
+  kind,
+  description: describeRelation(source, target, kind),
+});
 
 export const RELATIONS: Relation[] = [
   r('rover', 'chassis', 'contains'), r('rover', 'main-board', 'contains'), r('rover', 'camera-mount', 'contains'), r('rover', 'final-assembly', 'depends'),
   r('chassis', 'left-wheel', 'contains'), r('chassis', 'right-wheel', 'contains'), r('chassis', 'battery-enclosure', 'contains'), r('chassis', 'motor-housing', 'contains'),
   r('main-board', 'j12', 'contains'), r('main-board', 'motor-controller', 'contains'), r('main-board', 'power-board', 'contains'),
-  r('j12', 'chassis', 'routes'), r('j12', 'motor-control', 'drives'), r('j12', 'j12-bom', 'depends'), r('j12', 'qa-fixture', 'validated'),
+  r('j12', 'chassis', 'routes'), r('motor-control', 'j12', 'depends'), r('j12', 'j12-bom', 'depends'), r('j12', 'qa-fixture', 'validated'),
   r('j12-bom', 'molex', 'sourced'), r('cable-routing', 'j12', 'depends'),
-  r('motor-controller', 'motor-control', 'drives'), r('motor-controller', 'motor-driver', 'depends'), r('motor-control', 'motor-bom', 'drives'),
+  r('motor-control', 'motor-controller', 'drives'), r('motor-controller', 'motor-driver', 'depends'), r('motor-control', 'motor-bom', 'drives'), r('motor-control', 'motor-load-test', 'validated'),
   r('motor-bom', 'motor-supplier', 'sourced'), r('motor-install', 'motor-bom', 'depends'), r('motor-housing', 'motor-bom', 'contains'),
   r('motor-bom', 'motor-m4-datasheet', 'sourced'),
   r('power-board', 'battery-mgmt', 'drives'), r('power-board', 'battery', 'depends'), r('battery-enclosure', 'battery', 'contains'),

@@ -1,0 +1,1347 @@
+{
+  "$defs": {
+    "Appearance": {
+      "additionalProperties": false,
+      "properties": {
+        "overall_dimensions": {
+          "title": "Overall Dimensions",
+          "type": "string"
+        },
+        "geometry_summary": {
+          "title": "Geometry Summary",
+          "type": "string"
+        },
+        "finish": {
+          "title": "Finish",
+          "type": "string"
+        },
+        "color": {
+          "title": "Color",
+          "type": "string"
+        },
+        "key_features": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Key Features",
+          "type": "array"
+        },
+        "visual_description": {
+          "title": "Visual Description",
+          "type": "string"
+        }
+      },
+      "required": [
+        "overall_dimensions",
+        "geometry_summary",
+        "finish",
+        "color",
+        "visual_description"
+      ],
+      "title": "Appearance",
+      "type": "object"
+    },
+    "Circuit": {
+      "additionalProperties": false,
+      "properties": {
+        "summary": {
+          "default": "",
+          "title": "Summary",
+          "type": "string"
+        },
+        "nets": {
+          "items": {
+            "$ref": "#/$defs/Net"
+          },
+          "title": "Nets",
+          "type": "array"
+        },
+        "power_budget": {
+          "$ref": "#/$defs/PowerBudget"
+        },
+        "protection": {
+          "$ref": "#/$defs/Protection"
+        },
+        "prototype": {
+          "$ref": "#/$defs/CircuitPrototype"
+        },
+        "thermal": {
+          "$ref": "#/$defs/Thermal"
+        }
+      },
+      "title": "Circuit",
+      "type": "object"
+    },
+    "CircuitPrototype": {
+      "additionalProperties": false,
+      "properties": {
+        "method": {
+          "default": "",
+          "title": "Method",
+          "type": "string"
+        },
+        "steps": {
+          "items": {
+            "$ref": "#/$defs/ProtoStep"
+          },
+          "title": "Steps",
+          "type": "array"
+        },
+        "bring_up_checks": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Bring Up Checks",
+          "type": "array"
+        },
+        "notes": {
+          "default": "",
+          "title": "Notes",
+          "type": "string"
+        }
+      },
+      "title": "CircuitPrototype",
+      "type": "object"
+    },
+    "Component": {
+      "additionalProperties": false,
+      "properties": {
+        "component_id": {
+          "pattern": "^[a-z0-9_]+$",
+          "title": "Component Id",
+          "type": "string"
+        },
+        "display_name": {
+          "minLength": 1,
+          "title": "Display Name",
+          "type": "string"
+        },
+        "category": {
+          "enum": [
+            "mechanical",
+            "electrical",
+            "structural",
+            "control",
+            "interface",
+            "power",
+            "mounting",
+            "safety"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "3d_printed",
+            "machined",
+            "laser_cut",
+            "electronic",
+            "fastener",
+            "mechanical",
+            "consumable",
+            "misc"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "material": {
+          "title": "Material",
+          "type": "string"
+        },
+        "quantity": {
+          "minimum": 1,
+          "title": "Quantity",
+          "type": "integer"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "dimensions": {
+          "$ref": "#/$defs/Dimensions"
+        },
+        "functional_role": {
+          "title": "Functional Role",
+          "type": "string"
+        },
+        "pins": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pins"
+        },
+        "print_settings": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PrintSettings"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "fabrication_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fabrication Ref"
+        },
+        "sourcing_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sourcing Ref"
+        }
+      },
+      "required": [
+        "component_id",
+        "display_name",
+        "category",
+        "type",
+        "material",
+        "quantity",
+        "description",
+        "dimensions",
+        "functional_role"
+      ],
+      "title": "Component",
+      "type": "object"
+    },
+    "CostSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "total_usd": {
+          "minimum": 0.0,
+          "title": "Total Usd",
+          "type": "number"
+        },
+        "components_priced": {
+          "minimum": 0,
+          "title": "Components Priced",
+          "type": "integer"
+        },
+        "components_total": {
+          "minimum": 0,
+          "title": "Components Total",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "total_usd",
+        "components_priced",
+        "components_total"
+      ],
+      "title": "CostSummary",
+      "type": "object"
+    },
+    "Dimensions": {
+      "additionalProperties": false,
+      "properties": {
+        "raw": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Raw"
+        },
+        "length_mm": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Length Mm"
+        },
+        "width_mm": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Width Mm"
+        },
+        "height_mm": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Height Mm"
+        },
+        "diameter_mm": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Diameter Mm"
+        },
+        "thread": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Thread"
+        }
+      },
+      "title": "Dimensions",
+      "type": "object"
+    },
+    "Fabrication": {
+      "additionalProperties": false,
+      "properties": {
+        "processes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Processes",
+          "type": "array"
+        },
+        "component_settings": {
+          "additionalProperties": {
+            "$ref": "#/$defs/PrintSettings"
+          },
+          "title": "Component Settings",
+          "type": "object"
+        },
+        "post_processing": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Post Processing",
+          "type": "array"
+        },
+        "tolerances": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Tolerances",
+          "type": "object"
+        }
+      },
+      "title": "Fabrication",
+      "type": "object"
+    },
+    "Fastener": {
+      "additionalProperties": false,
+      "properties": {
+        "part": {
+          "title": "Part",
+          "type": "string"
+        },
+        "torque": {
+          "title": "Torque",
+          "type": "string"
+        }
+      },
+      "required": [
+        "part",
+        "torque"
+      ],
+      "title": "Fastener",
+      "type": "object"
+    },
+    "ImageGenerationPrompt": {
+      "additionalProperties": false,
+      "properties": {
+        "prompt": {
+          "title": "Prompt",
+          "type": "string"
+        },
+        "negative_prompt": {
+          "default": "",
+          "title": "Negative Prompt",
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
+        },
+        "style": {
+          "default": "",
+          "title": "Style",
+          "type": "string"
+        },
+        "view": {
+          "default": "",
+          "title": "View",
+          "type": "string"
+        },
+        "lighting": {
+          "default": "",
+          "title": "Lighting",
+          "type": "string"
+        },
+        "background": {
+          "default": "",
+          "title": "Background",
+          "type": "string"
+        },
+        "aspect_ratio": {
+          "default": "",
+          "title": "Aspect Ratio",
+          "type": "string"
+        }
+      },
+      "required": [
+        "prompt"
+      ],
+      "title": "ImageGenerationPrompt",
+      "type": "object"
+    },
+    "Instruction": {
+      "additionalProperties": false,
+      "properties": {
+        "step_id": {
+          "pattern": "^[a-z0-9_]+$",
+          "title": "Step Id",
+          "type": "string"
+        },
+        "phase": {
+          "enum": [
+            "fabrication",
+            "wiring",
+            "bring_up",
+            "assembly",
+            "testing"
+          ],
+          "title": "Phase",
+          "type": "string"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "component_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Component Ids",
+          "type": "array"
+        },
+        "dependencies": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Dependencies",
+          "type": "array"
+        },
+        "expected_result": {
+          "title": "Expected Result",
+          "type": "string"
+        },
+        "detail": {
+          "$ref": "#/$defs/StepDetail"
+        }
+      },
+      "required": [
+        "step_id",
+        "phase",
+        "title",
+        "expected_result",
+        "detail"
+      ],
+      "title": "Instruction",
+      "type": "object"
+    },
+    "Issue": {
+      "additionalProperties": false,
+      "properties": {
+        "severity": {
+          "enum": [
+            "error",
+            "warn"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "refs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "severity",
+        "code",
+        "message"
+      ],
+      "title": "Issue",
+      "type": "object"
+    },
+    "Net": {
+      "additionalProperties": false,
+      "properties": {
+        "net_id": {
+          "pattern": "^[a-z0-9_]+$",
+          "title": "Net Id",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "power",
+            "ground",
+            "signal",
+            "bus",
+            "analog",
+            "differential"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "voltage": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Voltage"
+        },
+        "members": {
+          "items": {
+            "$ref": "#/$defs/NetMember"
+          },
+          "minItems": 2,
+          "title": "Members",
+          "type": "array"
+        }
+      },
+      "required": [
+        "net_id",
+        "name",
+        "kind",
+        "members"
+      ],
+      "title": "Net",
+      "type": "object"
+    },
+    "NetMember": {
+      "additionalProperties": false,
+      "properties": {
+        "component": {
+          "pattern": "^[a-z0-9_]+$",
+          "title": "Component",
+          "type": "string"
+        },
+        "pin": {
+          "title": "Pin",
+          "type": "string"
+        }
+      },
+      "required": [
+        "component",
+        "pin"
+      ],
+      "title": "NetMember",
+      "type": "object"
+    },
+    "PowerBudget": {
+      "additionalProperties": false,
+      "properties": {
+        "input_source": {
+          "default": "",
+          "title": "Input Source",
+          "type": "string"
+        },
+        "rails": {
+          "items": {
+            "$ref": "#/$defs/PowerRail"
+          },
+          "title": "Rails",
+          "type": "array"
+        },
+        "total_power_w": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Total Power W"
+        },
+        "notes": {
+          "default": "",
+          "title": "Notes",
+          "type": "string"
+        }
+      },
+      "title": "PowerBudget",
+      "type": "object"
+    },
+    "PowerRail": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "voltage": {
+          "title": "Voltage",
+          "type": "string"
+        },
+        "estimated_current_a": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Estimated Current A"
+        },
+        "loads": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Loads",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "voltage"
+      ],
+      "title": "PowerRail",
+      "type": "object"
+    },
+    "PrintSettings": {
+      "additionalProperties": false,
+      "properties": {
+        "raw": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Raw"
+        },
+        "material": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Material"
+        },
+        "infill_pct": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Infill Pct"
+        },
+        "layer_mm": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Layer Mm"
+        },
+        "perimeters": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Perimeters"
+        },
+        "nozzle_mm": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Nozzle Mm"
+        }
+      },
+      "title": "PrintSettings",
+      "type": "object"
+    },
+    "Project": {
+      "additionalProperties": false,
+      "properties": {
+        "project_id": {
+          "pattern": "^[a-z0-9_]+$",
+          "title": "Project Id",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 2,
+          "title": "Name",
+          "type": "string"
+        },
+        "category": {
+          "title": "Category",
+          "type": "string"
+        },
+        "summary": {
+          "title": "Summary",
+          "type": "string"
+        },
+        "original_prompt": {
+          "title": "Original Prompt",
+          "type": "string"
+        },
+        "revision": {
+          "default": "A",
+          "title": "Revision",
+          "type": "string"
+        },
+        "variant_type": {
+          "default": "seed",
+          "enum": [
+            "seed",
+            "prompt_rewrite",
+            "positive_variant",
+            "evaluation_negative"
+          ],
+          "title": "Variant Type",
+          "type": "string"
+        },
+        "seed_project_id": {
+          "pattern": "^[a-z0-9_]+$",
+          "title": "Seed Project Id",
+          "type": "string"
+        },
+        "keywords": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Keywords",
+          "type": "array"
+        }
+      },
+      "required": [
+        "project_id",
+        "name",
+        "category",
+        "summary",
+        "original_prompt",
+        "seed_project_id"
+      ],
+      "title": "Project",
+      "type": "object"
+    },
+    "Protection": {
+      "additionalProperties": false,
+      "properties": {
+        "fusing": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fusing"
+        },
+        "esd": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Esd"
+        },
+        "reverse_polarity": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reverse Polarity"
+        },
+        "other": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Other"
+        }
+      },
+      "title": "Protection",
+      "type": "object"
+    },
+    "ProtoStep": {
+      "additionalProperties": false,
+      "properties": {
+        "step_id": {
+          "pattern": "^[a-z0-9_]+$",
+          "title": "Step Id",
+          "type": "string"
+        },
+        "instruction": {
+          "title": "Instruction",
+          "type": "string"
+        },
+        "nets": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Nets",
+          "type": "array"
+        }
+      },
+      "required": [
+        "step_id",
+        "instruction"
+      ],
+      "title": "ProtoStep",
+      "type": "object"
+    },
+    "Relationship": {
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "pattern": "^[a-z0-9_]+$",
+          "title": "Source",
+          "type": "string"
+        },
+        "relation": {
+          "enum": [
+            "attached_to",
+            "secured_by",
+            "fastens_into",
+            "rotates_on",
+            "supported_by",
+            "routed_around",
+            "connects_to",
+            "mounted_on",
+            "contains",
+            "positions"
+          ],
+          "title": "Relation",
+          "type": "string"
+        },
+        "target": {
+          "pattern": "^[a-z0-9_]+$",
+          "title": "Target",
+          "type": "string"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "notes": {
+          "default": "",
+          "title": "Notes",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source",
+        "relation",
+        "target"
+      ],
+      "title": "Relationship",
+      "type": "object"
+    },
+    "Requirements": {
+      "additionalProperties": false,
+      "properties": {
+        "tools": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Tools",
+          "type": "array"
+        },
+        "assumptions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Assumptions",
+          "type": "array"
+        },
+        "skill_level": {
+          "default": "intermediate",
+          "enum": [
+            "beginner",
+            "intermediate",
+            "advanced",
+            "unknown"
+          ],
+          "title": "Skill Level",
+          "type": "string"
+        },
+        "safety_notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Safety Notes",
+          "type": "array"
+        },
+        "constraints": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Constraints",
+          "type": "array"
+        }
+      },
+      "title": "Requirements",
+      "type": "object"
+    },
+    "Sourcing": {
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/$defs/SourcingItem"
+          },
+          "title": "Items",
+          "type": "array"
+        },
+        "cost_summary": {
+          "$ref": "#/$defs/CostSummary"
+        },
+        "vendors": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Vendors",
+          "type": "array"
+        }
+      },
+      "required": [
+        "cost_summary"
+      ],
+      "title": "Sourcing",
+      "type": "object"
+    },
+    "SourcingItem": {
+      "additionalProperties": false,
+      "properties": {
+        "component_id": {
+          "title": "Component Id",
+          "type": "string"
+        },
+        "product_name": {
+          "title": "Product Name",
+          "type": "string"
+        },
+        "unit_cost_usd": {
+          "minimum": 0.0,
+          "title": "Unit Cost Usd",
+          "type": "number"
+        },
+        "quantity": {
+          "minimum": 1,
+          "title": "Quantity",
+          "type": "integer"
+        },
+        "total_cost_usd": {
+          "minimum": 0.0,
+          "title": "Total Cost Usd",
+          "type": "number"
+        },
+        "vendor": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Vendor"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Url"
+        }
+      },
+      "required": [
+        "component_id",
+        "product_name",
+        "unit_cost_usd",
+        "quantity",
+        "total_cost_usd"
+      ],
+      "title": "SourcingItem",
+      "type": "object"
+    },
+    "StepDetail": {
+      "additionalProperties": false,
+      "properties": {
+        "summary": {
+          "title": "Summary",
+          "type": "string"
+        },
+        "steps": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Steps",
+          "type": "array"
+        },
+        "tip": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tip"
+        },
+        "tools": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Tools",
+          "type": "array"
+        },
+        "fasteners": {
+          "items": {
+            "$ref": "#/$defs/Fastener"
+          },
+          "title": "Fasteners",
+          "type": "array"
+        },
+        "warnings": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        },
+        "est_time_min": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Est Time Min"
+        },
+        "process": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Process"
+        },
+        "machine": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Machine"
+        },
+        "tolerance": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tolerance"
+        },
+        "cycle_time_sec": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cycle Time Sec"
+        },
+        "qc_check": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Qc Check"
+        }
+      },
+      "required": [
+        "summary",
+        "steps"
+      ],
+      "title": "StepDetail",
+      "type": "object"
+    },
+    "Thermal": {
+      "additionalProperties": false,
+      "properties": {
+        "hotspots": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Hotspots",
+          "type": "array"
+        },
+        "mitigation": {
+          "default": "",
+          "title": "Mitigation",
+          "type": "string"
+        },
+        "notes": {
+          "default": "",
+          "title": "Notes",
+          "type": "string"
+        }
+      },
+      "title": "Thermal",
+      "type": "object"
+    },
+    "Validation": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_valid": {
+          "default": true,
+          "title": "Schema Valid",
+          "type": "boolean"
+        },
+        "reference_integrity_valid": {
+          "default": true,
+          "title": "Reference Integrity Valid",
+          "type": "boolean"
+        },
+        "manufacturability_valid": {
+          "default": true,
+          "title": "Manufacturability Valid",
+          "type": "boolean"
+        },
+        "naming_consistency_valid": {
+          "default": true,
+          "title": "Naming Consistency Valid",
+          "type": "boolean"
+        },
+        "issues": {
+          "items": {
+            "$ref": "#/$defs/Issue"
+          },
+          "title": "Issues",
+          "type": "array"
+        },
+        "confidence_score": {
+          "default": 1.0,
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Confidence Score",
+          "type": "number"
+        }
+      },
+      "title": "Validation",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "project": {
+      "$ref": "#/$defs/Project"
+    },
+    "requirements": {
+      "$ref": "#/$defs/Requirements"
+    },
+    "components": {
+      "items": {
+        "$ref": "#/$defs/Component"
+      },
+      "minItems": 1,
+      "title": "Components",
+      "type": "array"
+    },
+    "relationships": {
+      "items": {
+        "$ref": "#/$defs/Relationship"
+      },
+      "title": "Relationships",
+      "type": "array"
+    },
+    "circuit": {
+      "$ref": "#/$defs/Circuit"
+    },
+    "fabrication": {
+      "$ref": "#/$defs/Fabrication"
+    },
+    "instructions": {
+      "items": {
+        "$ref": "#/$defs/Instruction"
+      },
+      "title": "Instructions",
+      "type": "array"
+    },
+    "appearance": {
+      "$ref": "#/$defs/Appearance"
+    },
+    "image_generation_prompt": {
+      "$ref": "#/$defs/ImageGenerationPrompt"
+    },
+    "sourcing": {
+      "$ref": "#/$defs/Sourcing"
+    },
+    "validation": {
+      "$ref": "#/$defs/Validation"
+    }
+  },
+  "required": [
+    "project",
+    "requirements",
+    "components",
+    "circuit",
+    "fabrication",
+    "appearance",
+    "image_generation_prompt",
+    "sourcing",
+    "validation"
+  ],
+  "title": "Product",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

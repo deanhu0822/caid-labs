@@ -1,0 +1,71 @@
+{
+  "parts": [
+    {
+      "name": "Sheet Metal Bracket",
+      "quantity": 1,
+      "material": "Cold Rolled Steel 1.5 mm (16 GA)",
+      "confidence": 1.0
+    }
+  ],
+  "dimensions": [
+    {
+      "label": "Overall length",
+      "value_text": "240.0",
+      "unit": "mm",
+      "confidence": 1.0
+    },
+    {
+      "label": "Overall width",
+      "value_text": "140.0",
+      "unit": "mm",
+      "confidence": 1.0
+    },
+    {
+      "label": "Inside bend radius",
+      "value_text": "R1.0",
+      "unit": "mm",
+      "confidence": 1.0
+    },
+    {
+      "label": "Hole-to-bend distance",
+      "value_text": "15.0",
+      "unit": "mm",
+      "confidence": 1.0
+    },
+    {
+      "label": "Large hole diameter",
+      "value_text": "14.0",
+      "unit": "mm",
+      "confidence": 1.0
+    }
+  ],
+  "risks": [
+    {
+      "title": "Inside bend radius R1.0 is tight for 1.5 mm steel",
+      "severity": "medium",
+      "rationale": "Bend radius below ~1x material thickness risks cracking on the outer fiber.",
+      "mitigation": "Increase inside radius to >= material thickness (>=1.5 mm).",
+      "confidence": 1.0
+    },
+    {
+      "title": "\u00d814 hole only 15 mm from bend may distort",
+      "severity": "high",
+      "rationale": "Holes within ~2.5x (thickness + radius) of a bend deform during forming.",
+      "mitigation": "Move the hole further from the bend or pierce after forming.",
+      "confidence": 1.0
+    },
+    {
+      "title": "Edge distance on \u00d810 hole (18 mm) is acceptable",
+      "severity": "low",
+      "rationale": "Edge distance is adequate but not toleranced.",
+      "mitigation": "Add positional tolerance.",
+      "confidence": 1.0
+    }
+  ],
+  "tasks": [
+    {
+      "title": "Verify hole-to-bend distance against forming guidelines",
+      "source": "ai"
+    }
+  ]
+}

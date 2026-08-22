@@ -6,6 +6,7 @@ import validation from '@/synthetic-assets/rover-alpha/features/validation.json'
 import revisionUpdate from '@/synthetic-assets/rover-alpha/features/revision_update.json';
 import physicalRealization from '@/synthetic-assets/rover-alpha/features/physical_realization.json';
 import type { AgentResponse } from './corpus-types';
+import { productAgentStructuredState } from './product-state';
 
 export type DemoFeatureId =
   | 'multimodal_intent'
@@ -94,5 +95,6 @@ export function demoAgentResponse(): AgentResponse {
     confidence: 0.97,
     latencyMs: 420,
     mode: 'ground-truth',
+    structuredState: productAgentStructuredState('rover-alpha:rev-c'),
   };
 }

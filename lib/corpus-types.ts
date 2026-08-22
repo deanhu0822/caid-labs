@@ -22,6 +22,19 @@ export type AgentResponse = {
   confidence: number;
   latencyMs: number;
   mode: 'ground-truth' | 'retrieval';
+  structuredState: {
+    candidateId: string;
+    productId: string;
+    revision: string;
+    validation: { schema: 'pass'; semanticGates: 'pass'; gateFailures: []; warnings: string[] };
+    requirements: string[];
+    componentIds: string[];
+    relationshipCount: number;
+    circuitNets: string[];
+    fabricationProcesses: string[];
+    instructionSteps: Array<{ id: string; title: string; phase: string }>;
+    sourcingItems: Array<{ componentId: string; productName: string; vendor: string | null; unitCostUsd: number }>;
+  };
 };
 
 export type CorpusHealth = {

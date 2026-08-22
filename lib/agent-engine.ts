@@ -1,6 +1,7 @@
 import { getEvaluationTasks, getEvidenceForFiles, searchCorpus, tokenize } from './corpus';
 import type { AgentKind, AgentResponse, CorpusEvidence } from './corpus-types';
 import { formaInferenceProvider } from './forma-inference.server';
+import { productAgentStructuredState, type ProductCandidateId } from './product-state';
 
 const AGENT_LABELS: Record<AgentKind, string> = {
   builder: 'Builder Agent',
@@ -45,7 +46,7 @@ async function routeReasoningThroughProvider(response: AgentResponse): Promise<A
     },
     featureContract: {
       output: 'AgentResponse',
-      protectedFields: ['agent', 'question', 'artifactIds', 'evidence', 'matchedTask', 'mode'],
+      protectedFields: ['agent', 'question', 'artifactIds', 'evidence', 'matchedTask', 'mode', 'structuredState'],
     },
     mockResult: response,
   });
@@ -59,8 +60,9 @@ async function routeReasoningThroughProvider(response: AgentResponse): Promise<A
   };
 }
 
-export async function queryAgent(agent: AgentKind, question: string): Promise<AgentResponse> {
+export async function queryAgent(agent: AgentKind, question: string, candidateId: ProductCandidateId = 'rover-alpha:rev-c'): Promise<AgentResponse> {
   const started = performance.now();
+  const structuredState = productAgentStructuredState(candidateId);
   const tasks = await getEvaluationTasks(agent);
   const ranked = tasks
     .map((task) => ({ task, score: taskScore(question, task.prompt) }))
@@ -83,6 +85,7 @@ export async function queryAgent(agent: AgentKind, question: string): Promise<Ag
       confidence: Math.round(Math.min(0.98, 0.66 + match.score * 0.3) * 100) / 100,
       latencyMs: Math.max(1, Math.round(performance.now() - started)),
       mode: 'ground-truth',
+      structuredState,
     });
   }
 
@@ -103,5 +106,6 @@ export async function queryAgent(agent: AgentKind, question: string): Promise<Ag
     confidence: retrieved.length ? 0.48 : 0.12,
     latencyMs: Math.max(1, Math.round(performance.now() - started)),
     mode: 'retrieval',
+    structuredState,
   });
 }

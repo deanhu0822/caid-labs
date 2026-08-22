@@ -1,0 +1,70 @@
+{
+  "parts": [
+    {
+      "name": "M12 A-coded Circular Connector (8-position male)",
+      "quantity": 1,
+      "material": "PA66 / Brass",
+      "confidence": 1.0
+    }
+  ],
+  "dimensions": [
+    {
+      "label": "Rated voltage",
+      "value_text": "30",
+      "unit": "V",
+      "confidence": 1.0
+    },
+    {
+      "label": "Rated current per contact",
+      "value_text": "2",
+      "unit": "A",
+      "confidence": 1.0
+    },
+    {
+      "label": "Operating temperature",
+      "value_text": "-25 to +85",
+      "unit": "deg C",
+      "confidence": 1.0
+    },
+    {
+      "label": "Number of contacts",
+      "value_text": "8",
+      "unit": "-",
+      "confidence": 1.0
+    },
+    {
+      "label": "Coupling thread",
+      "value_text": "M12 x 1",
+      "unit": "mm",
+      "confidence": 1.0
+    },
+    {
+      "label": "Cable diameter range",
+      "value_text": "4 to 8",
+      "unit": "mm",
+      "confidence": 1.0
+    }
+  ],
+  "risks": [
+    {
+      "title": "Current derating not enforced in spec table",
+      "severity": "medium",
+      "rationale": "Table lists 2 A/contact but a note caps simultaneous load at 1.5 A above +70 deg C; easy to miss.",
+      "mitigation": "Design to 1.5 A/contact under full load and high temperature.",
+      "confidence": 1.0
+    },
+    {
+      "title": "Operating temp ceiling +85 deg C may be marginal",
+      "severity": "low",
+      "rationale": "If the application exceeds +85 deg C the connector is out of spec.",
+      "mitigation": "Confirm worst-case ambient + self-heating stays under +85 deg C.",
+      "confidence": 1.0
+    }
+  ],
+  "tasks": [
+    {
+      "title": "Confirm per-contact current budget under full load",
+      "source": "ai"
+    }
+  ]
+}

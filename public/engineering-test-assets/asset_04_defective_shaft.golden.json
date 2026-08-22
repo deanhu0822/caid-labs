@@ -1,0 +1,67 @@
+{
+  "parts": [
+    {
+      "name": "Drive Shaft",
+      "quantity": 1,
+      "material": "",
+      "confidence": 1.0
+    }
+  ],
+  "dimensions": [
+    {
+      "label": "Overall length",
+      "value_text": "11.81 in",
+      "unit": "in",
+      "confidence": 1.0
+    },
+    {
+      "label": "Outer diameter / height",
+      "value_text": "40.0",
+      "unit": "mm",
+      "confidence": 1.0
+    },
+    {
+      "label": "Critical bore diameter",
+      "value_text": "25",
+      "unit": "mm",
+      "confidence": 1.0
+    }
+  ],
+  "risks": [
+    {
+      "title": "Material not specified in title block",
+      "severity": "high",
+      "rationale": "Material field is blank, so the part cannot be made or quoted.",
+      "mitigation": "Populate the material field before release.",
+      "confidence": 1.0
+    },
+    {
+      "title": "Critical bore \u00d825 has no tolerance",
+      "severity": "high",
+      "rationale": "ASME Y14.5 requires all dimensions to carry a tolerance; a fit-critical bore without one is undefined.",
+      "mitigation": "Add a tolerance/fit class (e.g. H7) to the bore.",
+      "confidence": 1.0
+    },
+    {
+      "title": "Mixed units: length in inches, others in mm",
+      "severity": "high",
+      "rationale": "Title block says MM but the length is dimensioned in inches; high risk of mis-manufacture.",
+      "mitigation": "Convert all dimensions to a single unit system.",
+      "confidence": 1.0
+    }
+  ],
+  "tasks": [
+    {
+      "title": "Fill in material field",
+      "source": "ai"
+    },
+    {
+      "title": "Add tolerance to critical bore",
+      "source": "ai"
+    },
+    {
+      "title": "Resolve mixed-unit dimensions",
+      "source": "ai"
+    }
+  ]
+}

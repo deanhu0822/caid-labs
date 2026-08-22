@@ -2,6 +2,7 @@ import type { AgentResponse, CorpusEvidence } from './corpus-types';
 import { openCadAdapter, type OpenCadRealizationPlan, type OpenCadRealizationRecord } from './opencad-adapter';
 import type { ScannerMatch } from './scanner-analysis';
 import type { PrototypeBuildDefinition } from './new-build-adapter';
+import { getValidatedProduct, type ProductCandidateId, type ValidatedProductState } from './product-state';
 
 export type ExperienceMode = 'guided' | 'pro';
 export type ProposalStatus = 'validated' | 'accepted' | 'rejected';
@@ -72,6 +73,7 @@ export type EngineeringProposal = {
   confidence: number;
   latencyMs: number;
   openCad: OpenCadRealizationPlan;
+  productCandidateId: ProductCandidateId | null;
 };
 
 export type RevisionRecord = {
@@ -104,6 +106,7 @@ export type EngineeringState = {
   revisions: RevisionRecord[];
   physicalRealizations: OpenCadRealizationRecord[];
   documents: EngineeringDocumentRecord[];
+  productState: ValidatedProductState | null;
 };
 
 export type EngineeringAction =
@@ -163,6 +166,7 @@ export const initialEngineeringState: EngineeringState = {
   revisions: INITIAL_REVISIONS,
   physicalRealizations: [],
   documents: INITIAL_DOCUMENTS,
+  productState: getValidatedProduct('rover-alpha:rev-c'),
 };
 
 function nextRevision(revision: string) {
@@ -171,7 +175,7 @@ function nextRevision(revision: string) {
   return `Rev ${String.fromCharCode(Math.min(90, letter.charCodeAt(0) + 1))}`;
 }
 
-function createProposal(input: Omit<EngineeringProposal, 'id' | 'baseRevision' | 'targetRevision' | 'openCad'>, state: EngineeringState): EngineeringProposal {
+function createProposal(input: Omit<EngineeringProposal, 'id' | 'baseRevision' | 'targetRevision' | 'openCad' | 'productCandidateId'> & { productCandidateId?: ProductCandidateId | null }, state: EngineeringState): EngineeringProposal {
   const changedArtifactIds = input.changed.map((change) => change.artifactId);
   return {
     ...input,
@@ -179,6 +183,7 @@ function createProposal(input: Omit<EngineeringProposal, 'id' | 'baseRevision' |
     baseRevision: state.currentRevision,
     targetRevision: nextRevision(state.currentRevision),
     openCad: openCadAdapter.planPhysicalRealization({ objective: input.objective, changedArtifactIds }),
+    productCandidateId: input.productCandidateId ?? null,
   };
 }
 
@@ -258,6 +263,7 @@ function payloadProposal(response: AgentResponse, state: EngineeringState): Engi
     evidence: response.evidence,
     confidence: response.confidence,
     latencyMs: response.latencyMs,
+    productCandidateId: 'rover-alpha:rev-d-payload',
   }, state);
 }
 
@@ -301,6 +307,7 @@ function runtimeProposal(response: AgentResponse, state: EngineeringState): Engi
     evidence: response.evidence,
     confidence: response.confidence,
     latencyMs: response.latencyMs,
+    productCandidateId: 'rover-alpha:rev-d-runtime',
   }, state);
 }
 
@@ -345,6 +352,7 @@ export function cameraMountGeometryProposal(state: EngineeringState, heightMm = 
     }],
     confidence: 0.96,
     latencyMs: 0,
+    productCandidateId: nextHeight === 105 ? 'rover-alpha:rev-d-camera' : null,
   }, state);
 }
 
@@ -434,7 +442,15 @@ export function j12ChangeProposal(state: EngineeringState, response?: AgentRespo
     evidence: response?.evidence ?? [],
     confidence: response?.confidence ?? 0.94,
     latencyMs: response?.latencyMs ?? 0,
+    productCandidateId: 'rover-alpha:rev-d-j12',
   }, state);
+}
+
+function acceptedProductCandidate(proposal: EngineeringProposal, state: EngineeringState) {
+  if (state.project.kind !== 'existing') return null;
+  if (!proposal.productCandidateId) return null;
+  const candidate = getValidatedProduct(proposal.productCandidateId);
+  return candidate.revision === proposal.targetRevision ? candidate : null;
 }
 
 export function engineeringReducer(state: EngineeringState, action: EngineeringAction): EngineeringState {
@@ -491,6 +507,7 @@ export function engineeringReducer(state: EngineeringState, action: EngineeringA
         focusArtifactIds: action.build.architecture.artifacts.slice(0, 6).map((artifact) => artifact.id),
         revisions: [revision],
         documents,
+        productState: null,
       };
     }
     case 'RESET_TO_EXISTING':
@@ -521,6 +538,8 @@ export function engineeringReducer(state: EngineeringState, action: EngineeringA
       };
     case 'ACCEPT_PROPOSAL': {
       if (!state.proposal || state.proposal.status !== 'validated') return state;
+      const productCandidate = acceptedProductCandidate(state.proposal, state);
+      if (state.project.kind === 'existing' && !productCandidate) return state;
       const accepted = { ...state.proposal, status: 'accepted' as const };
       const revision: RevisionRecord = {
         id: accepted.targetRevision,
@@ -539,11 +558,14 @@ export function engineeringReducer(state: EngineeringState, action: EngineeringA
         artifactOverrides: { ...state.artifactOverrides, ...accepted.artifactOverrides },
         focusArtifactIds: revision.changedArtifactIds,
         revisions: [...state.revisions.filter((item) => item.id !== revision.id), revision],
+        productState: productCandidate ?? state.productState,
       };
     }
     case 'APPLY_GEOMETRY_RESULT': {
       if (!state.proposal || state.proposal.status !== 'validated' || !state.proposal.openCad.required) return state;
       if (action.result.validation.status !== 'valid') return state;
+      const productCandidate = acceptedProductCandidate(state.proposal, state);
+      if (state.project.kind === 'existing' && !productCandidate) return state;
       const appliedHeight = action.result.requestedChange.heightMm.to;
       const appliedDelta = appliedHeight - action.result.requestedChange.heightMm.from;
       const isCameraMount = action.result.artifactId === 'camera-mount';
@@ -614,6 +636,7 @@ export function engineeringReducer(state: EngineeringState, action: EngineeringA
         selectedArtifactId: action.result.artifactId,
         revisions: [...state.revisions.filter((item) => item.id !== revision.id), revision],
         physicalRealizations: [...state.physicalRealizations.filter((item) => item.featureId !== action.result.featureId), action.result],
+        productState: productCandidate ?? state.productState,
       };
     }
     case 'SET_VIEWING_REVISION':

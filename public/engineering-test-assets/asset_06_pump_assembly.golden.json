@@ -1,0 +1,70 @@
+{
+  "parts": [
+    {
+      "name": "Pump body",
+      "quantity": 1,
+      "material": "Cast Iron",
+      "confidence": 1.0
+    },
+    {
+      "name": "Spur gear",
+      "quantity": 2,
+      "material": "Steel 4140",
+      "confidence": 1.0
+    },
+    {
+      "name": "End cover",
+      "quantity": 1,
+      "material": "Aluminum 6061",
+      "confidence": 1.0
+    },
+    {
+      "name": "Hex bolt M8x30",
+      "quantity": 6,
+      "material": "Steel 8.8 ZP",
+      "confidence": 1.0
+    },
+    {
+      "name": "Shaft seal",
+      "quantity": 2,
+      "material": "NBR",
+      "confidence": 1.0
+    },
+    {
+      "name": "Body gasket",
+      "quantity": 1,
+      "material": "Fiber",
+      "confidence": 1.0
+    }
+  ],
+  "dimensions": [
+    {
+      "label": "Bolt torque (item 4)",
+      "value_text": "8",
+      "unit": "N\u00b7m",
+      "confidence": 1.0
+    }
+  ],
+  "risks": [
+    {
+      "title": "BOM is on sheet 2 only",
+      "severity": "medium",
+      "rationale": "Part quantities live on page 2; an extractor that only reads page 1 will miss all parts and quantities.",
+      "mitigation": "Ensure all pages are rasterized and parsed (page-budget must cover the BOM sheet).",
+      "confidence": 1.0
+    },
+    {
+      "title": "Dissimilar metals (cast iron body + aluminum cover)",
+      "severity": "low",
+      "rationale": "Cast iron and aluminum in contact with moisture can drive galvanic corrosion.",
+      "mitigation": "Use a gasket/isolation and compatible fasteners.",
+      "confidence": 1.0
+    }
+  ],
+  "tasks": [
+    {
+      "title": "Verify all BOM pages were parsed",
+      "source": "ai"
+    }
+  ]
+}

@@ -35,6 +35,7 @@ import {
   Eye,
   FileText,
   Film,
+  FlaskConical,
   Focus,
   GitBranch,
   Info,
@@ -89,13 +90,16 @@ import { DEMO_CODE_PREVIEWS, type DemoCodePreview } from './demo-code';
 import { DemoWalkthrough, type DemoRuntime } from './demo-walkthrough';
 import { OpenCadWorkspace } from './opencad-workspace';
 import { StartFromScratch } from './start-from-scratch';
+import { TestAssetHarness } from './test-asset-harness';
 import type { PrototypeBuildDefinition } from '@/lib/new-build-adapter';
 import { DEMO_FEATURES, DEMO_IMPACT_IDS, DEMO_OBJECTIVE, DEMO_STAGES, demoAgentResponse } from '@/lib/demo-walkthrough';
 import type { OpenCadRealizationRecord } from '@/lib/opencad-adapter';
+import { mapProductToGraph, type ProductCandidateId } from '@/lib/product-state';
 
 type ArtifactData = Artifact & { activeRevision: string };
 type ArtifactNode = Node<ArtifactData, 'artifact'>;
 type AppMode = 'graph' | 'builder' | 'scanner' | 'agents';
+type EdgeLabelMode = 'auto' | 'always' | 'off';
 
 function ProductNode({ data, selected }: NodeProps<ArtifactNode>) {
   return (
@@ -130,11 +134,11 @@ function graphAnimationDuration() {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 320;
 }
 
-async function askAgent(agent: AgentKind, question: string): Promise<AgentResponse> {
+async function askAgent(agent: AgentKind, question: string, productCandidateId?: ProductCandidateId): Promise<AgentResponse> {
   const response = await fetch('/api/agents/query', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ agent, question }),
+    body: JSON.stringify({ agent, question, productCandidateId }),
   });
   const payload = await response.json() as AgentResponse & { error?: string };
   if (!response.ok) throw new Error(payload.error || 'The corpus agent could not answer that question.');
@@ -143,12 +147,15 @@ async function askAgent(agent: AgentKind, question: string): Promise<AgentRespon
 
 export default function Home() {
   const [engineering, dispatch] = useReducer(engineeringReducer, initialEngineeringState);
+  const existingGraph = useMemo(() => engineering.productState
+    ? mapProductToGraph(engineering.productState, ARTIFACTS, RELATIONS)
+    : { artifacts: ARTIFACTS, relations: RELATIONS }, [engineering.productState]);
   const activeArtifacts: Artifact[] = useMemo(() => engineering.project.kind === 'generated'
     ? engineering.project.build.architecture.artifacts
-    : ARTIFACTS, [engineering.project]);
+    : existingGraph.artifacts, [engineering.project, existingGraph.artifacts]);
   const activeRelations: Relation[] = useMemo(() => engineering.project.kind === 'generated'
     ? engineering.project.build.architecture.relations
-    : RELATIONS, [engineering.project]);
+    : existingGraph.relations, [engineering.project, existingGraph.relations]);
   const [allNodes, setAllNodes, onNodesChange] = useNodesState<ArtifactNode>(initialNodes);
   const [activeCategories, setActiveCategories] = useState<Set<Category>>(new Set(Object.keys(CATEGORY_META) as Category[]));
   const [activeEdges, setActiveEdges] = useState<Set<EdgeKind>>(new Set(Object.keys(EDGE_META) as EdgeKind[]));
@@ -163,13 +170,16 @@ export default function Home() {
   const [openedArtifactId, setOpenedArtifactId] = useState<string | null>(null);
   const [demoRuntime, setDemoRuntime] = useState<DemoRuntime>({ active: false, paused: false, step: 0, runId: 0 });
   const [scratchOpen, setScratchOpen] = useState(false);
+  const [testAssetsOpen, setTestAssetsOpen] = useState(false);
   const [demoMenuOpen, setDemoMenuOpen] = useState(false);
   const [openCadOpen, setOpenCadOpen] = useState(false);
   const [openCadAutoRebuild, setOpenCadAutoRebuild] = useState(false);
+  const [edgeLabelMode, setEdgeLabelMode] = useState<EdgeLabelMode>('auto');
+  const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
+  const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
   const graphStageRef = useRef<HTMLElement>(null);
   const reactFlowRef = useRef<ReactFlowInstance<ArtifactNode> | null>(null);
   const savedViewportRef = useRef<Viewport | null>(null);
-  const focusedNodeIdRef = useRef<string | null>(null);
   const engineeringRef = useRef(engineering);
   const demoRunning = demoRuntime.active;
 
@@ -238,6 +248,8 @@ export default function Home() {
     .filter((edge) => activeEdges.has(edge.kind) && visibleNodeIds.has(edge.source) && visibleNodeIds.has(edge.target))
     .map((edge) => {
       const active = highlighted.size === 0 || highlighted.has(edge.source) && highlighted.has(edge.target);
+      const direct = focusedNodeId === selectedId && (edge.source === selectedId || edge.target === selectedId);
+      const showLabel = edgeLabelMode === 'always' || edgeLabelMode === 'auto' && (direct || hoveredEdgeId === edge.id);
       const color = active ? EDGE_META[edge.kind].color : '#3c465d';
       return {
         ...edge,
@@ -245,8 +257,15 @@ export default function Home() {
         className: active ? 'relation-active' : 'relation-dimmed',
         style: { stroke: color, strokeWidth: active ? 2 : 1.15 },
         markerEnd: { type: MarkerType.ArrowClosed, color, width: 12, height: 12 },
+        label: showLabel ? EDGE_META[edge.kind].label : undefined,
+        ariaLabel: `${EDGE_META[edge.kind].label}: ${edge.description ?? `${edge.source} to ${edge.target}`}`,
+        labelStyle: { fill: '#d8e1ef', fontSize: 7, fontFamily: 'var(--font-geist-mono)' },
+        labelBgStyle: { fill: '#0b111b', fillOpacity: .96, stroke: color, strokeWidth: .6 },
+        labelBgPadding: [5, 3] as [number, number],
+        labelBgBorderRadius: 5,
+        interactionWidth: 22,
       };
-    }), [activeEdges, activeRelations, highlighted, visibleNodeIds]);
+    }), [activeEdges, activeRelations, edgeLabelMode, focusedNodeId, highlighted, hoveredEdgeId, selectedId, visibleNodeIds]);
 
   const toggleCategory = (category: Category) => {
     setActiveCategories((current) => {
@@ -267,7 +286,7 @@ export default function Home() {
   const restoreGraphViewport = useCallback(() => {
     const instance = reactFlowRef.current;
     const viewport = savedViewportRef.current;
-    focusedNodeIdRef.current = null;
+    setFocusedNodeId(null);
     savedViewportRef.current = null;
     setOpenedArtifactId(null);
     dispatch({ type: 'CLEAR_SELECTION' });
@@ -277,14 +296,14 @@ export default function Home() {
   const chooseNode = useCallback((id: string) => {
     const artifact = activeArtifacts.find((item) => item.id === id);
     if (!artifact) return;
-    if (focusedNodeIdRef.current === id) {
+    if (focusedNodeId === id) {
       restoreGraphViewport();
       return;
     }
 
     const instance = reactFlowRef.current;
     if (instance && !savedViewportRef.current) savedViewportRef.current = instance.getViewport();
-    focusedNodeIdRef.current = id;
+    setFocusedNodeId(id);
     setOpenedArtifactId(null);
     dispatch({ type: 'SET_FOCUS', artifactIds: [] });
     dispatch({ type: 'SELECT_ARTIFACT', artifactId: id });
@@ -313,20 +332,20 @@ export default function Home() {
       if (current.zoom >= .92 && comfortablyVisible) return;
       void flow.fitView({ nodes: nodesToFit, padding: .28, minZoom: .62, maxZoom: 1.05, duration: graphAnimationDuration() });
     }));
-  }, [activeArtifacts, activeCategories, activeRelations, restoreGraphViewport]);
+  }, [activeArtifacts, activeCategories, activeRelations, focusedNodeId, restoreGraphViewport]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape' || scratchOpen || openCadOpen || impactOpen || howOpen || demoMenuOpen) return;
+      if (event.key !== 'Escape' || scratchOpen || testAssetsOpen || openCadOpen || impactOpen || howOpen || demoMenuOpen) return;
       if (openedArtifactId) {
         setOpenedArtifactId(null);
         return;
       }
-      if (focusedNodeIdRef.current) restoreGraphViewport();
+      if (focusedNodeId) restoreGraphViewport();
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [demoMenuOpen, howOpen, impactOpen, openCadOpen, openedArtifactId, restoreGraphViewport, scratchOpen]);
+  }, [demoMenuOpen, focusedNodeId, howOpen, impactOpen, openCadOpen, openedArtifactId, restoreGraphViewport, scratchOpen, testAssetsOpen]);
 
   const runBuilder = async (query = builderQuery) => {
     const objective = (query || 'Increase payload capacity').trim();
@@ -341,7 +360,7 @@ export default function Home() {
       return;
     }
     try {
-      const result = await askAgent('builder', objective);
+      const result = await askAgent('builder', objective, engineering.productState?.candidateId);
       const nextProposal = proposalFromAgent(result, { ...engineering, objective });
       dispatch({ type: 'SET_PROPOSAL', proposal: nextProposal });
       const firstVisibleId = result.artifactIds.find((id) => activeArtifacts.some((artifact) => artifact.id === id));
@@ -407,13 +426,14 @@ export default function Home() {
   }, []);
 
   const startDemo = () => {
-    focusedNodeIdRef.current = null;
+    setFocusedNodeId(null);
     savedViewportRef.current = null;
     setOpenedArtifactId(null);
     setBuilderError('');
     setImpactOpen(false);
     setHowOpen(false);
     setScratchOpen(false);
+    setTestAssetsOpen(false);
     setDemoMenuOpen(false);
     applyDemoStage(0);
     setDemoRuntime((current) => ({ active: true, paused: false, step: 0, runId: current.runId + 1 }));
@@ -484,16 +504,18 @@ export default function Home() {
 
   const revisionChanges = revisionRecord?.changedArtifactIds ?? REVISION_CHANGES[revision] ?? [];
   const selectedOpenLabel = DEMO_CODE_PREVIEWS[selectedArtifact.id]
-    ? 'Open Code'
+    ? 'Open Full Code'
     : selectedArtifact.category === 'documents'
       ? 'Open Document'
       : selectedArtifact.category === 'bom'
-        ? 'Open BOM'
+        ? 'Open Full BOM'
         : selectedArtifact.category === 'mechanical'
-          ? 'Open CAD'
+          ? 'Open in CAD'
           : null;
   const openedArtifact = openedArtifactId ? activeArtifacts.find((artifact) => artifact.id === openedArtifactId) ?? null : null;
   const openedDocument = openedArtifactId ? engineering.documents.find((document) => document.artifactId === openedArtifactId) ?? null : null;
+  const selectedDocument = engineering.documents.find((document) => document.artifactId === selectedArtifact.id) ?? null;
+  const selectedRelationships = activeRelations.filter((relation) => relation.source === selectedArtifact.id || relation.target === selectedArtifact.id);
 
   const openSelectedArtifact = () => {
     if (!selectedOpenLabel) return;
@@ -520,7 +542,7 @@ export default function Home() {
   };
 
   const createNewBuild = (build: PrototypeBuildDefinition) => {
-    focusedNodeIdRef.current = null;
+    setFocusedNodeId(null);
     savedViewportRef.current = null;
     dispatch({ type: 'CREATE_NEW_BUILD', build });
     setMode('graph');
@@ -532,7 +554,7 @@ export default function Home() {
   };
 
   const openExistingBuild = () => {
-    focusedNodeIdRef.current = null;
+    setFocusedNodeId(null);
     savedViewportRef.current = null;
     dispatch({ type: 'RESET_TO_EXISTING' });
     setMode('graph');
@@ -543,7 +565,7 @@ export default function Home() {
   };
 
   return (
-    <main className={`app-shell ${engineering.experienceMode}-experience`}>
+    <main className={`app-shell ${engineering.experienceMode}-experience ${engineering.experienceMode === 'pro' && mode === 'graph' && focusedNodeId ? 'artifact-preview-open' : ''}`}>
       <header className="topbar">
         <div className="brand-mark"><GitBranch size={16} /></div>
         <div className="brand">FORMA LABS <span>/</span> {engineering.project.id} <span>/</span> {revision.toLowerCase().replace(' ', '-')}</div>
@@ -580,6 +602,7 @@ export default function Home() {
           {engineering.project.kind === 'existing'
             ? <button aria-label="Start from Scratch" className="new-build-button" onClick={() => setScratchOpen(true)}><Plus size={14} /> <span>Start from Scratch</span></button>
             : <button aria-label="Open existing rover-alpha build" className="new-build-button existing" onClick={openExistingBuild}><GitBranch size={14} /> <span>Open rover-alpha</span></button>}
+          <button className="test-assets-button" onClick={() => setTestAssetsOpen(true)}><FlaskConical size={14} /> <span>Test Assets</span></button>
           <button className="how-button" onClick={() => setHowOpen(true)}><Info size={14} /> <span>How it works</span></button>
           <button className="demo-top" onClick={() => setDemoMenuOpen(true)} disabled={demoRunning || engineering.project.kind === 'generated'}><Play size={14} /> {demoRunning ? 'Running…' : 'Run Demo'}</button>
           <button className="accent" onClick={() => { setMode('builder'); setBuilderError(''); }}><Sparkles size={15} /> Builder</button>
@@ -592,6 +615,7 @@ export default function Home() {
         ) : (
           <>
         <div className="side-heading"><div className="eyebrow">PRODUCT GRAPH</div><span>{activeArtifacts.length} artifacts</span></div>
+        <ProductValidationSummary state={engineering} />
         <div className="filter-group">
           {(Object.keys(CATEGORY_META) as Category[]).map((category) => {
             const meta = CATEGORY_META[category];
@@ -629,6 +653,7 @@ export default function Home() {
           <small>{revision.toUpperCase()} · {revision === engineering.currentRevision ? 'CURRENT REVISION' : 'HISTORICAL REVISION'} · {activeArtifacts.length} ARTIFACTS · {activeRelations.length} RELATIONSHIPS</small>
         </div>
         <div className="blast-legend"><span className="pulse-dot" /> {highlighted.size ? `${highlighted.size} related artifacts highlighted` : 'Overview restored'}</div>
+        <div className="edge-label-toggle" aria-label="Edge label visibility"><span>EDGE LABELS</span>{(['auto', 'always', 'off'] as EdgeLabelMode[]).map((labelMode) => <button key={labelMode} className={edgeLabelMode === labelMode ? 'active' : ''} onClick={() => setEdgeLabelMode(labelMode)}>{labelMode}</button>)}</div>
         <ReactFlow
           nodes={visibleNodes}
           edges={visibleEdges}
@@ -636,6 +661,8 @@ export default function Home() {
           onNodesChange={onNodesChange}
           onInit={(instance) => { reactFlowRef.current = instance as unknown as ReactFlowInstance<ArtifactNode>; }}
           onNodeClick={(_, node) => chooseNode(node.id)}
+          onEdgeMouseEnter={(_, edge) => setHoveredEdgeId(edge.id)}
+          onEdgeMouseLeave={() => setHoveredEdgeId(null)}
           onPaneClick={() => { if (!impactOpen && mode === 'graph') restoreGraphViewport(); }}
           fitView
           fitViewOptions={{ padding: 0.13, minZoom: 0.42, maxZoom: 0.8 }}
@@ -689,7 +716,7 @@ export default function Home() {
         </>
       </section>
 
-      <aside className={`details ${mode === 'agents' ? 'agents-open' : ''} ${engineering.experienceMode === 'guided' && mode !== 'scanner' ? 'guided-open' : ''}`}>
+      <aside className={`details ${mode === 'agents' ? 'agents-open' : ''} ${engineering.experienceMode === 'guided' && mode !== 'scanner' ? 'guided-open' : ''} ${engineering.experienceMode === 'pro' && mode === 'graph' && focusedNodeId ? 'artifact-inspector-open' : ''}`}>
         {engineering.experienceMode === 'guided' ? (
           <GuidedPanel
             state={engineering}
@@ -707,6 +734,7 @@ export default function Home() {
           />
         ) : mode === 'agents' ? (
           <AgentPanel
+            productCandidateId={engineering.productState?.candidateId}
             onClose={() => setMode('graph')}
             onArtifacts={(ids) => {
               dispatch({ type: 'SET_FOCUS', artifactIds: ids });
@@ -717,16 +745,18 @@ export default function Home() {
         ) : (
           <>
             <div className="detail-kicker"><span style={{ background: CATEGORY_META[selectedArtifact.category].color }} /> {selectedArtifact.code}</div>
-            <div className="detail-title-row"><div><h2>{selectedArtifact.label}</h2><p>{selectedArtifact.meta} · {selectedMutation ? `${revision} current` : selectedArtifact.revision ? revision : 'released'}</p></div><button aria-label="Focus selected artifact" onClick={() => { if (focusedNodeIdRef.current !== selectedArtifact.id) chooseNode(selectedArtifact.id); }}><Maximize2 size={15} /></button></div>
+            <div className="detail-title-row"><div><h2>{selectedArtifact.label}</h2><p>{selectedArtifact.meta} · {selectedMutation ? `${revision} current` : selectedArtifact.revision ? revision : 'released'}</p></div><button aria-label="Focus selected artifact" onClick={() => { if (focusedNodeId !== selectedArtifact.id) chooseNode(selectedArtifact.id); }}><Maximize2 size={15} /></button><button className="artifact-inspector-close" aria-label="Close artifact inspector" onClick={restoreGraphViewport}><X size={15} /></button></div>
+            <ArtifactPreviewContent artifact={selectedArtifact} revision={revision} document={selectedDocument} details={details} />
             <div className="details-section">
               <div className="eyebrow">PROPERTIES</div>
               <dl>{Object.entries(details).map(([label, value]) => <div key={label}><dt>{label}</dt><dd className={String(value).includes('LOW') ? 'warning' : ''}>{value}</dd></div>)}</dl>
             </div>
-            {selectedOpenLabel && <button className="artifact-open-button" onClick={openSelectedArtifact}>{DEMO_CODE_PREVIEWS[selectedArtifact.id] ? <Code2 size={15} /> : selectedArtifact.category === 'documents' ? <FileText size={15} /> : <Box size={15} />}<span><b>{selectedOpenLabel}</b><small>Open the {selectedArtifact.category === 'documents' ? 'browser-local document preview' : selectedArtifact.category === 'bom' ? 'released purchasing record' : selectedArtifact.category === 'mechanical' ? 'physical design record' : 'hypothetical demo source'}</small></span><ChevronRight size={14} /></button>}
+            {selectedOpenLabel && <button className="artifact-open-button" onClick={openSelectedArtifact}>{DEMO_CODE_PREVIEWS[selectedArtifact.id] ? <Code2 size={17} /> : selectedArtifact.category === 'documents' ? <FileText size={17} /> : <Box size={17} />}<span><b>{selectedOpenLabel}</b><small>{selectedArtifact.category === 'documents' ? 'View the complete document record' : selectedArtifact.category === 'bom' ? 'Inspect the complete purchasing record' : selectedArtifact.category === 'mechanical' ? 'Inspect the physical design record' : 'Inspect the complete hypothetical demo source'}</small></span><ChevronRight size={16} /></button>}
             {engineering.project.kind === 'existing'
               ? <button className="analyze-button" onClick={analyzeJ12Change}><Sparkles size={15} /><span><b>Analyze Change</b><small>Replace connector with available alternate</small></span><ChevronRight size={14} /></button>
               : <button className="analyze-button" onClick={() => switchExperience('guided')}><Sparkles size={15} /><span><b>Choose next decision</b><small>{engineering.project.build.architecture.nextDecision.title}</small></span><ChevronRight size={14} /></button>}
             {engineering.project.kind === 'generated' && <InputSourcesPanel build={engineering.project.build} />}
+            <RelationshipDetails artifact={selectedArtifact} relations={selectedRelationships} artifacts={activeArtifacts} />
             <div className="details-section connected-section">
               <div className="section-heading"><div className="eyebrow">CONNECTED ARTIFACTS · {connectedIds.length}</div></div>
               <div className="connected-list">
@@ -776,6 +806,7 @@ export default function Home() {
       )}
 
       {scratchOpen && <StartFromScratch onClose={() => setScratchOpen(false)} onCreate={createNewBuild} />}
+      {testAssetsOpen && <TestAssetHarness onClose={() => setTestAssetsOpen(false)} />}
       {demoMenuOpen && (
         <div className="modal-backdrop overlay-enter" onMouseDown={(event) => { if (event.target === event.currentTarget) setDemoMenuOpen(false); }}>
           <section className="demo-picker modal-enter">
@@ -813,6 +844,100 @@ export default function Home() {
 
 function artifactLabel(id: string) {
   return ARTIFACTS.find((artifact) => artifact.id === id)?.label ?? id;
+}
+
+function RelationshipDetails({ artifact, relations, artifacts }: { artifact: Artifact; relations: Relation[]; artifacts: Artifact[] }) {
+  if (!relations.length) return null;
+  return (
+    <section className="details-section relationship-details">
+      <div className="eyebrow">RELATIONSHIPS · {relations.length}</div>
+      <div className="relationship-detail-list">
+        {relations.slice(0, 8).map((relation) => {
+          const outgoing = relation.source === artifact.id;
+          const otherId = outgoing ? relation.target : relation.source;
+          const other = artifacts.find((item) => item.id === otherId);
+          return (
+            <article key={relation.id}>
+              <header><b>{other?.label ?? otherId}</b><span style={{ color: EDGE_META[relation.kind].color }}>{outgoing ? `${EDGE_META[relation.kind].label} →` : `← ${EDGE_META[relation.kind].label}`}</span></header>
+              <p>{relation.description ?? `${artifact.label} has a ${EDGE_META[relation.kind].label.toLowerCase()} relationship with ${other?.label ?? otherId}.`}</p>
+              {relation.productRelationship && <small>Product relationship: {relation.productRelationship}</small>}
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function ArtifactPreviewContent({ artifact, revision, document, details }: {
+  artifact: Artifact;
+  revision: string;
+  document: EngineeringDocumentRecord | null;
+  details: Record<string, string>;
+}) {
+  const code = DEMO_CODE_PREVIEWS[artifact.id];
+  if (code) {
+    return (
+      <section className="artifact-preview-content code-artifact-preview">
+        <header><div><div className="eyebrow">CODE PREVIEW</div><p>{code.description}</p></div><span>{code.language}</span></header>
+        <pre aria-label={`Code preview for ${artifact.label}`}><code>{code.code.split('\n').slice(0, 22).join('\n')}</code></pre>
+        <small>Hypothetical demo source · preview only</small>
+      </section>
+    );
+  }
+
+  if (artifact.category === 'documents') {
+    return (
+      <section className="artifact-preview-content document-artifact-preview">
+        <header><div><div className="eyebrow">DOCUMENT PREVIEW</div><p>{document?.summary ?? 'Engineering document attached to the rover product record.'}</p></div><FileText size={19} /></header>
+        <div className="preview-file-card"><FileText size={24} /><span><b>{document?.filename ?? artifact.meta}</b><small>{document?.artifactType ?? 'engineering document'} · {document?.mode ?? 'mock'}</small></span></div>
+        {document?.properties.slice(0, 4).map((property) => <div className="preview-fact" key={property.key}><span>{property.label}</span><b>{property.value}</b><small>Source: {property.sourceName}</small></div>)}
+        <small>{document?.inferencePerformed ? 'Parsed by the configured local service' : 'Prototype interpretation · no parser inference performed'}</small>
+      </section>
+    );
+  }
+
+  if (artifact.category === 'mechanical') {
+    return (
+      <section className="artifact-preview-content cad-artifact-preview">
+        <header><div><div className="eyebrow">CAD RECORD PREVIEW</div><p>Released physical design record and graph-connected interfaces.</p></div><span>STEP</span></header>
+        <div className="cad-preview-graphic"><Box size={44} /><i /><i /><span>{artifact.meta}</span></div>
+        <div className="preview-fact"><span>Record</span><b>{artifact.meta}</b><small>Demo metadata only · no geometry was fabricated</small></div>
+      </section>
+    );
+  }
+
+  if (artifact.category === 'bom') {
+    return (
+      <section className="artifact-preview-content bom-artifact-preview">
+        <header><div><div className="eyebrow">BOM PREVIEW</div><p>Released purchasing line connected to this product revision.</p></div><span>{revision}</span></header>
+        <div className="preview-table"><span>PART</span><span>STATUS</span><b>{artifact.meta}</b><b>Released demo row</b>{details.Supplier && <><b>{details.Supplier}</b><b>{details['Unit Cost'] ?? 'Cost in Product state'}</b></>}</div>
+        <small>Static demo sourcing data · not live inventory</small>
+      </section>
+    );
+  }
+
+  if (artifact.category === 'tests') {
+    return (
+      <section className="artifact-preview-content test-artifact-preview">
+        <header><div><div className="eyebrow">TEST RECORD PREVIEW</div><p>Verification artifact connected to the product graph.</p></div><ShieldCheck size={20} /></header>
+        <div className="preview-status"><CheckCircle2 size={17} /><span><b>{details.Status ?? 'Released'}</b><small>{artifact.meta} · result history is a demo record</small></span></div>
+      </section>
+    );
+  }
+
+  const previewLabel = artifact.category === 'pcb' ? 'ELECTRICAL PREVIEW'
+    : artifact.category === 'manufacturing' ? 'BUILD RECORD PREVIEW'
+      : artifact.category === 'suppliers' ? 'SOURCE RECORD PREVIEW'
+        : artifact.category === 'agents' ? 'AGENT CONTRACT PREVIEW'
+          : 'PRODUCT PREVIEW';
+  return (
+    <section className="artifact-preview-content generic-artifact-preview">
+      <header><div><div className="eyebrow">{previewLabel}</div><p>{CATEGORY_META[artifact.category].label} artifact in the shared engineering state.</p></div><Layers3 size={20} /></header>
+      <div className="preview-fact"><span>Identifier</span><b>{artifact.meta}</b><small>{artifact.code} · {revision}</small></div>
+      <div className="preview-fact"><span>Status</span><b>{details.Status ?? 'Released'}</b><small>Inspect connected artifacts below for dependency context.</small></div>
+    </section>
+  );
 }
 
 function DemoCodePanel({ artifactLabel: label, preview, onClose }: { artifactLabel: string; preview: DemoCodePreview; onClose: () => void }) {
@@ -863,6 +988,16 @@ function ArtifactAssetPanel({ artifact, document, onClose }: { artifact: Artifac
   );
 }
 
+function ProductValidationSummary({ state }: { state: EngineeringState }) {
+  const productState = state.productState;
+  if (!productState) {
+    return <div className="product-validation-summary pending"><AlertTriangle size={14} /><span><b>Product candidate pending</b><small>Prototype view · Python validation not yet committed</small></span></div>;
+  }
+  return (
+    <div className="product-validation-summary"><ShieldCheck size={14} /><span><b>Validated Product · {productState.revision}</b><small>{productState.product.components.length} components · {productState.product.relationships.length} relationships · {productState.product.circuit.nets.length} nets</small></span></div>
+  );
+}
+
 function GuidedRail({ state, onConstraint }: { state: EngineeringState; onConstraint: (constraint: EngineeringConstraint) => void }) {
   const priority = state.constraints.find((constraint) => constraint.key === 'priority')?.value;
   if (state.project.kind === 'generated') {
@@ -876,6 +1011,7 @@ function GuidedRail({ state, onConstraint }: { state: EngineeringState; onConstr
         <div className="scratch-goal-summary"><span>CURRENT GOAL</span><b>{build.intent.buildGoal}</b><small>{build.originalPrompt}</small></div>
         <div className="guided-choice-group"><div className="eyebrow">DESIGN PRIORITY</div>{['Balanced performance', 'Longer runtime', 'Higher payload'].map((value) => <button key={value} className={priority === value ? 'active' : ''} onClick={() => onConstraint({ key: 'priority', label: 'Design priority', value, source: 'guided' })}>{value}<ChevronRight size={12} /></button>)}</div>
         <div className="source-count"><FileText size={13} /><span><b>{build.sources.length} input source{build.sources.length === 1 ? '' : 's'}</b>Prompt, media, documents, and constraints retained</span></div>
+        <ProductValidationSummary state={state} />
         <div className="sidebar-note"><CircleDot size={14} /><span><strong>Shared project state</strong>Beginner and Pro stay in sync</span></div>
       </div>
     );
@@ -888,6 +1024,7 @@ function GuidedRail({ state, onConstraint }: { state: EngineeringState; onConstr
       <div className="guided-choice-group"><div className="eyebrow">WHAT MATTERS MOST?</div>{['Balanced', 'Longer runtime', 'Lower cost'].map((value) => <button key={value} className={priority === value ? 'active' : ''} onClick={() => onConstraint({ key: 'priority', label: 'Design priority', value, source: 'guided' })}>{value}<ChevronRight size={12} /></button>)}</div>
       {state.constraints.length > 0 && <div className="constraint-summary"><div className="eyebrow">ACTIVE CONSTRAINTS</div>{state.constraints.map((constraint) => <span key={constraint.key}><Lock size={9} /> {constraint.label}: <b>{constraint.value}{constraint.unit ? ` ${constraint.unit}` : ''}</b></span>)}</div>}
       {state.scannerObservation && <div className="physical-observation"><Camera size={14} /><div><b>Physical observation</b><span>{state.scannerObservation.label} linked to graph</span></div></div>}
+      <ProductValidationSummary state={state} />
       <div className="sidebar-note"><CircleDot size={14} /><span><strong>Shared project state</strong>Beginner and Pro stay in sync</span></div>
     </div>
   );
@@ -1203,7 +1340,7 @@ const AGENT_PROMPTS: Record<AgentKind, string> = {
   builder: 'Increase payload capacity by 30% using currently available parts. Produce a build/change plan.',
 };
 
-function AgentPanel({ onClose, onArtifacts }: { onClose: () => void; onArtifacts: (ids: string[]) => void }) {
+function AgentPanel({ productCandidateId, onClose, onArtifacts }: { productCandidateId?: ProductCandidateId; onClose: () => void; onArtifacts: (ids: string[]) => void }) {
   const agents = [
     { kind: 'product' as const, name: 'Product Agent', copy: 'Traces dependencies and revision impact', Icon: Cpu },
     { kind: 'supply' as const, name: 'Supply Agent', copy: 'Checks stock, lead time, and alternatives', Icon: Activity },
@@ -1243,7 +1380,7 @@ function AgentPanel({ onClose, onArtifacts }: { onClose: () => void; onArtifacts
     setError('');
     setDemoAnswer(demo);
     try {
-      const result = await askAgent(activeAgent, submittedQuestion);
+      const result = await askAgent(activeAgent, submittedQuestion, productCandidateId);
       setAnswer(result);
       onArtifacts(result.artifactIds);
     } catch (cause) {

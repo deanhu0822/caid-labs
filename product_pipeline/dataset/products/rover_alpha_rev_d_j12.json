@@ -1,0 +1,1117 @@
+{
+  "project": {
+    "project_id": "rover_alpha",
+    "name": "Autonomous Inspection Rover",
+    "category": "mobile robotics",
+    "summary": "Rev D sourcing candidate with an electrically compatible J12 alternate and controlled interface updates.",
+    "original_prompt": "Build a compact autonomous inspection rover for industrial spaces.",
+    "revision": "D",
+    "variant_type": "positive_variant",
+    "seed_project_id": "rover_alpha",
+    "keywords": [
+      "inspection",
+      "rover",
+      "24v",
+      "camera",
+      "industrial"
+    ]
+  },
+  "requirements": {
+    "tools": [
+      "metric hex-key set",
+      "torque driver",
+      "multimeter",
+      "USB debug probe"
+    ],
+    "assumptions": [
+      "Indoor industrial duty",
+      "Level floors",
+      "Rev C chassis envelope remains released"
+    ],
+    "skill_level": "intermediate",
+    "safety_notes": [
+      "Disconnect the battery before wiring",
+      "Use branch fusing during bring-up",
+      "Support the chassis before drivetrain service"
+    ],
+    "constraints": [
+      "8.0 kg validated payload",
+      "24 V power architecture",
+      "Current CHS-240 chassis",
+      "Four-pin J12 motor interface"
+    ]
+  },
+  "components": [
+    {
+      "component_id": "chassis",
+      "display_name": "Chassis",
+      "category": "structural",
+      "type": "machined",
+      "material": "6061-T6 aluminum",
+      "quantity": 1,
+      "description": "Released CHS-240 structural frame carrying the drivetrain, electronics, battery, and inspection camera.",
+      "dimensions": {
+        "raw": "420 x 310 x 95 mm",
+        "length_mm": 420.0,
+        "width_mm": 310.0,
+        "height_mm": 95.0,
+        "diameter_mm": null,
+        "thread": "M4"
+      },
+      "functional_role": "Primary mechanical datum and load-bearing frame.",
+      "pins": null,
+      "print_settings": null,
+      "fabrication_ref": "fab_chassis",
+      "sourcing_ref": null
+    },
+    {
+      "component_id": "left_wheel_assembly",
+      "display_name": "Left Wheel Assembly",
+      "category": "mechanical",
+      "type": "mechanical",
+      "material": "Aluminum hub with polyurethane tread",
+      "quantity": 1,
+      "description": "Left-side wheel, hub, bearing, and axle assembly.",
+      "dimensions": {
+        "raw": "160 mm diameter",
+        "length_mm": null,
+        "width_mm": 42.0,
+        "height_mm": null,
+        "diameter_mm": 160.0,
+        "thread": "M8"
+      },
+      "functional_role": "Supports and propels the left side of the rover.",
+      "pins": null,
+      "print_settings": null,
+      "fabrication_ref": null,
+      "sourcing_ref": null
+    },
+    {
+      "component_id": "right_wheel_assembly",
+      "display_name": "Right Wheel Assembly",
+      "category": "mechanical",
+      "type": "mechanical",
+      "material": "Aluminum hub with polyurethane tread",
+      "quantity": 1,
+      "description": "Right-side wheel, hub, bearing, and axle assembly.",
+      "dimensions": {
+        "raw": "160 mm diameter",
+        "length_mm": null,
+        "width_mm": 42.0,
+        "height_mm": null,
+        "diameter_mm": 160.0,
+        "thread": "M8"
+      },
+      "functional_role": "Supports and propels the right side of the rover.",
+      "pins": null,
+      "print_settings": null,
+      "fabrication_ref": null,
+      "sourcing_ref": null
+    },
+    {
+      "component_id": "camera_mount",
+      "display_name": "Camera Mount",
+      "category": "mounting",
+      "type": "machined",
+      "material": "6061-T6 aluminum",
+      "quantity": 1,
+      "description": "Released 80 mm camera riser using the CHS-240 mounting interface.",
+      "dimensions": {
+        "raw": "80 mm optical-center height",
+        "length_mm": 54.0,
+        "width_mm": 46.0,
+        "height_mm": 80.0,
+        "diameter_mm": null,
+        "thread": "M4"
+      },
+      "functional_role": "Positions the camera above the front chassis deck.",
+      "pins": null,
+      "print_settings": null,
+      "fabrication_ref": "fab_camera_mount",
+      "sourcing_ref": null
+    },
+    {
+      "component_id": "battery_enclosure",
+      "display_name": "Battery Enclosure",
+      "category": "safety",
+      "type": "mechanical",
+      "material": "Powder-coated aluminum",
+      "quantity": 1,
+      "description": "BAT-CAGE-03 enclosure retaining and shielding the 12 Ah battery pack.",
+      "dimensions": {
+        "raw": "245 x 165 x 105 mm",
+        "length_mm": 245.0,
+        "width_mm": 165.0,
+        "height_mm": 105.0,
+        "diameter_mm": null,
+        "thread": "M4"
+      },
+      "functional_role": "Constrains the battery and provides impact and service protection.",
+      "pins": null,
+      "print_settings": null,
+      "fabrication_ref": "fab_battery_enclosure",
+      "sourcing_ref": null
+    },
+    {
+      "component_id": "motor_housing",
+      "display_name": "Motor Housing",
+      "category": "mounting",
+      "type": "machined",
+      "material": "6061-T6 aluminum",
+      "quantity": 2,
+      "description": "MTR-HSG-04 housing that locates each drive motor in the Rev C chassis.",
+      "dimensions": {
+        "raw": "96 x 72 x 68 mm",
+        "length_mm": 96.0,
+        "width_mm": 72.0,
+        "height_mm": 68.0,
+        "diameter_mm": null,
+        "thread": "M5"
+      },
+      "functional_role": "Locates the motor and transfers drivetrain reaction load into the chassis.",
+      "pins": null,
+      "print_settings": null,
+      "fabrication_ref": "fab_motor_housing",
+      "sourcing_ref": null
+    },
+    {
+      "component_id": "main_board",
+      "display_name": "Main Control Board",
+      "category": "electrical",
+      "type": "electronic",
+      "material": "FR-4 assembly",
+      "quantity": 1,
+      "description": "MCB-C4 controller coordinating navigation, motor commands, camera data, and telemetry.",
+      "dimensions": {
+        "raw": "118 x 86 x 18 mm",
+        "length_mm": 118.0,
+        "width_mm": 86.0,
+        "height_mm": 18.0,
+        "diameter_mm": null,
+        "thread": null
+      },
+      "functional_role": "Primary compute, command, and I/O controller.",
+      "pins": [
+        "VIN",
+        "GND",
+        "GPIO_17",
+        "ADC3",
+        "CAM_D_POS",
+        "CAM_D_NEG"
+      ],
+      "print_settings": null,
+      "fabrication_ref": null,
+      "sourcing_ref": null
+    },
+    {
+      "component_id": "motor_controller",
+      "display_name": "Motor Controller",
+      "category": "electrical",
+      "type": "electronic",
+      "material": "FR-4 power assembly",
+      "quantity": 1,
+      "description": "MCTRL-8A dual-channel controller with an 8 A validated continuous limit.",
+      "dimensions": {
+        "raw": "92 x 62 x 24 mm",
+        "length_mm": 92.0,
+        "width_mm": 62.0,
+        "height_mm": 24.0,
+        "diameter_mm": null,
+        "thread": null
+      },
+      "functional_role": "Translates main-board commands into bounded motor-driver demand.",
+      "pins": [
+        "VIN",
+        "GND",
+        "ENABLE",
+        "PWM_OUT",
+        "SENSE_IN"
+      ],
+      "print_settings": null,
+      "fabrication_ref": null,
+      "sourcing_ref": "src_motor_controller"
+    },
+    {
+      "component_id": "motor_driver",
+      "display_name": "Motor Driver",
+      "category": "electrical",
+      "type": "electronic",
+      "material": "FR-4 power stage",
+      "quantity": 2,
+      "description": "DRV-8A H-bridge power stage for the left and right drive motors.",
+      "dimensions": {
+        "raw": "58 x 42 x 16 mm",
+        "length_mm": 58.0,
+        "width_mm": 42.0,
+        "height_mm": 16.0,
+        "diameter_mm": null,
+        "thread": null
+      },
+      "functional_role": "Switches the 24 V motor branch under controller PWM demand.",
+      "pins": [
+        "VIN",
+        "GND",
+        "PWM_IN",
+        "OUT_A",
+        "OUT_B",
+        "CURRENT_SENSE"
+      ],
+      "print_settings": null,
+      "fabrication_ref": null,
+      "sourcing_ref": "src_motor_driver"
+    },
+    {
+      "component_id": "drive_motor_m2",
+      "display_name": "24V Motor",
+      "category": "electrical",
+      "type": "electronic",
+      "material": "Steel and copper gearmotor",
+      "quantity": 2,
+      "description": "MTR-24-220 Motor M2, 24 V nominal, released for the 8.0 kg payload configuration.",
+      "dimensions": {
+        "raw": "92 x 68 mm cylindrical envelope",
+        "length_mm": 92.0,
+        "width_mm": null,
+        "height_mm": null,
+        "diameter_mm": 68.0,
+        "thread": "M5"
+      },
+      "functional_role": "Provides traction torque to the wheel assemblies.",
+      "pins": [
+        "MOTOR_POS",
+        "MOTOR_NEG"
+      ],
+      "print_settings": null,
+      "fabrication_ref": null,
+      "sourcing_ref": "src_drive_motor"
+    },
+    {
+      "component_id": "battery_pack",
+      "display_name": "Li-ion Battery",
+      "category": "electrical",
+      "type": "electronic",
+      "material": "Lithium-ion pack in polymer enclosure",
+      "quantity": 1,
+      "description": "BAT-24-12 24 V, 12 Ah battery pack for the Rev C mission profile.",
+      "dimensions": {
+        "raw": "228 x 148 x 92 mm",
+        "length_mm": 228.0,
+        "width_mm": 148.0,
+        "height_mm": 92.0,
+        "diameter_mm": null,
+        "thread": null
+      },
+      "functional_role": "Primary rover energy source.",
+      "pins": [
+        "PACK_POS",
+        "PACK_NEG"
+      ],
+      "print_settings": null,
+      "fabrication_ref": null,
+      "sourcing_ref": "src_battery"
+    },
+    {
+      "component_id": "j12_connector",
+      "display_name": "J12 Connector Alternate",
+      "category": "electrical",
+      "type": "electronic",
+      "material": "Nylon housing with copper-alloy contacts",
+      "quantity": 1,
+      "description": "NSI-MF4-LK four-circuit alternate for the Rev D motor-power interface.",
+      "dimensions": {
+        "raw": "Four-circuit right-angle alternate with revised latch clearance",
+        "length_mm": 14.8,
+        "width_mm": 12.4,
+        "height_mm": 9.9,
+        "diameter_mm": null,
+        "thread": null
+      },
+      "functional_role": "Controlled motor-power, enable, and sense interface.",
+      "pins": [
+        "P1",
+        "P2",
+        "P3",
+        "P4"
+      ],
+      "print_settings": null,
+      "fabrication_ref": null,
+      "sourcing_ref": "src_j12"
+    },
+    {
+      "component_id": "camera_module",
+      "display_name": "Camera Module",
+      "category": "electrical",
+      "type": "electronic",
+      "material": "Aluminum camera housing and sensor PCB",
+      "quantity": 1,
+      "description": "CM-4K-R2 industrial inspection camera module.",
+      "dimensions": {
+        "raw": "48 x 48 x 62 mm",
+        "length_mm": 62.0,
+        "width_mm": 48.0,
+        "height_mm": 48.0,
+        "diameter_mm": null,
+        "thread": "M4"
+      },
+      "functional_role": "Captures inspection imagery and streams it to the main board.",
+      "pins": [
+        "VIN",
+        "GND",
+        "USB_D_POS",
+        "USB_D_NEG"
+      ],
+      "print_settings": null,
+      "fabrication_ref": null,
+      "sourcing_ref": "src_camera"
+    }
+  ],
+  "relationships": [
+    {
+      "source": "left_wheel_assembly",
+      "relation": "mounted_on",
+      "target": "chassis",
+      "required": true,
+      "notes": "Left axle datum"
+    },
+    {
+      "source": "right_wheel_assembly",
+      "relation": "mounted_on",
+      "target": "chassis",
+      "required": true,
+      "notes": "Right axle datum"
+    },
+    {
+      "source": "camera_mount",
+      "relation": "mounted_on",
+      "target": "chassis",
+      "required": true,
+      "notes": "Front inspection datum"
+    },
+    {
+      "source": "camera_module",
+      "relation": "mounted_on",
+      "target": "camera_mount",
+      "required": true,
+      "notes": "Optical center at 80 mm"
+    },
+    {
+      "source": "battery_enclosure",
+      "relation": "mounted_on",
+      "target": "chassis",
+      "required": true,
+      "notes": "Rear energy bay"
+    },
+    {
+      "source": "battery_enclosure",
+      "relation": "contains",
+      "target": "battery_pack",
+      "required": true,
+      "notes": "Pack retained by BAT-CAGE-03"
+    },
+    {
+      "source": "motor_housing",
+      "relation": "mounted_on",
+      "target": "chassis",
+      "required": true,
+      "notes": "Two mirrored housings"
+    },
+    {
+      "source": "motor_housing",
+      "relation": "contains",
+      "target": "drive_motor_m2",
+      "required": true,
+      "notes": "M2 released envelope"
+    },
+    {
+      "source": "main_board",
+      "relation": "mounted_on",
+      "target": "chassis",
+      "required": true,
+      "notes": "Electronics deck"
+    },
+    {
+      "source": "main_board",
+      "relation": "contains",
+      "target": "j12_connector",
+      "required": true,
+      "notes": "J12 board interface"
+    },
+    {
+      "source": "main_board",
+      "relation": "connects_to",
+      "target": "motor_controller",
+      "required": true,
+      "notes": "Enable and sense control"
+    },
+    {
+      "source": "motor_controller",
+      "relation": "connects_to",
+      "target": "motor_driver",
+      "required": true,
+      "notes": "PWM and current feedback"
+    },
+    {
+      "source": "motor_driver",
+      "relation": "connects_to",
+      "target": "drive_motor_m2",
+      "required": true,
+      "notes": "24 V H-bridge output"
+    },
+    {
+      "source": "battery_pack",
+      "relation": "connects_to",
+      "target": "main_board",
+      "required": true,
+      "notes": "Protected 24 V input"
+    },
+    {
+      "source": "camera_module",
+      "relation": "connects_to",
+      "target": "main_board",
+      "required": true,
+      "notes": "Power and differential data"
+    }
+  ],
+  "circuit": {
+    "summary": "Protected 24 V distribution with dual motor power stages, four-pin J12 control interface, and camera power/data.",
+    "nets": [
+      {
+        "net_id": "vmotor_24v",
+        "name": "24 V motor bus",
+        "kind": "power",
+        "voltage": "24 V",
+        "members": [
+          {
+            "component": "battery_pack",
+            "pin": "PACK_POS"
+          },
+          {
+            "component": "main_board",
+            "pin": "VIN"
+          },
+          {
+            "component": "motor_controller",
+            "pin": "VIN"
+          },
+          {
+            "component": "motor_driver",
+            "pin": "VIN"
+          }
+        ]
+      },
+      {
+        "net_id": "power_ground",
+        "name": "Power return",
+        "kind": "ground",
+        "voltage": "0 V",
+        "members": [
+          {
+            "component": "battery_pack",
+            "pin": "PACK_NEG"
+          },
+          {
+            "component": "main_board",
+            "pin": "GND"
+          },
+          {
+            "component": "motor_controller",
+            "pin": "GND"
+          },
+          {
+            "component": "motor_driver",
+            "pin": "GND"
+          },
+          {
+            "component": "camera_module",
+            "pin": "GND"
+          }
+        ]
+      },
+      {
+        "net_id": "motor_out_a",
+        "name": "Motor phase A",
+        "kind": "power",
+        "voltage": "PWM 24 V",
+        "members": [
+          {
+            "component": "motor_driver",
+            "pin": "OUT_A"
+          },
+          {
+            "component": "drive_motor_m2",
+            "pin": "MOTOR_POS"
+          },
+          {
+            "component": "j12_connector",
+            "pin": "P1"
+          }
+        ]
+      },
+      {
+        "net_id": "motor_out_b",
+        "name": "Motor phase B",
+        "kind": "power",
+        "voltage": "PWM return",
+        "members": [
+          {
+            "component": "motor_driver",
+            "pin": "OUT_B"
+          },
+          {
+            "component": "drive_motor_m2",
+            "pin": "MOTOR_NEG"
+          },
+          {
+            "component": "j12_connector",
+            "pin": "P2"
+          }
+        ]
+      },
+      {
+        "net_id": "motor_enable",
+        "name": "Motor power enable",
+        "kind": "signal",
+        "voltage": "3.3 V",
+        "members": [
+          {
+            "component": "main_board",
+            "pin": "GPIO_17"
+          },
+          {
+            "component": "motor_controller",
+            "pin": "ENABLE"
+          },
+          {
+            "component": "j12_connector",
+            "pin": "P3"
+          }
+        ]
+      },
+      {
+        "net_id": "drive_pwm",
+        "name": "Motor PWM demand",
+        "kind": "signal",
+        "voltage": "3.3 V PWM",
+        "members": [
+          {
+            "component": "motor_controller",
+            "pin": "PWM_OUT"
+          },
+          {
+            "component": "motor_driver",
+            "pin": "PWM_IN"
+          }
+        ]
+      },
+      {
+        "net_id": "motor_current_sense",
+        "name": "Motor current sense",
+        "kind": "analog",
+        "voltage": "0-3.3 V",
+        "members": [
+          {
+            "component": "motor_driver",
+            "pin": "CURRENT_SENSE"
+          },
+          {
+            "component": "motor_controller",
+            "pin": "SENSE_IN"
+          },
+          {
+            "component": "main_board",
+            "pin": "ADC3"
+          },
+          {
+            "component": "j12_connector",
+            "pin": "P4"
+          }
+        ]
+      },
+      {
+        "net_id": "camera_power",
+        "name": "Camera power",
+        "kind": "power",
+        "voltage": "24 V",
+        "members": [
+          {
+            "component": "battery_pack",
+            "pin": "PACK_POS"
+          },
+          {
+            "component": "camera_module",
+            "pin": "VIN"
+          }
+        ]
+      },
+      {
+        "net_id": "camera_data_pos",
+        "name": "Camera data positive",
+        "kind": "differential",
+        "voltage": null,
+        "members": [
+          {
+            "component": "main_board",
+            "pin": "CAM_D_POS"
+          },
+          {
+            "component": "camera_module",
+            "pin": "USB_D_POS"
+          }
+        ]
+      },
+      {
+        "net_id": "camera_data_neg",
+        "name": "Camera data negative",
+        "kind": "differential",
+        "voltage": null,
+        "members": [
+          {
+            "component": "main_board",
+            "pin": "CAM_D_NEG"
+          },
+          {
+            "component": "camera_module",
+            "pin": "USB_D_NEG"
+          }
+        ]
+      }
+    ],
+    "power_budget": {
+      "input_source": "battery_pack",
+      "rails": [
+        {
+          "name": "24 V motor bus",
+          "voltage": "24 V",
+          "estimated_current_a": 8.0,
+          "loads": [
+            "motor_controller",
+            "motor_driver",
+            "drive_motor_m2"
+          ]
+        },
+        {
+          "name": "24 V auxiliary",
+          "voltage": "24 V",
+          "estimated_current_a": 1.4,
+          "loads": [
+            "main_board",
+            "camera_module"
+          ]
+        }
+      ],
+      "total_power_w": 225.6,
+      "notes": "Rev C DVT estimate at maximum validated payload."
+    },
+    "protection": {
+      "fusing": "10 A resettable motor-branch fuse and 3 A auxiliary fuse",
+      "esd": "TVS arrays on camera data and exposed J12 signals",
+      "reverse_polarity": "Ideal-diode MOSFET at battery input",
+      "other": "BMS undervoltage and overtemperature cutoff"
+    },
+    "prototype": {
+      "method": "Current-limited bench supply before battery connection",
+      "steps": [
+        {
+          "step_id": "proto_1",
+          "instruction": "Verify power-ground isolation and connect the protected 24 V input.",
+          "nets": [
+            "vmotor_24v",
+            "power_ground"
+          ]
+        },
+        {
+          "step_id": "proto_2",
+          "instruction": "Enable the controller at zero PWM and verify the current-sense baseline.",
+          "nets": [
+            "motor_enable",
+            "drive_pwm",
+            "motor_current_sense"
+          ]
+        },
+        {
+          "step_id": "proto_3",
+          "instruction": "Connect one drive motor and ramp PWM under a 3 A bench limit.",
+          "nets": [
+            "motor_out_a",
+            "motor_out_b"
+          ]
+        },
+        {
+          "step_id": "proto_4",
+          "instruction": "Connect camera power and differential data after the drivetrain check.",
+          "nets": [
+            "camera_power",
+            "camera_data_pos",
+            "camera_data_neg"
+          ]
+        }
+      ],
+      "bring_up_checks": [
+        "No short between vmotor_24v and power_ground",
+        "Motor current sense returns below 0.1 V at idle",
+        "Both drive channels stop when enable is low",
+        "Camera stream enumerates without dropped frames"
+      ],
+      "notes": "Use the battery only after all bench checks pass."
+    },
+    "thermal": {
+      "hotspots": [
+        "motor_driver",
+        "motor_controller",
+        "drive_motor_m2"
+      ],
+      "mitigation": "Aluminum chassis conduction, controller airflow gap, and firmware current limiting.",
+      "notes": "Repeat the motor-load thermal soak after drivetrain revisions."
+    }
+  },
+  "fabrication": {
+    "processes": [
+      "CNC mill chassis and mounts",
+      "Deburr and clean",
+      "Powder coat enclosure",
+      "Inspect critical interfaces"
+    ],
+    "component_settings": {},
+    "post_processing": [
+      "Deburr all edges",
+      "Mask electrical bonding points",
+      "Apply black powder coat to exposed aluminum"
+    ],
+    "tolerances": {
+      "camera_mount_height": "+/- 0.25 mm",
+      "motor_housing_datum": "+/- 0.15 mm",
+      "chassis_flatness": "0.5 mm maximum"
+    }
+  },
+  "instructions": [
+    {
+      "step_id": "fab_1",
+      "phase": "fabrication",
+      "title": "Inspect released mechanical interfaces",
+      "component_ids": [
+        "chassis",
+        "camera_mount",
+        "battery_enclosure",
+        "motor_housing"
+      ],
+      "dependencies": [],
+      "expected_result": "All Rev C mechanical interfaces meet the released drawing tolerances.",
+      "detail": {
+        "summary": "Confirm chassis, motor, camera, and battery mounting datums before assembly.",
+        "steps": [
+          "Measure the chassis flatness",
+          "Inspect motor-housing datums",
+          "Measure the camera optical-center height",
+          "Inspect the battery-cage latch"
+        ],
+        "tip": "Record measurements against the Rev C traveler.",
+        "tools": [
+          "caliper",
+          "surface plate",
+          "height gauge"
+        ],
+        "fasteners": [],
+        "warnings": [
+          "Reject sharp burrs near cable routes"
+        ],
+        "est_time_min": 35.0,
+        "process": "Dimensional inspection",
+        "machine": "Surface plate and height gauge",
+        "tolerance": "Per fabrication.tolerances",
+        "cycle_time_sec": 2100.0,
+        "qc_check": "All four controlled datums pass"
+      }
+    },
+    {
+      "step_id": "wire_1",
+      "phase": "wiring",
+      "title": "Route the protected power and control harness",
+      "component_ids": [
+        "battery_pack",
+        "main_board",
+        "motor_controller",
+        "motor_driver",
+        "j12_connector",
+        "camera_module"
+      ],
+      "dependencies": [
+        "fab_1"
+      ],
+      "expected_result": "The 24 V, return, enable, sense, and camera circuits match the controlled netlist.",
+      "detail": {
+        "summary": "Connect the Rev C harness one verified net at a time.",
+        "steps": [
+          "Connect power_ground",
+          "Connect vmotor_24v through branch protection",
+          "Connect J12 enable and sense",
+          "Connect camera power and data",
+          "Perform continuity checks"
+        ],
+        "tip": "Label both ends of every serviceable harness leg.",
+        "tools": [
+          "multimeter",
+          "contact insertion tool",
+          "wire labels"
+        ],
+        "fasteners": [],
+        "warnings": [
+          "Keep the battery disconnected during continuity checks"
+        ],
+        "est_time_min": 55.0,
+        "process": null,
+        "machine": null,
+        "tolerance": null,
+        "cycle_time_sec": null,
+        "qc_check": "Continuity and isolation match every circuit net"
+      }
+    },
+    {
+      "step_id": "bring_up_1",
+      "phase": "bring_up",
+      "title": "Bring up the 24 V electrical system",
+      "component_ids": [
+        "battery_pack",
+        "main_board",
+        "motor_controller",
+        "motor_driver",
+        "drive_motor_m2",
+        "camera_module"
+      ],
+      "dependencies": [
+        "wire_1"
+      ],
+      "expected_result": "The rover powers safely, enumerates the camera, and bounds motor current at the Rev C limit.",
+      "detail": {
+        "summary": "Execute the circuit prototype sequence before unrestricted battery operation.",
+        "steps": [
+          "Apply current-limited bench power",
+          "Verify idle current",
+          "Verify enable shutdown",
+          "Ramp each motor channel",
+          "Start the camera stream"
+        ],
+        "tip": "Stop immediately if the current-sense baseline exceeds the released limit.",
+        "tools": [
+          "bench supply",
+          "multimeter",
+          "oscilloscope",
+          "USB debug probe"
+        ],
+        "fasteners": [],
+        "warnings": [
+          "Do not bypass branch protection"
+        ],
+        "est_time_min": 45.0,
+        "process": "Electrical bring-up",
+        "machine": "Current-limited bench supply",
+        "tolerance": null,
+        "cycle_time_sec": 2700.0,
+        "qc_check": "All circuit bring_up_checks pass"
+      }
+    },
+    {
+      "step_id": "assembly_1",
+      "phase": "assembly",
+      "title": "Fasten drivetrain and payload assemblies",
+      "component_ids": [
+        "chassis",
+        "left_wheel_assembly",
+        "right_wheel_assembly",
+        "motor_housing",
+        "drive_motor_m2",
+        "battery_enclosure",
+        "camera_mount",
+        "camera_module"
+      ],
+      "dependencies": [
+        "bring_up_1"
+      ],
+      "expected_result": "All mechanical assemblies are secured, aligned, and serviceable without harness interference.",
+      "detail": {
+        "summary": "Complete mechanical assembly using the controlled torque sequence.",
+        "steps": [
+          "Install both motor housings",
+          "Install wheel assemblies",
+          "Install the battery enclosure",
+          "Install the camera mount and camera",
+          "Verify wheel rotation and cable service loops"
+        ],
+        "tip": "Tighten mirrored drivetrain joints in alternating passes.",
+        "tools": [
+          "metric hex-key set",
+          "torque driver"
+        ],
+        "fasteners": [
+          {
+            "part": "M5 drivetrain fasteners",
+            "torque": "4.5 N\u00b7m"
+          },
+          {
+            "part": "M4 payload fasteners",
+            "torque": "2.2 N\u00b7m"
+          }
+        ],
+        "warnings": [
+          "Do not pinch the camera or J12 harness"
+        ],
+        "est_time_min": 70.0,
+        "process": null,
+        "machine": null,
+        "tolerance": null,
+        "cycle_time_sec": null,
+        "qc_check": "Witness marks applied and all service loops remain free"
+      }
+    },
+    {
+      "step_id": "testing_1",
+      "phase": "testing",
+      "title": "Run Rev C final verification",
+      "component_ids": [
+        "chassis",
+        "drive_motor_m2",
+        "motor_controller",
+        "motor_driver",
+        "battery_pack",
+        "camera_module"
+      ],
+      "dependencies": [
+        "assembly_1"
+      ],
+      "expected_result": "The assembled rover passes payload, power, camera, and final QA checks for Rev C.",
+      "detail": {
+        "summary": "Execute the released DVT verification set and archive the results.",
+        "steps": [
+          "Run the 8.0 kg motor-load test",
+          "Run the power thermal soak",
+          "Run camera calibration",
+          "Run final route and emergency-stop checks"
+        ],
+        "tip": "Use the same battery state-of-charge window for comparative tests.",
+        "tools": [
+          "motor load rig",
+          "power analyzer",
+          "camera target",
+          "QA fixture"
+        ],
+        "fasteners": [],
+        "warnings": [
+          "Keep personnel clear during loaded drivetrain testing"
+        ],
+        "est_time_min": 95.0,
+        "process": "DVT verification",
+        "machine": "Motor load and final QA fixtures",
+        "tolerance": null,
+        "cycle_time_sec": 5700.0,
+        "qc_check": "All released Rev C test records pass"
+      }
+    }
+  ],
+  "appearance": {
+    "overall_dimensions": "420 x 310 x 255 mm",
+    "geometry_summary": "Low rectangular aluminum rover chassis with four exposed wheels, protected rear battery bay, and front camera riser.",
+    "finish": "Black powder-coated aluminum with natural machined interface faces",
+    "color": "Matte black, charcoal, and natural aluminum",
+    "key_features": [
+      "CHS-240 low-profile chassis",
+      "four 160 mm wheels",
+      "front camera mount",
+      "rear battery enclosure",
+      "serviceable electronics deck"
+    ],
+    "visual_description": "The Autonomous Inspection Rover has a low black CHS-240 aluminum chassis carried by four 160 mm wheels, a protected rear battery enclosure, visible serviceable electronics, and a compact camera module elevated on an 80 mm front mount."
+  },
+  "image_generation_prompt": {
+    "prompt": "Industrial product rendering of the Autonomous Inspection Rover: a low matte-black CHS-240 aluminum chassis on four 160 mm polyurethane wheels, protected rear battery enclosure, serviceable center electronics deck, and compact inspection camera on an 80 mm front riser, realistic fasteners and cable routing, three-quarter engineering view.",
+    "negative_prompt": "No fantasy wheels, no weapons, no floating parts, no unlabeled exposed battery cells, no impossible cable paths.",
+    "tags": [
+      "industrial rover",
+      "engineering prototype",
+      "mobile inspection",
+      "aluminum chassis"
+    ],
+    "style": "photoreal industrial design visualization",
+    "view": "front three-quarter",
+    "lighting": "soft studio key light with technical rim light",
+    "background": "dark neutral engineering studio",
+    "aspect_ratio": "16:9"
+  },
+  "sourcing": {
+    "items": [
+      {
+        "component_id": "drive_motor_m2",
+        "product_name": "MTR-24-220 Motor M2",
+        "unit_cost_usd": 42.1,
+        "quantity": 2,
+        "total_cost_usd": 84.2,
+        "vendor": "Motion Dynamics",
+        "url": null
+      },
+      {
+        "component_id": "motor_controller",
+        "product_name": "MCTRL-8A dual controller",
+        "unit_cost_usd": 68.0,
+        "quantity": 1,
+        "total_cost_usd": 68.0,
+        "vendor": "Control Works",
+        "url": null
+      },
+      {
+        "component_id": "motor_driver",
+        "product_name": "DRV-8A H-bridge",
+        "unit_cost_usd": 18.5,
+        "quantity": 2,
+        "total_cost_usd": 37.0,
+        "vendor": "Control Works",
+        "url": null
+      },
+      {
+        "component_id": "battery_pack",
+        "product_name": "BAT-24-12 lithium-ion pack",
+        "unit_cost_usd": 125.0,
+        "quantity": 1,
+        "total_cost_usd": 125.0,
+        "vendor": "Volt Ridge",
+        "url": null
+      },
+      {
+        "component_id": "j12_connector",
+        "product_name": "NSI-MF4-LK",
+        "unit_cost_usd": 0.71,
+        "quantity": 1,
+        "total_cost_usd": 0.71,
+        "vendor": "Northstar Interconnect",
+        "url": null
+      },
+      {
+        "component_id": "camera_module",
+        "product_name": "CM-4K-R2 inspection camera",
+        "unit_cost_usd": 245.0,
+        "quantity": 1,
+        "total_cost_usd": 245.0,
+        "vendor": "Basler",
+        "url": null
+      }
+    ],
+    "cost_summary": {
+      "total_usd": 559.91,
+      "components_priced": 6,
+      "components_total": 13
+    },
+    "vendors": [
+      "Motion Dynamics",
+      "Control Works",
+      "Volt Ridge",
+      "Molex",
+      "Basler",
+      "Northstar Interconnect"
+    ]
+  },
+  "validation": {
+    "schema_valid": true,
+    "reference_integrity_valid": true,
+    "manufacturability_valid": true,
+    "naming_consistency_valid": true,
+    "issues": [],
+    "confidence_score": 0.96
+  }
+}
