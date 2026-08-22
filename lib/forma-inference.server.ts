@@ -10,6 +10,7 @@ export const formaInferenceProvider = provider === 'nvidia-build'
   ? new NvidiaBuildInferenceProvider({
       baseUrl: process.env.NVIDIA_BUILD_BASE_URL || 'https://integrate.api.nvidia.com/v1',
       reasoningModel: process.env.NVIDIA_REASONING_MODEL,
+      generationModel: process.env.NVIDIA_GENERATION_MODEL,
       visionModel: process.env.NVIDIA_VISION_MODEL,
       parseModel: process.env.NVIDIA_PARSE_MODEL,
       keyPresent: Boolean(process.env.NVIDIA_API_KEY),

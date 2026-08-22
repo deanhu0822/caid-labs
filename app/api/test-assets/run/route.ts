@@ -29,7 +29,7 @@ export async function POST(request: Request) {
   let statusLabel = 'Prototype fixture';
   let summary = 'Loaded the teammate-provided golden fixture. No model inference was performed.';
 
-  if (parseService?.mode === 'local') {
+  if (parseService?.mode === 'local' || (status.provider === 'nvidia-build' && parseService?.endpointConfigured)) {
     const source = await readFile(sourcePath);
     const parsed = await formaInferenceProvider.parseDocument({
       sourceId: asset.id,
@@ -37,12 +37,22 @@ export async function POST(request: Request) {
       mimeType: 'application/pdf',
       dataUrl: `data:application/pdf;base64,${source.toString('base64')}`,
     });
-    structured = parsed.structured;
-    inferencePerformed = parsed.inferencePerformed;
-    resultKind = 'model-output';
-    runStatus = parsed.mode === 'local' ? 'local' : parsed.mode === 'unavailable' ? 'unavailable' : 'prototype';
-    statusLabel = parsed.mode === 'local' ? 'Local inference' : parsed.mode === 'unavailable' ? 'Unavailable' : 'Prototype fallback';
-    summary = parsed.summary;
+    if (parsed.inferencePerformed) {
+      const extraction = await formaInferenceProvider.reason({
+        objective: `Extract parts, dimensions, manufacturing risks, and follow-up tasks from ${asset.sourceFile}.`,
+        engineeringState: { parsedDocument: parsed.structured, parserEvidence: parsed.raw },
+        featureContract: { output: 'EngineeringExtraction', sourceId: asset.id, validation: 'Pydantic + engineering extraction contract' },
+        mockResult: fixture,
+      });
+      structured = extraction.structured;
+      inferencePerformed = extraction.inferencePerformed;
+      resultKind = extraction.inferencePerformed ? 'model-output' : 'golden-fixture';
+      runStatus = extraction.inferencePerformed ? 'nvidia-build' : 'prototype';
+      statusLabel = extraction.inferencePerformed ? 'NVIDIA Build inference' : 'Prototype fallback';
+      summary = extraction.inferencePerformed ? `${parsed.summary} Structured engineering extraction passed validation.` : `${parsed.summary} Structured extraction fell back to the golden fixture.`;
+    } else {
+      summary = parsed.summary;
+    }
   } else if (parseService?.mode === 'unavailable') {
     structured = null;
     resultKind = 'none';

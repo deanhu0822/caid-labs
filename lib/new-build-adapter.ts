@@ -1,4 +1,5 @@
 import { FORMA_MODEL_ROLES, mockFormaInferenceProvider, type FormaInferenceMode } from './forma-inference';
+import { requestConfiguredMediaObservation } from './scanner-analysis';
 
 export type PrototypeSourceKind = 'image' | 'video' | 'document';
 
@@ -27,7 +28,7 @@ export type PrototypeMediaObservation = {
   sourceId: string;
   kind: 'image' | 'video';
   summary: string;
-  inferenceConnected: false;
+  inferenceConnected: boolean;
 };
 
 export type PrototypeDocumentObservation = {
@@ -131,7 +132,7 @@ export type PrototypeBuildDefinition = {
 };
 
 export interface NewBuildPrototypeAdapter {
-  readonly inferenceConnected: false;
+  readonly inferenceConnected: boolean;
   readonly openCadConnected: false;
   analyzeIntent(input: { text: string; sources: PrototypeInputSource[]; additionalNotes: string }): Promise<PrototypeIntent>;
   analyzeImage(source: PrototypeInputSource): Promise<PrototypeMediaObservation>;
@@ -143,6 +144,34 @@ export interface NewBuildPrototypeAdapter {
 }
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function reasonThroughServer<T extends object>(input: {
+  objective: string;
+  engineeringState: unknown;
+  featureContract: unknown;
+  fallback: T;
+}): Promise<T> {
+  try {
+    const response = await fetch('/api/inference/reason', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    });
+    if (!response.ok) return input.fallback;
+    const result = await response.json() as { inferencePerformed?: boolean; structured?: T };
+    return result.inferencePerformed && result.structured ? result.structured : input.fallback;
+  } catch {
+    return input.fallback;
+  }
+}
+
+async function sourceFile(source: PrototypeInputSource) {
+  const blob = await fetch(source.url).then((response) => {
+    if (!response.ok) throw new Error(`Could not read ${source.name}.`);
+    return response.blob();
+  });
+  return new File([blob], source.name, { type: source.mimeType || blob.type });
+}
 
 function detectScenario(text: string): PrototypeScenario {
   if (/air[ -]?quality|air monitor|particulate|co2/i.test(text)) return 'air-monitor';
@@ -348,21 +377,48 @@ function compactArchitecture(intent: PrototypeIntent, clarifications: Clarificat
 }
 
 export const newBuildPrototypeAdapter: NewBuildPrototypeAdapter = {
-  inferenceConnected: false,
+  inferenceConnected: true,
   openCadConnected: false,
   async analyzeImage(source) {
-    await wait(120);
-    const observation = await mockFormaInferenceProvider.observeMedia({ sourceId: source.id, kind: 'image', name: source.name, mimeType: source.mimeType });
-    return { sourceId: source.id, kind: 'image', summary: observation.summary, inferenceConnected: false };
+    try {
+      const observation = await requestConfiguredMediaObservation(await sourceFile(source));
+      return {
+        sourceId: source.id,
+        kind: 'image',
+        summary: observation.summary || 'The image was analyzed, but no engineering summary was returned.',
+        inferenceConnected: observation.inferencePerformed === true,
+      };
+    } catch {
+      const observation = await mockFormaInferenceProvider.observeMedia({ sourceId: source.id, kind: 'image', name: source.name, mimeType: source.mimeType });
+      return { sourceId: source.id, kind: 'image', summary: observation.summary, inferenceConnected: false };
+    }
   },
   async analyzeVideo(source) {
-    await wait(120);
-    const observation = await mockFormaInferenceProvider.observeMedia({ sourceId: source.id, kind: 'video', name: source.name, mimeType: source.mimeType });
-    return { sourceId: source.id, kind: 'video', summary: observation.summary, inferenceConnected: false };
+    try {
+      const observation = await requestConfiguredMediaObservation(await sourceFile(source));
+      return {
+        sourceId: source.id,
+        kind: 'video',
+        summary: observation.summary || 'Sampled video frames were analyzed, but no engineering summary was returned.',
+        inferenceConnected: observation.inferencePerformed === true,
+      };
+    } catch {
+      const observation = await mockFormaInferenceProvider.observeMedia({ sourceId: source.id, kind: 'video', name: source.name, mimeType: source.mimeType });
+      return { sourceId: source.id, kind: 'video', summary: observation.summary, inferenceConnected: false };
+    }
   },
   async analyzeDocument(source) {
-    await wait(140);
-    const parsed = await mockFormaInferenceProvider.parseDocument({ sourceId: source.id, name: source.name, mimeType: source.mimeType });
+    let parsed;
+    try {
+      const form = new FormData();
+      form.set('file', await sourceFile(source));
+      form.set('sourceId', source.id);
+      const response = await fetch('/api/inference/document', { method: 'POST', body: form });
+      if (!response.ok) throw new Error('Document adapter unavailable.');
+      parsed = await response.json() as Awaited<ReturnType<typeof mockFormaInferenceProvider.parseDocument>>;
+    } catch {
+      parsed = await mockFormaInferenceProvider.parseDocument({ sourceId: source.id, name: source.name, mimeType: source.mimeType });
+    }
     return {
       sourceId: source.id,
       sourceName: source.name,
@@ -377,7 +433,7 @@ export const newBuildPrototypeAdapter: NewBuildPrototypeAdapter = {
       summary: parsed.summary,
     };
   },
-  async analyzeIntent({ text, sources }) {
+  async analyzeIntent({ text, sources, additionalNotes }) {
     const mediaSources = sources.filter((source): source is PrototypeInputSource & { kind: 'image' | 'video' } => source.kind === 'image' || source.kind === 'video');
     const documentSources = sources.filter((source) => source.kind === 'document');
     const [mediaObservations, documentObservations] = await Promise.all([
@@ -385,26 +441,29 @@ export const newBuildPrototypeAdapter: NewBuildPrototypeAdapter = {
       Promise.all(documentSources.map((source) => this.analyzeDocument(source))),
     ]);
     await wait(240);
-    const scenario = detectScenario(text);
-    const deterministicIntent = scenario === 'inspection-rover' ? roverIntent(text, mediaObservations, documentObservations) : scenarioIntent(scenario, mediaObservations, documentObservations);
-    const routed = await mockFormaInferenceProvider.reason({
-      objective: text,
-      engineeringState: { sources: sources.map(({ id, kind, name, mimeType }) => ({ id, kind, name, mimeType })) },
-      featureContract: { output: 'PrototypeIntent', prototype: true },
-      mockResult: deterministicIntent,
+    const combinedText = additionalNotes.trim() ? `${text}\n\nAdditional notes: ${additionalNotes.trim()}` : text;
+    const scenario = detectScenario(combinedText);
+    const deterministicIntent = scenario === 'inspection-rover' ? roverIntent(combinedText, mediaObservations, documentObservations) : scenarioIntent(scenario, mediaObservations, documentObservations);
+    return reasonThroughServer({
+      objective: combinedText,
+      engineeringState: {
+        sources: sources.map(({ id, kind, name, mimeType, sizeBytes, durationSeconds }) => ({ id, kind, name, mimeType, sizeBytes, durationSeconds })),
+        mediaObservations,
+        documentObservations,
+      },
+      featureContract: { output: 'PrototypeIntent', prototype: true, validation: 'Pydantic + semantic gates' },
+      fallback: deterministicIntent,
     });
-    return routed.structured;
   },
   async synthesizeArchitecture(intent, clarifications) {
     await wait(320);
     const deterministicArchitecture = intent.scenario === 'inspection-rover' ? roverArchitecture(intent, clarifications) : compactArchitecture(intent, clarifications);
-    const routed = await mockFormaInferenceProvider.reason({
+    const architecture = await reasonThroughServer({
       objective: intent.goalSummary,
       engineeringState: { intent, clarifications },
-      featureContract: { output: 'PrototypeArchitecture', prototype: true },
-      mockResult: deterministicArchitecture,
+      featureContract: { output: 'PrototypeArchitecture', prototype: true, validation: 'Pydantic + graph reference gates' },
+      fallback: deterministicArchitecture,
     });
-    const architecture = routed.structured;
     architecture.prototypeChecks = await this.validateDesign(architecture);
     architecture.openCad = await this.realizeWithOpenCAD(architecture);
     return architecture;

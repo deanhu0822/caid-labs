@@ -85,7 +85,7 @@ import {
   type ExperienceMode,
   type ValidationStatus,
 } from '@/lib/engineering-state';
-import { localScannerAdapter, type ScannerAnalysis, type ScannerMatch } from '@/lib/scanner-analysis';
+import { analyzeWithConfiguredInference, localScannerAdapter, type ScannerAnalysis, type ScannerMatch } from '@/lib/scanner-analysis';
 import { DEMO_CODE_PREVIEWS, type DemoCodePreview } from './demo-code';
 import { DemoWalkthrough, type DemoRuntime } from './demo-walkthrough';
 import { OpenCadWorkspace } from './opencad-workspace';
@@ -966,7 +966,7 @@ function ArtifactAssetPanel({ artifact, document, onClose }: { artifact: Artifac
       {document ? (
         <>
           <p>{document.summary}</p>
-          <div className={`document-disclosure ${document.mode}`}><span>{document.inferencePerformed ? 'Parsed locally' : 'Prototype interpretation · no model inference'}</span><small>Future parser role: {document.parserRole}</small></div>
+          <div className={`document-disclosure ${document.mode}`}><span>{document.inferencePerformed ? document.mode === 'nvidia-build' ? 'Parsed with NVIDIA Build' : 'Parsed locally' : 'Validated fallback · no model inference'}</span><small>Parser role: {document.parserRole}</small></div>
           {document.previewUrl && document.mimeType === 'application/pdf'
             ? <iframe className="artifact-document-frame" title={`Preview of ${document.filename}`} src={document.previewUrl} />
             : <div className="artifact-file-card"><FileText size={28} /><div><b>{document.filename}</b><span>{document.artifactType}{document.component ? ` · ${document.component}` : ''}</span></div></div>}
@@ -1130,7 +1130,7 @@ function InputSourcesPanel({ build }: { build: PrototypeBuildDefinition }) {
       <div className="input-constraint-chips">{build.intent.requirements.map((requirement) => <span key={requirement.key}><b>{requirement.label}</b>{requirement.value}</span>)}</div>
       {build.intent.documentObservations.length > 0 && <div className="input-document-facts"><div className="eyebrow">DOCUMENT INTERPRETATIONS</div>{build.intent.documentObservations.map((document) => <article key={document.sourceId}><header><b>{document.title}</b><span>{document.mode} · {document.inferencePerformed ? 'local parser' : 'no model inference'}</span></header>{document.properties.map((property) => <div key={property.key}><span>{property.label}</span><b>{property.value}</b><small>Source: {property.sourceName}</small></div>)}</article>)}</div>}
       {build.additionalNotes && <div className="input-notes"><span>ADDITIONAL NOTES</span><p>{build.additionalNotes}</p></div>}
-      <div className="demo-mode-note"><b>Local prototype inputs</b><span>Files remain browser-local. Image pixels, video frames, and audio are not analyzed; document facts are marked as prototype output unless a local parser is configured.</span></div>
+      <div className="demo-mode-note"><b>Source-aware build inputs</b><span>Text, notes, media observations, and document extractions are carried into the same structured build intent. Any unavailable modality is labeled as a fallback.</span></div>
     </div>
   );
 }
@@ -1245,9 +1245,10 @@ function ScannerPanel({ revision, observation, fixedArtifactIds, artifacts, gene
       if (!response.ok) throw new Error('Synthetic scanner asset is unavailable.');
       const demoFile = new File([await response.blob()], generated ? 'inspection-rover-reference.png' : 'j12-connector-closeup.png', { type: 'image/png' });
       acquire(demoFile);
-      const result = generated && demoTarget
-        ? { ...localScannerAdapter.confirmArtifact(demoTarget.id, demoTarget.label), explanation: 'Preset sample result for the prototype demo. The image pixels were not analyzed.' }
-        : await localScannerAdapter.analyze(demoFile);
+      const analyzed = await analyzeWithConfiguredInference(demoFile, matchOptions);
+      const result = analyzed.status === 'matched' || !generated || !demoTarget
+        ? analyzed
+        : { ...localScannerAdapter.confirmArtifact(demoTarget.id, demoTarget.label), explanation: 'Validated demo fallback used after the live vision adapter did not produce a graph match.' };
       setAnalysis(result);
       if (result.status === 'matched') onObservation(result);
     } catch (cause) {
@@ -1262,23 +1263,7 @@ function ScannerPanel({ revision, observation, fixedArtifactIds, artifacts, gene
     setAnalyzing(true);
     setError('');
     try {
-      let result: ScannerAnalysis;
-      if (mediaKind === 'video' && demoTarget) {
-        await sleep(650);
-        result = {
-          ...localScannerAdapter.confirmArtifact(demoTarget.id, demoTarget.label),
-          explanation: 'Preset video result for the prototype demo. The video frames and audio were not analyzed.',
-        };
-      } else if (generated) {
-        await sleep(650);
-        result = {
-          status: 'needs-confirmation',
-          mode: 'no-inference',
-          explanation: 'The photo was loaded locally. No vision model is connected, so select the artifact shown in the image.',
-        };
-      } else {
-        result = await localScannerAdapter.analyze(file);
-      }
+      const result: ScannerAnalysis = await analyzeWithConfiguredInference(file, matchOptions);
       setAnalysis(result);
       if (result.status === 'matched') onObservation(result);
     } finally {
@@ -1306,16 +1291,16 @@ function ScannerPanel({ revision, observation, fixedArtifactIds, artifacts, gene
         {previewUrl ? (mediaKind === 'video' ? <video src={previewUrl} controls playsInline preload="metadata" /> : <img src={previewUrl} alt="Locally acquired scanner input" />) : <div className="rover-silhouette"><div className="rover-body" /><div className="rover-camera" /><i className="wheel one" /><i className="wheel two" /><i className="connector-target" /></div>}
         {(analyzing || (previewUrl && !analysis)) && <div className="scan-line" />}
         {activeMatch && <div className="detected-bounds" style={{ left: `${activeMatch.bounds.x}%`, top: `${activeMatch.bounds.y}%`, width: `${activeMatch.bounds.width}%`, height: `${activeMatch.bounds.height}%` }}><span>{activeMatch.label}</span></div>}
-        <div className="scan-readout"><span>{file ? file.name : 'NO MEDIA ACQUIRED'}</span><span>{activeMatch?.mode === 'manual-observation' ? 'DEMO / USER LINK' : activeMatch ? 'DEMO LABEL MATCH' : mediaKind === 'video' ? 'LOCAL VIDEO' : 'LOCAL PHOTO'}</span></div>
+        <div className="scan-readout"><span>{file ? file.name : 'NO MEDIA ACQUIRED'}</span><span>{activeMatch?.mode === 'nvidia-build-vision' ? 'LIVE NVIDIA VISION' : activeMatch?.mode === 'manual-observation' ? 'DEMO / USER LINK' : activeMatch ? 'VALIDATED FALLBACK' : mediaKind === 'video' ? 'VIDEO INPUT' : 'PHOTO INPUT'}</span></div>
       </div>
       <div className="scanner-input-actions"><button onClick={() => cameraInput.current?.click()}><Camera size={13} /> Take Photo</button><button onClick={() => photoInput.current?.click()}><Upload size={13} /> Upload Photo</button><button onClick={() => videoInput.current?.click()}><Film size={13} /> Upload Video</button></div>
       <button className="demo-asset-button" disabled={analyzing} onClick={() => void runSampleScan()}><Play size={13} /> {analyzing ? 'Running sample scan…' : 'Run sample scan'}</button>
-      <div className="demo-mode-note"><b>Demo simulation</b><span>Media acquisition and previews are real. Photo labels and video results are presets; no vision, frame, or audio AI is connected.</span></div>
+      <div className="demo-mode-note"><b>Live input with demo fallback</b><span>Uploaded media is sent through the server-side NVIDIA vision adapter. If it is unavailable or uncertain, the same use case continues with an explicit filename fixture or user confirmation.</span></div>
       {file && !analysis && <button className="scan-button" disabled={analyzing} onClick={() => void analyze()}><ScanLine size={15} /> {analyzing ? 'Running prototype sequence…' : `Run ${mediaKind === 'video' ? 'demo video scan' : 'demo photo matcher'}`}</button>}
       {analysis?.status === 'needs-confirmation' && <div className="manual-match"><div className="scanner-disclosure"><AlertTriangle size={13} /><span>{analysis.explanation}</span></div><div>{matchOptions.map(([id, label]) => <button key={id} onClick={() => confirm(id, label)}>{label}<ChevronRight size={11} /></button>)}</div></div>}
-      {activeMatch && <div className="scanner-status"><span className="scanner-status-icon"><Check size={15} /></span><div><strong>{activeMatch.label} linked</strong><small>Product graph · {revision} · {activeMatch.confidence ? `${Math.round(activeMatch.confidence * 100)}% demo match` : 'confirmed manually'}</small></div></div>}
+      {activeMatch && <div className="scanner-status"><span className="scanner-status-icon"><Check size={15} /></span><div><strong>{activeMatch.label} linked</strong><small>Product graph · {revision} · {activeMatch.confidence ? `${Math.round(activeMatch.confidence * 100)}% ${activeMatch.mode === 'nvidia-build-vision' ? 'live vision' : 'demo'} match` : 'confirmed manually'}</small></div></div>}
       {activeMatch && <><div className="scanner-disclosure"><Info size={13} /><span>{activeMatch.explanation}</span></div><button className={`fixed-part-button ${isFixed ? 'fixed' : ''}`} onClick={() => onToggleFixed(activeMatch.artifactId)}><Lock size={13} /> {isFixed ? 'Fixed constraint added' : 'Use as a fixed constraint'}</button></>}
-      {!localScannerAdapter.inferenceConnected && <div className="runtime-note"><Cable size={15} /><div><b>Media inference adapter not connected</b><span>Camera, photo upload, and video upload are real; automatic detection is explicitly simulated.</span></div></div>}
+      <div className="runtime-note"><Cable size={15} /><div><b>Server-routed multimodal input</b><span>Photos are analyzed directly; videos are decoded into sampled timeline frames. Graph links still require a known candidate or user confirmation.</span></div></div>
       {error && <div className="backend-error">{error}</div>}
     </section>
   );
@@ -1362,7 +1347,7 @@ function AgentPanel({ productCandidateId, onClose, onArtifacts }: { productCandi
       fetch('/api/health', { signal: controller.signal })
         .then((response) => response.ok ? response.json() as Promise<CorpusHealth> : Promise.reject(new Error('Corpus unavailable')))
         .then(setHealth),
-      fetch('/api/inference/status', { signal: controller.signal })
+      fetch('/api/inference/status?probe=1', { signal: controller.signal })
         .then((response) => response.ok ? response.json() as Promise<FormaInferenceStatus> : Promise.reject(new Error('Inference status unavailable')))
         .then(setInferenceStatus),
     ]).catch((cause: Error) => { if (cause.name !== 'AbortError') setError(cause.message); });
@@ -1411,12 +1396,12 @@ function AgentPanel({ productCandidateId, onClose, onArtifacts }: { productCandi
         ))}
       </div>
       <button className="agent-demo-button" disabled={loading} onClick={() => void submit(AGENT_PROMPTS[activeAgent], true)}><Play size={13} /> {loading && demoAnswer ? 'Running sample…' : `Run sample ${activeAgent} answer`}</button>
-      <div className="demo-mode-note"><b>Demo simulation</b><span>Answers come from bundled example scenarios and local project files, not a general AI chat service.</span></div>
+      <div className="demo-mode-note"><b>{inferenceStatus?.connected ? 'Live NVIDIA reasoning' : 'Validated demo fallback'}</b><span>{inferenceStatus?.connected ? 'The selected NVIDIA model reasons over bundled project evidence; artifact IDs and validated engineering state remain protected.' : 'Bundled scenarios keep every use case available when hosted inference is not connected.'}</span></div>
       <label className="agent-query"><span>ASK {activeAgent.toUpperCase()}</span><textarea value={question} onChange={(event) => { setQuestion(event.target.value); setDemoAnswer(false); }} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void submit(); } }} /><button disabled={loading} onClick={() => void submit()}><Send size={13} /> {loading && !demoAnswer ? 'Reading project files...' : 'Search project data'}</button></label>
       {error && <div className="backend-error">{error}</div>}
       {answer && (
         <div className="agent-response panel-enter">
-          <div className="agent-response-head"><span>{demoAnswer ? 'SAMPLE ANSWER' : answer.mode === 'ground-truth' ? 'MATCHED DATASET ANSWER' : 'SEARCH RESULT'}</span><b>{Math.round(answer.confidence * 100)}% · {answer.latencyMs}ms</b></div>
+          <div className="agent-response-head"><span>{demoAnswer ? 'SAMPLE ANSWER' : answer.mode === 'ground-truth' ? 'MATCHED DATASET ANSWER' : 'SEARCH RESULT'}</span><b>{Math.round(answer.confidence * 100)}% evidence · {answer.latencyMs >= 1000 ? `${(answer.latencyMs / 1000).toFixed(1)}s` : `${answer.latencyMs}ms`}</b></div>
           <p>{answer.answer}</p>
           <div className="agent-artifacts">{answer.artifactIds.slice(0, 8).map((id) => <span key={id}>{id}</span>)}</div>
           <EvidenceList evidence={answer.evidence} limit={3} />

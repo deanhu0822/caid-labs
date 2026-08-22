@@ -14,21 +14,30 @@ One server-configured `FormaInferenceProvider` interface covers assisted reasoni
 
 | Capability | Intended model | Environment variable |
 | --- | --- | --- |
-| Engineering reasoning and orchestration | Dynamically verified against NVIDIA Build | `NVIDIA_REASONING_MODEL` or `FORMA_REASONING_URL` |
-| Hardware image, video, and physical-state observation | Cosmos-compatible model only after a verified request | `NVIDIA_VISION_MODEL` or `FORMA_VISION_URL` |
-| Engineering documents, drawings, datasheets, BOMs, and manuals | Parse 2.0 only after a verified request | `NVIDIA_PARSE_MODEL` or `FORMA_PARSE_URL` |
+| Engineering reasoning and agent orchestration | Nemotron 3 Ultra (or another verified account model) | `NVIDIA_REASONING_MODEL` or `FORMA_REASONING_URL` |
+| Schema-constrained intent, architecture, and extraction | Nemotron 3 Super (or another verified account model) | `NVIDIA_GENERATION_MODEL` |
+| Hardware image and physical-state observation | Llama 3.2 90B Vision, selected only after a successful account request | `NVIDIA_VISION_MODEL` or `FORMA_VISION_URL` |
+| Engineering documents, drawings, datasheets, BOMs, and manuals | Nemotron Parse | `NVIDIA_PARSE_MODEL` or `FORMA_PARSE_URL` |
 
 NVIDIA Build defaults to `https://integrate.api.nvidia.com/v1`, but every model ID is discovered and checked against the account instead of being hard-coded into UI code. `GET /api/inference/status` performs a server-side model-list check; `?probe=1` also requests and validates a tiny response. It reports provider, resolved model, connection state, and sanitized errors, never the key. Missing or invalid credentials use the deterministic fallback only when `NVIDIA_BUILD_ALLOW_MOCK_FALLBACK=true`, and every result retains `inferencePerformed: false`.
 
-Vision and Parse 2.0 stay explicitly unavailable/mock until their configured model is both listed and exercised through the relevant adapter. A model name alone is not treated as proof of a hosted capability. A later local NIM deployment only changes `FORMA_INFERENCE_PROVIDER=local` and the `FORMA_*_URL` values; shared agent and engineering-state code does not change.
+Vision and Parse stay explicitly unavailable/mock until their configured model is both listed and exercised through the relevant adapter. A model name alone is not treated as proof of a hosted capability. Cosmos is not advertised as connected when the account returns an unavailable-function response; Forma uses the strongest vision model that passed a real request instead. A later local NIM deployment only changes `FORMA_INFERENCE_PROVIDER=local` and the `FORMA_*_URL` values; shared agent and engineering-state code does not change.
+
+The NVIDIA bridge runs server-side in Python so the existing Pydantic contracts and semantic gates remain authoritative. Install `product_pipeline/requirements-inference.txt` into the server runtime and set `FORMA_PYTHON_BIN` to that interpreter. Hosted deployments must provide a Python runtime with those packages (or move this same bridge behind a private service URL); credentials and model IDs belong in deployment environment variables, never client bundles.
+
+## NemoClaw generation boundary
+
+NemoClaw is a separate orchestration/backend path and does not replace the NVIDIA Build, local NIM, or mock inference providers. Browser code sends Forma's existing Start-from-Scratch generation request to `POST /api/generate`. The server-only adapter reads `NEMOCLAW_BACKEND_URL`, removes trailing slashes, appends `/generate`, and forwards the original request bytes and content type.
+
+The proxy streams the NemoClaw response body without assuming JSON and preserves its HTTP status, `Content-Type`, and `Content-Disposition` (plus safe cache/file metadata). The client helper therefore returns a `Blob`; callers can use `blob.type` and `blob.size`, download binary/CAD/archive outputs, or opt into `parseNemoClawJson` for JSON. Missing configuration returns 503, an unreachable backend returns 502, and NemoClaw error responses keep their original non-200 status. No automatic mock fallback occurs on this path.
 
 Integration paths:
 
 - Builder and the three agents receive the same validated Product context used by the graph: requirements, component IDs, relationships, circuit nets, fabrication processes, instruction steps, sourcing records, revision, and validation status.
 - Agent prose may be locally assisted, but artifact IDs, evidence, task matches, mode, and structured Product context are protected fields.
-- Scanner photos and videos pass through `observeMedia` and are intended for Cosmos. The current mock uses explicit fixtures or human confirmation and never claims pixel inference.
-- Documents call `parseDocument` and are intended for Parse 2.0. Per-fact source IDs and filenames are retained.
-- The `engineering_test_assets` harness classifies its PDFs and derived drawing-page PNGs as Documents. Its current prototype returns clearly labeled golden fixtures; it never presents them as model output.
+- Scanner photos pass their actual pixels through `observeMedia`. Videos are decoded in the browser into a four-frame timeline contact sheet; those derived pixels are analyzed while the original video name, MIME type, size, and modality remain in provenance. Explicit filename fixtures or human confirmation are labeled as fallback and never presented as vision output.
+- Documents call `parseDocument`; PDF pages are rendered for Nemotron Parse, then normalized into source-linked engineering facts. Per-fact source IDs and filenames are retained.
+- The `engineering_test_assets` harness classifies its PDFs and derived drawing-page PNGs as Documents. With NVIDIA configured it runs real Parse plus structured extraction and validation; otherwise it returns clearly labeled golden fixtures. Results are preview-only until the user commits them.
 - Geometry is a separate local OpenCAD realization boundary. It does not replace Product validation.
 
 ## Revision rule

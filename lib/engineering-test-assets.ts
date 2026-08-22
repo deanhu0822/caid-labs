@@ -214,7 +214,7 @@ export function validateEngineeringExtraction(value: unknown): ExtractionValidat
 
 export type EngineeringTestRunResult = {
   assetId: EngineeringTestAssetId;
-  status: 'prototype' | 'local' | 'unavailable';
+  status: 'nvidia-build' | 'prototype' | 'local' | 'unavailable';
   statusLabel: string;
   pipeline: 'Nemotron Parse 2.0';
   inferencePerformed: boolean;

@@ -15,6 +15,7 @@ import {
   type PrototypeSourceKind,
 } from '@/lib/new-build-adapter';
 import { CATEGORY_META } from './product-data';
+import type { FormaInferenceStatus } from '@/lib/forma-inference';
 
 type Phase = 'input' | 'analyzing' | 'review' | 'architecture';
 type InputMode = 'text' | 'image' | 'video' | 'document' | 'mixed';
@@ -107,6 +108,8 @@ export function StartFromScratch({ onClose, onCreate }: { onClose: () => void; o
   const [error, setError] = useState('');
   const [previewDocumentId, setPreviewDocumentId] = useState<string | null>(null);
   const [replaceDocumentId, setReplaceDocumentId] = useState<string | null>(null);
+  const [inferenceStatus, setInferenceStatus] = useState<FormaInferenceStatus | null>(null);
+  const liveReasoning = Boolean(inferenceStatus?.connected && inferenceStatus.services.some((service) => service.capability === 'reasoning' && service.connected));
 
   useEffect(() => {
     sourceRef.current = sources;
@@ -114,6 +117,15 @@ export function StartFromScratch({ onClose, onCreate }: { onClose: () => void; o
 
   useEffect(() => () => {
     sourceRef.current.forEach((source) => URL.revokeObjectURL(source.url));
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch('/api/inference/status?probe=1', { signal: controller.signal })
+      .then((response) => response.ok ? response.json() as Promise<FormaInferenceStatus> : Promise.reject(new Error('Inference status unavailable')))
+      .then(setInferenceStatus)
+      .catch(() => undefined);
+    return () => controller.abort();
   }, []);
 
   const addFiles = async (files: File[], kind: PrototypeSourceKind, replaceId?: string | null) => {
@@ -259,7 +271,7 @@ export function StartFromScratch({ onClose, onCreate }: { onClose: () => void; o
               <textarea className="scratch-primary-input" autoFocus value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder="I want to build a compact inspection rover that can carry 20 lb, run for 4 hours, and fit through narrow industrial spaces." />
               <div className="scratch-examples">{EXAMPLE_PROMPTS.map((example) => <button key={example} onClick={() => setPrompt(example)}>{example}<ArrowRight size={12} /></button>)}</div>
 
-              {inputMode !== 'text' && <><div className="scratch-section-title"><div><span>OPTIONAL REFERENCES</span><b>{inputMode === 'document' ? 'Add engineering documents' : 'Add context'}</b></div><small>Files stay in this browser</small></div>
+              {inputMode !== 'text' && <><div className="scratch-section-title"><div><span>OPTIONAL REFERENCES</span><b>{inputMode === 'document' ? 'Add engineering documents' : 'Add context'}</b></div><small>Sent securely when analysis runs</small></div>
               <div className={`scratch-media-grid ${inputMode === 'mixed' ? 'mixed' : 'single'}`}>
                 {showImageInput &&
                 <div className="scratch-dropzone" onDragOver={(event) => event.preventDefault()} onDrop={(event) => handleDrop(event, 'image')}>
@@ -294,21 +306,21 @@ export function StartFromScratch({ onClose, onCreate }: { onClose: () => void; o
           {phase === 'analyzing' && (
             <div className="scratch-analysis phase-enter">
               <span className="analysis-orbit"><Sparkles size={25} /></span>
-              <div className="eyebrow">SIMULATED FOR DEMO</div>
+              <div className="eyebrow">{liveReasoning ? 'LIVE NVIDIA BUILD' : 'VALIDATED DEMO FALLBACK'}</div>
               <h2>Preparing the first product state</h2>
-              <p>This deterministic prototype is demonstrating the future analysis sequence. No multimodal or engineering AI is connected.</p>
+              <p>{liveReasoning ? 'Nemotron is refining the structured intent and architecture while Forma retains validation and revision control.' : 'The deterministic workflow is running so the complete use case remains available without hosted inference.'}</p>
               <div>{ANALYSIS_STAGES.map((stage, index) => <span className={index < analysisIndex ? 'done' : index === analysisIndex ? 'active' : ''} key={stage}>{index < analysisIndex ? <Check size={12} /> : index === analysisIndex ? <LoaderCircle size={12} /> : <i />}{stage}{index === analysisIndex && <small>…</small>}</span>)}</div>
             </div>
           )}
 
           {phase === 'review' && intent && (
             <div className="scratch-review phase-enter">
-              <div className="scratch-review-head"><div><div className="eyebrow">PROTOTYPE INTENT EXTRACTION</div><h2>{intent.buildGoal}</h2><p>{intent.goalSummary}</p></div><span>Simulated for demo</span></div>
+              <div className="scratch-review-head"><div><div className="eyebrow">STRUCTURED INTENT EXTRACTION</div><h2>{intent.buildGoal}</h2><p>{intent.goalSummary}</p></div><span>{liveReasoning ? 'NVIDIA assisted · validation pending' : 'Demo fallback'}</span></div>
               <div className="scratch-review-grid">
                 <section><div className="scratch-section-title"><div><span>BUILD GOAL</span><b>Extracted requirements</b></div></div><div className="requirement-list">{intent.requirements.map((requirement) => <div key={requirement.key}><span>{requirement.label}</span><b>{requirement.value}</b><small>{requirement.source.replace('-', ' ')}</small></div>)}</div></section>
                 <section><div className="scratch-section-title"><div><span>OPEN QUESTIONS</span><b>Missing decisions</b></div></div><div className="missing-list">{intent.missingDecisions.map((decision) => <span key={decision}><Plus size={10} />{decision}</span>)}</div>{intent.mediaObservations.length > 0 && <div className="media-observation"><Info size={13} /><span><b>Reference media retained</b>{intent.mediaObservations.map((observation) => <small key={observation.sourceId}>{observation.summary}</small>)}</span></div>}</section>
               </div>
-              {intent.documentObservations.length > 0 && <section className="scratch-document-results"><div className="scratch-section-title"><div><span>DOCUMENT SOURCES</span><b>Prototype document interpretation</b></div><small>Future parser: Nemotron Parse 2.0</small></div>{intent.documentObservations.map((document) => <article key={document.sourceId}><header><FileText size={14} /><span><b>{document.title}</b><small>{document.sourceName} · {document.mode} · no model inference</small></span></header>{document.properties.length > 0 ? <dl>{document.properties.map((property) => <div key={property.key}><dt>{property.label}</dt><dd>{property.value}<small>Source · {property.sourceName}</small></dd></div>)}</dl> : <p>The file is retained as a local source. No deterministic demo extraction is defined for this filename.</p>}</article>)}</section>}
+              {intent.documentObservations.length > 0 && <section className="scratch-document-results"><div className="scratch-section-title"><div><span>DOCUMENT SOURCES</span><b>Engineering document interpretation</b></div><small>Nemotron Parse with validated fallback</small></div>{intent.documentObservations.map((document) => <article key={document.sourceId}><header><FileText size={14} /><span><b>{document.title}</b><small>{document.sourceName} · {document.mode} · {document.inferencePerformed ? 'model parsed' : 'demo fallback'}</small></span></header>{document.properties.length > 0 ? <dl>{document.properties.map((property) => <div key={property.key}><dt>{property.label}</dt><dd>{property.value}<small>Source · {property.sourceName}</small></dd></div>)}</dl> : <p>The source is retained, but no validated structured properties were extracted.</p>}</article>)}</section>}
 
               <div className="clarification-heading"><span>ONLY THE DECISIONS THAT CHANGE THE DESIGN</span><h3>Clarify the important uncertainty</h3></div>
               <div className="clarification-grid">{QUESTIONS.map((question) => <section key={question.key}><b>{question.title}</b><div>{question.choices.map((choice) => <button className={answers[question.key] === choice ? 'active' : ''} onClick={() => setAnswers((current) => ({ ...current, [question.key]: choice }))} key={choice}>{choice}{answers[question.key] === choice && <Check size={11} />}</button>)}</div></section>)}</div>
@@ -328,7 +340,7 @@ export function StartFromScratch({ onClose, onCreate }: { onClose: () => void; o
                 <section><div className="eyebrow">DESIGN ASSUMPTIONS</div>{architecture.assumptions.map((assumption) => <span key={assumption}><Check size={11} />{assumption}</span>)}</section>
                 <section><div className="eyebrow">PROTOTYPE COMPLETENESS CHECKS</div>{architecture.prototypeChecks.map((check) => <span key={check}><Check size={11} />{check}</span>)}</section>
               </div>
-              <div className="prototype-warning"><Info size={14} /><div><b>No engineering inference or CAD generation</b><span>{architecture.openCad.note} Part assignments, calculations, and engineering validation remain future work.</span></div></div>
+              <div className="prototype-warning"><Info size={14} /><div><b>{liveReasoning ? 'AI-assisted concept · engineering approval required' : 'Deterministic concept · engineering approval required'}</b><span>{architecture.openCad.note} Part assignments, calculations, and canonical Product validation are still required before release.</span></div></div>
               <footer className="scratch-footer"><button className="secondary" onClick={() => setPhase('review')}><ArrowLeft size={13} /> Revise answers</button><button className="primary create-build" onClick={createBuild}><Plus size={14} /> Create Build · Rev A</button></footer>
             </div>
           )}

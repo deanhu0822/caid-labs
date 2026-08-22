@@ -36,6 +36,7 @@ function sentences(value: string) {
 }
 
 async function routeReasoningThroughProvider(response: AgentResponse): Promise<AgentResponse> {
+  const providerStarted = performance.now();
   const assisted = await formaInferenceProvider.reason({
     objective: response.question,
     engineeringState: {
@@ -50,13 +51,15 @@ async function routeReasoningThroughProvider(response: AgentResponse): Promise<A
     },
     mockResult: response,
   });
+  const latencyMs = response.latencyMs + Math.max(1, Math.round(performance.now() - providerStarted));
 
-  if (!assisted.inferencePerformed) return response;
+  if (!assisted.inferencePerformed) return { ...response, latencyMs };
   const candidate = assisted.structured;
   return {
     ...response,
     answer: typeof candidate.answer === 'string' ? candidate.answer : response.answer,
     reasoning: Array.isArray(candidate.reasoning) && candidate.reasoning.every((item) => typeof item === 'string') ? candidate.reasoning : response.reasoning,
+    latencyMs,
   };
 }
 

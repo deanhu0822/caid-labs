@@ -728,7 +728,7 @@ button:disabled { cursor: default; opacity: .55; }
 .test-asset-facts > div { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
 .test-asset-facts span { color: #647087; font: 6px var(--font-geist-mono),monospace; text-transform: uppercase; letter-spacing: .08em; }
 .test-asset-facts b { overflow: hidden; color: #d3dbe8; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
-.test-asset-facts b.prototype { color: #e0b76b; }.test-asset-facts b.local { color: var(--lime); }.test-asset-facts b.unavailable { color: #ed8b7f; }
+.test-asset-facts b.prototype { color: #e0b76b; }.test-asset-facts b.local,.test-asset-facts b.nvidia-build { color: var(--lime); }.test-asset-facts b.unavailable { color: #ed8b7f; }
 .test-asset-purpose { padding: 11px; display: flex; align-items: center; gap: 10px; border: 1px solid #29424a; border-radius: 9px; color: var(--cyan); background: #0b151a; }
 .test-asset-purpose p { margin: 0; display: flex; flex-direction: column; gap: 4px; }
 .test-asset-purpose b { color: #bcdbe0; font-size: 8px; }.test-asset-purpose span { color: #627c82; font: 6.2px/1.45 var(--font-geist-mono),monospace; }
@@ -750,7 +750,7 @@ button:disabled { cursor: default; opacity: .55; }
 .test-result-summary { padding: 9px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 9px; border: 1px solid #2b3549; border-radius: 7px; background: #0c121c; }
 .test-result-summary p { margin: 0; color: #8d99aa; font-size: 7px; }.test-result-summary > span:last-child { color: #667287; font: 5.8px var(--font-geist-mono),monospace; }
 .test-status { padding: 5px 7px; display: inline-flex; align-items: center; gap: 5px; border: 1px solid #6f552a; border-radius: 5px; color: #e3b664; background: #21180b; font: 6px var(--font-geist-mono),monospace; text-transform: uppercase; }
-.test-status i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; box-shadow: 0 0 8px currentColor; }.test-status.local { border-color: #3f5b2e; color: var(--lime); background: #111a0f; }.test-status.unavailable { border-color: #66372f; color: #e88d7f; background: #1d0f0d; }
+.test-status i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; box-shadow: 0 0 8px currentColor; }.test-status.local,.test-status.nvidia-build { border-color: #3f5b2e; color: var(--lime); background: #111a0f; }.test-status.unavailable { border-color: #66372f; color: #e88d7f; background: #1d0f0d; }
 .test-validation { padding: 9px; display: flex; align-items: center; gap: 8px; border: 1px solid #38542d; border-radius: 7px; color: var(--lime); background: #111a10; }
 .test-validation.invalid { border-color: #6c3d30; color: #ed937f; background: #21100d; }.test-validation span { display: flex; flex-direction: column; gap: 3px; color: #75896a; font: 6px var(--font-geist-mono),monospace; }.test-validation b { color: #cfe9bd; font-family: var(--font-geist-sans),sans-serif; font-size: 7.5px; }
 .test-json-head { min-height: 42px; border: 1px solid #242e40; border-radius: 7px 7px 0 0; }

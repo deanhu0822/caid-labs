@@ -4,7 +4,7 @@ import { spawn } from 'node:child_process';
 import path from 'node:path';
 
 type BridgeRequest = {
-  action: 'status' | 'reason';
+  action: 'status' | 'reason' | 'observe' | 'parse';
   payload: Record<string, unknown>;
 };
 
@@ -25,7 +25,10 @@ export type NvidiaBuildBridgeResult = {
     detail?: string;
   }>;
   model?: string;
-  structured?: { answer?: string; reasoning?: string[] };
+  normalizationModel?: string;
+  parsedText?: string;
+  outputKind?: string;
+  structured?: Record<string, unknown>;
   report?: unknown;
   error?: string;
 };
@@ -67,6 +70,7 @@ export function runNvidiaBuildBridge(request: BridgeRequest): Promise<NvidiaBuil
       stderr = (stderr + chunk.toString('utf8')).slice(-16_000);
     });
     child.on('error', (error) => finish({ ok: false, error: safeError(error.message) }));
+    child.stdin.on('error', (error) => finish({ ok: false, error: safeError(`Could not send the inference request to Python: ${error.message}`) }));
     child.on('close', () => {
       try {
         finish(JSON.parse(stdout) as NvidiaBuildBridgeResult);
