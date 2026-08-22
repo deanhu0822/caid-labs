@@ -1,6 +1,7 @@
 import type { AgentResponse, CorpusEvidence } from './corpus-types';
 import { openCadAdapter, type OpenCadRealizationPlan } from './opencad-adapter';
 import type { ScannerMatch } from './scanner-analysis';
+import type { PrototypeBuildDefinition } from './new-build-adapter';
 
 export type ExperienceMode = 'guided' | 'pro';
 export type ProposalStatus = 'validated' | 'accepted' | 'rejected';
@@ -67,7 +68,12 @@ export type RevisionRecord = {
   artifactOverrides: Record<string, { label?: string; meta?: string }>;
 };
 
+export type EngineeringProject =
+  | { kind: 'existing'; id: 'rover-alpha'; name: 'Autonomous Inspection Rover' }
+  | { kind: 'generated'; id: string; name: string; build: PrototypeBuildDefinition };
+
 export type EngineeringState = {
+  project: EngineeringProject;
   experienceMode: ExperienceMode;
   currentRevision: string;
   viewingRevision: string;
@@ -93,7 +99,9 @@ export type EngineeringAction =
   | { type: 'ACCEPT_PROPOSAL' }
   | { type: 'SET_VIEWING_REVISION'; revision: string }
   | { type: 'SET_SCANNER_OBSERVATION'; observation: ScannerMatch }
-  | { type: 'TOGGLE_FIXED_ARTIFACT'; artifactId: string };
+  | { type: 'TOGGLE_FIXED_ARTIFACT'; artifactId: string }
+  | { type: 'CREATE_NEW_BUILD'; build: PrototypeBuildDefinition }
+  | { type: 'RESET_TO_EXISTING' };
 
 const INITIAL_REVISIONS: RevisionRecord[] = [
   { id: 'Rev A', date: 'May 12', title: 'Architecture baseline', changedArtifactIds: ['main-board', 'power-board', 'chassis'], preservedArtifactIds: [], mutations: [], artifactOverrides: {} },
@@ -102,6 +110,7 @@ const INITIAL_REVISIONS: RevisionRecord[] = [
 ];
 
 export const initialEngineeringState: EngineeringState = {
+  project: { kind: 'existing', id: 'rover-alpha', name: 'Autonomous Inspection Rover' },
   experienceMode: 'pro',
   currentRevision: 'Rev C',
   viewingRevision: 'Rev C',
@@ -340,6 +349,43 @@ export function j12ChangeProposal(state: EngineeringState, response?: AgentRespo
 
 export function engineeringReducer(state: EngineeringState, action: EngineeringAction): EngineeringState {
   switch (action.type) {
+    case 'CREATE_NEW_BUILD': {
+      const changedArtifactIds = action.build.architecture.artifacts.map((artifact) => artifact.id);
+      const revision: RevisionRecord = {
+        id: 'Rev A',
+        date: action.build.createdAtLabel,
+        title: 'Initial product architecture',
+        changedArtifactIds,
+        preservedArtifactIds: [],
+        mutations: [],
+        artifactOverrides: {},
+      };
+      const extractedConstraints: EngineeringConstraint[] = action.build.intent.requirements.map((requirement) => ({
+        key: `intent:${requirement.key}`,
+        label: requirement.label,
+        value: requirement.value,
+        source: 'guided',
+      }));
+      const clarificationConstraints: EngineeringConstraint[] = [
+        { key: 'terrain', label: 'Operating surface', value: action.build.clarifications.terrain, source: 'guided' },
+        { key: 'priority', label: 'Design priority', value: action.build.clarifications.priority, source: 'guided' },
+        { key: 'budget', label: 'Budget target', value: action.build.clarifications.budget, source: 'guided' },
+      ];
+      return {
+        ...initialEngineeringState,
+        project: { kind: 'generated', id: action.build.id, name: action.build.displayName, build: action.build },
+        experienceMode: 'guided',
+        currentRevision: 'Rev A',
+        viewingRevision: 'Rev A',
+        selectedArtifactId: action.build.architecture.artifacts[0]?.id ?? 'scratch-product',
+        objective: action.build.intent.goalSummary,
+        constraints: [...extractedConstraints, ...clarificationConstraints],
+        focusArtifactIds: action.build.architecture.artifacts.slice(0, 6).map((artifact) => artifact.id),
+        revisions: [revision],
+      };
+    }
+    case 'RESET_TO_EXISTING':
+      return { ...initialEngineeringState, experienceMode: state.experienceMode };
     case 'SET_EXPERIENCE':
       return { ...state, experienceMode: action.mode };
     case 'SELECT_ARTIFACT':

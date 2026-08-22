@@ -73,6 +73,37 @@ bool bms_allow_discharge(const pack_t *pack) {
     drivetrain.send(command)
     return command`,
   },
+  'scratch-motor-fw': {
+    filename: 'motor_control.c',
+    language: 'C',
+    description: 'Hypothetical Rev A motor-control loop for the generated rover concept.',
+    code: `#include "drive.h"
+
+static const float PROTOTYPE_CURRENT_LIMIT_A = 9.0f;
+
+void drive_step(const command_t *command) {
+  float left = clampf(command->speed - command->turn, -1.0f, 1.0f);
+  float right = clampf(command->speed + command->turn, -1.0f, 1.0f);
+
+  motor_set_current_limit(PROTOTYPE_CURRENT_LIMIT_A);
+  motor_write(LEFT_CHANNEL, left);
+  motor_write(RIGHT_CHANNEL, right);
+}`,
+  },
+  'scratch-nav-fw': {
+    filename: 'navigation.py',
+    language: 'Python',
+    description: 'Hypothetical navigation state machine for the generated rover concept.',
+    code: `def inspection_tick(state, sensors, drive):
+    if sensors.obstacle_distance_m < 0.45:
+        drive.stop()
+        return "blocked"
+
+    target = state.route.next_waypoint()
+    command = state.controller.command_to(target, sensors.pose)
+    drive.send(command.limit(speed_mps=0.8))
+    return "driving"`,
+  },
   'product-agent': {
     filename: 'product-agent.ts',
     language: 'TypeScript',

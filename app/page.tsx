@@ -30,12 +30,15 @@ import {
   Code2,
   Cpu,
   Eye,
+  FileImage,
+  Film,
   Focus,
   GitBranch,
   Info,
   Layers3,
   Lock,
   Maximize2,
+  Plus,
   Play,
   ScanLine,
   Search,
@@ -62,6 +65,7 @@ import {
   type Artifact,
   type Category,
   type EdgeKind,
+  type Relation,
 } from './product-data';
 import type { AgentKind, AgentResponse, CorpusHealth } from '@/lib/corpus-types';
 import {
@@ -77,6 +81,8 @@ import {
 } from '@/lib/engineering-state';
 import { localScannerAdapter, type ScannerAnalysis, type ScannerMatch } from '@/lib/scanner-analysis';
 import { DEMO_CODE_PREVIEWS, type DemoCodePreview } from './demo-code';
+import { StartFromScratch } from './start-from-scratch';
+import type { PrototypeBuildDefinition } from '@/lib/new-build-adapter';
 
 type ArtifactData = Artifact & { activeRevision: string };
 type ArtifactNode = Node<ArtifactData, 'artifact'>;
@@ -124,7 +130,13 @@ async function askAgent(agent: AgentKind, question: string): Promise<AgentRespon
 
 export default function Home() {
   const [engineering, dispatch] = useReducer(engineeringReducer, initialEngineeringState);
-  const [allNodes, , onNodesChange] = useNodesState<ArtifactNode>(initialNodes);
+  const activeArtifacts: Artifact[] = useMemo(() => engineering.project.kind === 'generated'
+    ? engineering.project.build.architecture.artifacts
+    : ARTIFACTS, [engineering.project]);
+  const activeRelations: Relation[] = useMemo(() => engineering.project.kind === 'generated'
+    ? engineering.project.build.architecture.relations
+    : RELATIONS, [engineering.project]);
+  const [allNodes, setAllNodes, onNodesChange] = useNodesState<ArtifactNode>(initialNodes);
   const [activeCategories, setActiveCategories] = useState<Set<Category>>(new Set(Object.keys(CATEGORY_META) as Category[]));
   const [activeEdges, setActiveEdges] = useState<Set<EdgeKind>>(new Set(Object.keys(EDGE_META) as EdgeKind[]));
   const [mode, setMode] = useState<AppMode>('graph');
@@ -138,6 +150,7 @@ export default function Home() {
   const [codeArtifactId, setCodeArtifactId] = useState<string | null>(null);
   const [demoRunning, setDemoRunning] = useState(false);
   const [demoLabel, setDemoLabel] = useState('');
+  const [scratchOpen, setScratchOpen] = useState(false);
   const demoToken = useRef(0);
 
   const selectedId = engineering.selectedArtifactId;
@@ -146,26 +159,35 @@ export default function Home() {
   const scannerMatched = engineering.scannerObservation?.status === 'matched';
   const revisionRecord = engineering.revisions.find((item) => item.id === revision);
 
-  const selectedArtifactBase = ARTIFACTS.find((node) => node.id === selectedId) ?? ARTIFACTS[0];
+  useEffect(() => {
+    setAllNodes(activeArtifacts.map((artifact) => ({
+      id: artifact.id,
+      type: 'artifact',
+      position: { x: artifact.x, y: artifact.y },
+      data: { ...artifact, activeRevision: engineering.currentRevision },
+    })));
+  }, [activeArtifacts, engineering.currentRevision, setAllNodes]);
+
+  const selectedArtifactBase = activeArtifacts.find((node) => node.id === selectedId) ?? activeArtifacts[0];
   const selectedArtifact = { ...selectedArtifactBase, ...revisionRecord?.artifactOverrides?.[selectedArtifactBase.id] };
 
   const connectedIds = useMemo(() => {
     const ids = new Set<string>();
-    RELATIONS.forEach((edge) => {
+    activeRelations.forEach((edge) => {
       if (edge.source === selectedId) ids.add(edge.target);
       if (edge.target === selectedId) ids.add(edge.source);
     });
     return [...ids];
-  }, [selectedId]);
+  }, [activeRelations, selectedId]);
 
   const highlighted = useMemo(() => {
-    if (impactOpen) return new Set(J12_BLAST);
+    if (engineering.project.kind === 'existing' && impactOpen) return new Set(J12_BLAST);
     if (engineering.focusArtifactIds.length) return new Set(engineering.focusArtifactIds);
     if (mode === 'builder' && proposal) return new Set(proposal.affectedArtifactIds.length ? proposal.affectedArtifactIds : BUILDER_BLAST);
-    if (mode === 'scanner' && scannerMatched) return new Set(J12_BLAST);
-    if (selectedId === 'j12') return new Set(J12_BLAST);
+    if (engineering.project.kind === 'existing' && mode === 'scanner' && scannerMatched) return new Set(J12_BLAST);
+    if (engineering.project.kind === 'existing' && selectedId === 'j12') return new Set(J12_BLAST);
     return new Set([selectedId, ...connectedIds]);
-  }, [connectedIds, engineering.focusArtifactIds, impactOpen, mode, proposal, scannerMatched, selectedId]);
+  }, [connectedIds, engineering.focusArtifactIds, engineering.project.kind, impactOpen, mode, proposal, scannerMatched, selectedId]);
 
   const visibleNodes = useMemo(() => allNodes
     .filter((node) => activeCategories.has(node.data.category))
@@ -186,7 +208,7 @@ export default function Home() {
     }), [activeCategories, allNodes, highlighted, revision, revisionRecord, selectedId]);
 
   const visibleNodeIds = useMemo(() => new Set(visibleNodes.map((node) => node.id)), [visibleNodes]);
-  const visibleEdges = useMemo(() => RELATIONS
+  const visibleEdges = useMemo(() => activeRelations
     .filter((edge) => activeEdges.has(edge.kind) && visibleNodeIds.has(edge.source) && visibleNodeIds.has(edge.target))
     .map((edge) => {
       const active = highlighted.has(edge.source) && highlighted.has(edge.target);
@@ -198,7 +220,7 @@ export default function Home() {
         style: { stroke: color, strokeWidth: active ? 2 : 1.15 },
         markerEnd: { type: MarkerType.ArrowClosed, color, width: 12, height: 12 },
       };
-    }), [activeEdges, highlighted, visibleNodeIds]);
+    }), [activeEdges, activeRelations, highlighted, visibleNodeIds]);
 
   const toggleCategory = (category: Category) => {
     setActiveCategories((current) => {
@@ -217,10 +239,12 @@ export default function Home() {
   };
 
   const chooseNode = (id: string) => {
+    const artifact = activeArtifacts.find((item) => item.id === id);
+    if (!artifact) return;
     dispatch({ type: 'SELECT_ARTIFACT', artifactId: id });
     setCodeArtifactId(DEMO_CODE_PREVIEWS[id] ? id : null);
-    if (!activeCategories.has(ARTIFACTS.find((item) => item.id === id)!.category)) {
-      setActiveCategories((current) => new Set([...current, ARTIFACTS.find((item) => item.id === id)!.category]));
+    if (!activeCategories.has(artifact.category)) {
+      setActiveCategories((current) => new Set([...current, artifact.category]));
     }
   };
 
@@ -230,11 +254,17 @@ export default function Home() {
     dispatch({ type: 'SET_OBJECTIVE', objective });
     setBuilderError('');
     setBuilderLoading(true);
+    if (engineering.project.kind === 'generated') {
+      await sleep(350);
+      setBuilderError('New-build change proposals are a front-end prototype. Choose the next architecture decision in Beginner; the shared graph will stay synchronized.');
+      setBuilderLoading(false);
+      return;
+    }
     try {
       const result = await askAgent('builder', objective);
       const nextProposal = proposalFromAgent(result, { ...engineering, objective });
       dispatch({ type: 'SET_PROPOSAL', proposal: nextProposal });
-      const firstVisibleId = result.artifactIds.find((id) => ARTIFACTS.some((artifact) => artifact.id === id));
+      const firstVisibleId = result.artifactIds.find((id) => activeArtifacts.some((artifact) => artifact.id === id));
       if (firstVisibleId) dispatch({ type: 'SELECT_ARTIFACT', artifactId: firstVisibleId });
     } catch (error) {
       setBuilderError(error instanceof Error ? error.message : 'Builder query failed.');
@@ -244,7 +274,7 @@ export default function Home() {
   };
 
   const runDemo = async () => {
-    if (demoRunning) return;
+    if (demoRunning || engineering.project.kind === 'generated') return;
     const token = ++demoToken.current;
     setDemoRunning(true);
     setCodeArtifactId(null);
@@ -298,8 +328,8 @@ export default function Home() {
   } : baseDetails;
 
   const searchResults = searchTerm.trim()
-    ? ARTIFACTS.filter((node) => `${node.label} ${node.meta}`.toLowerCase().includes(searchTerm.toLowerCase())).slice(0, 7)
-    : ARTIFACTS.slice(0, 7);
+    ? activeArtifacts.filter((node) => `${node.label} ${node.meta}`.toLowerCase().includes(searchTerm.toLowerCase())).slice(0, 7)
+    : activeArtifacts.slice(0, 7);
 
   const revisionChanges = revisionRecord?.changedArtifactIds ?? REVISION_CHANGES[revision] ?? [];
 
@@ -318,11 +348,28 @@ export default function Home() {
     if (experienceMode === 'guided' && mode === 'agents') setMode('builder');
   };
 
+  const createNewBuild = (build: PrototypeBuildDefinition) => {
+    dispatch({ type: 'CREATE_NEW_BUILD', build });
+    setMode('graph');
+    setCodeArtifactId(null);
+    setImpactOpen(false);
+    setBuilderError('');
+    setScratchOpen(false);
+  };
+
+  const openExistingBuild = () => {
+    dispatch({ type: 'RESET_TO_EXISTING' });
+    setMode('graph');
+    setCodeArtifactId(null);
+    setImpactOpen(false);
+    setBuilderError('');
+  };
+
   return (
     <main className={`app-shell ${engineering.experienceMode}-experience`}>
       <header className="topbar">
         <div className="brand-mark"><GitBranch size={16} /></div>
-        <div className="brand">FORMA LABS <span>/</span> rover-alpha <span>/</span> {revision.toLowerCase().replace(' ', '-')}</div>
+        <div className="brand">FORMA LABS <span>/</span> {engineering.project.id} <span>/</span> {revision.toLowerCase().replace(' ', '-')}</div>
         <div className="experience-switch" aria-label="Experience mode">
           <button aria-label="Beginner mode" className={engineering.experienceMode === 'guided' ? 'active' : ''} onClick={() => switchExperience('guided')}><Sparkles size={12} /><span><b>Beginner</b><small>Step-by-step workflow</small></span></button>
           <button aria-label="Pro mode" className={engineering.experienceMode === 'pro' ? 'active' : ''} onClick={() => switchExperience('pro')}><SlidersHorizontal size={12} /><span><b>Pro</b><small>Engineering workspace</small></span></button>
@@ -353,8 +400,11 @@ export default function Home() {
               </div>
             )}
           </div>
+          {engineering.project.kind === 'existing'
+            ? <button aria-label="Start from Scratch" className="new-build-button" onClick={() => setScratchOpen(true)}><Plus size={14} /> <span>Start from Scratch</span></button>
+            : <button aria-label="Open existing rover-alpha build" className="new-build-button existing" onClick={openExistingBuild}><GitBranch size={14} /> <span>Open rover-alpha</span></button>}
           <button className="how-button" onClick={() => setHowOpen(true)}><Info size={14} /> <span>How it works</span></button>
-          <button className="demo-top" onClick={runDemo} disabled={demoRunning}><Play size={14} /> {demoRunning ? 'Running…' : 'Run Demo'}</button>
+          <button className="demo-top" onClick={runDemo} disabled={demoRunning || engineering.project.kind === 'generated'}><Play size={14} /> {demoRunning ? 'Running…' : 'Run Demo'}</button>
           <button className="accent" onClick={() => { setMode('builder'); setBuilderError(''); }}><Sparkles size={15} /> Builder</button>
         </div>
       </header>
@@ -364,11 +414,11 @@ export default function Home() {
           <GuidedRail state={engineering} onConstraint={setConstraint} />
         ) : (
           <>
-        <div className="side-heading"><div className="eyebrow">PRODUCT GRAPH</div><span>34 artifacts</span></div>
+        <div className="side-heading"><div className="eyebrow">PRODUCT GRAPH</div><span>{activeArtifacts.length} artifacts</span></div>
         <div className="filter-group">
           {(Object.keys(CATEGORY_META) as Category[]).map((category) => {
             const meta = CATEGORY_META[category];
-            const count = ARTIFACTS.filter((node) => node.category === category).length;
+            const count = activeArtifacts.filter((node) => node.category === category).length;
             const active = activeCategories.has(category);
             return (
               <button key={category} className={`filter-row ${active ? 'enabled' : ''}`} onClick={() => toggleCategory(category)} aria-pressed={active}>
@@ -398,8 +448,8 @@ export default function Home() {
 
       <section className="graph-stage">
         <div className="graph-meta">
-          <span>Autonomous Inspection Rover</span>
-          <small>{revision.toUpperCase()} · {revision === engineering.currentRevision ? 'CURRENT REVISION' : 'HISTORICAL REVISION'} · 34 ARTIFACTS · 40 RELATIONSHIPS</small>
+          <span>{engineering.project.name}</span>
+          <small>{revision.toUpperCase()} · {revision === engineering.currentRevision ? 'CURRENT REVISION' : 'HISTORICAL REVISION'} · {activeArtifacts.length} ARTIFACTS · {activeRelations.length} RELATIONSHIPS</small>
         </div>
         <div className="blast-legend"><span className="pulse-dot" /> {highlighted.size} related artifacts highlighted</div>
         <ReactFlow
@@ -425,7 +475,7 @@ export default function Home() {
         <>
           {mode === 'graph' && codeArtifactId && DEMO_CODE_PREVIEWS[codeArtifactId] && (
             <DemoCodePanel
-              artifactLabel={artifactLabel(codeArtifactId)}
+              artifactLabel={activeArtifacts.find((artifact) => artifact.id === codeArtifactId)?.label ?? codeArtifactId}
               preview={DEMO_CODE_PREVIEWS[codeArtifactId]}
               onClose={() => setCodeArtifactId(null)}
             />
@@ -448,6 +498,8 @@ export default function Home() {
               revision={engineering.currentRevision}
               observation={engineering.scannerObservation}
               fixedArtifactIds={engineering.fixedArtifactIds}
+              artifacts={activeArtifacts}
+              generated={engineering.project.kind === 'generated'}
               onClose={() => setMode('graph')}
               onObservation={(observation) => dispatch({ type: 'SET_SCANNER_OBSERVATION', observation })}
               onToggleFixed={(artifactId) => dispatch({ type: 'TOGGLE_FIXED_ARTIFACT', artifactId })}
@@ -469,13 +521,14 @@ export default function Home() {
             onShowPro={() => switchExperience('pro')}
             onOpenScanner={() => setMode('scanner')}
             onAnalyzeJ12={analyzeJ12Change}
+            onConstraint={setConstraint}
           />
         ) : mode === 'agents' ? (
           <AgentPanel
             onClose={() => setMode('graph')}
             onArtifacts={(ids) => {
               dispatch({ type: 'SET_FOCUS', artifactIds: ids });
-              const firstVisibleId = ids.find((id) => ARTIFACTS.some((artifact) => artifact.id === id));
+              const firstVisibleId = ids.find((id) => activeArtifacts.some((artifact) => artifact.id === id));
               if (firstVisibleId) dispatch({ type: 'SELECT_ARTIFACT', artifactId: firstVisibleId });
             }}
           />
@@ -487,12 +540,15 @@ export default function Home() {
               <div className="eyebrow">PROPERTIES</div>
               <dl>{Object.entries(details).map(([label, value]) => <div key={label}><dt>{label}</dt><dd className={String(value).includes('LOW') ? 'warning' : ''}>{value}</dd></div>)}</dl>
             </div>
-            <button className="analyze-button" onClick={analyzeJ12Change}><Sparkles size={15} /><span><b>Analyze Change</b><small>Replace connector with available alternate</small></span><ChevronRight size={14} /></button>
+            {engineering.project.kind === 'existing'
+              ? <button className="analyze-button" onClick={analyzeJ12Change}><Sparkles size={15} /><span><b>Analyze Change</b><small>Replace connector with available alternate</small></span><ChevronRight size={14} /></button>
+              : <button className="analyze-button" onClick={() => switchExperience('guided')}><Sparkles size={15} /><span><b>Choose next decision</b><small>{engineering.project.build.architecture.nextDecision.title}</small></span><ChevronRight size={14} /></button>}
+            {engineering.project.kind === 'generated' && <InputSourcesPanel build={engineering.project.build} />}
             <div className="details-section connected-section">
               <div className="section-heading"><div className="eyebrow">CONNECTED ARTIFACTS · {connectedIds.length}</div></div>
               <div className="connected-list">
                 {connectedIds.slice(0, 7).map((id) => {
-                  const item = ARTIFACTS.find((node) => node.id === id)!;
+                  const item = activeArtifacts.find((node) => node.id === id)!;
                   return <button key={id} onClick={() => chooseNode(id)}><span className="connected-code" style={{ color: CATEGORY_META[item.category].color }}>{item.code.split(' · ')[0]}</span><span><b>{item.label}</b><small>{item.meta}</small></span><ChevronRight size={13} /></button>;
                 })}
               </div>
@@ -536,6 +592,7 @@ export default function Home() {
         </div>
       )}
 
+      {scratchOpen && <StartFromScratch onClose={() => setScratchOpen(false)} onCreate={createNewBuild} />}
       {demoLabel && <div className="demo-toast toast-enter"><span className={demoRunning ? 'pulse-dot' : 'done-dot'} />{demoLabel}</div>}
     </main>
   );
@@ -560,6 +617,21 @@ function DemoCodePanel({ artifactLabel: label, preview, onClose }: { artifactLab
 
 function GuidedRail({ state, onConstraint }: { state: EngineeringState; onConstraint: (constraint: EngineeringConstraint) => void }) {
   const priority = state.constraints.find((constraint) => constraint.key === 'priority')?.value;
+  if (state.project.kind === 'generated') {
+    const build = state.project.build;
+    const driveDecision = state.constraints.find((constraint) => constraint.key === 'architecture-decision')?.value;
+    return (
+      <div className="guided-rail generated-rail">
+        <div className="side-heading"><div className="eyebrow">YOUR BUILD</div><span>{state.currentRevision}</span></div>
+        <div className="guided-progress"><i className="done" /><i className="done" /><i className={driveDecision ? 'done' : 'active'} /></div>
+        <div className="guided-step-copy"><b>{driveDecision ? 'First decision captured' : 'Architecture created'}</b><span>{driveDecision ? `${driveDecision} is stored in the shared project state.` : build.intent.goalSummary}</span></div>
+        <div className="scratch-goal-summary"><span>CURRENT GOAL</span><b>{build.intent.buildGoal}</b><small>{build.originalPrompt}</small></div>
+        <div className="guided-choice-group"><div className="eyebrow">DESIGN PRIORITY</div>{['Balanced performance', 'Longer runtime', 'Higher payload'].map((value) => <button key={value} className={priority === value ? 'active' : ''} onClick={() => onConstraint({ key: 'priority', label: 'Design priority', value, source: 'guided' })}>{value}<ChevronRight size={12} /></button>)}</div>
+        <div className="source-count"><FileImage size={13} /><span><b>{build.sources.length} input source{build.sources.length === 1 ? '' : 's'}</b>Prompt, media, and constraints retained</span></div>
+        <div className="sidebar-note"><CircleDot size={14} /><span><strong>Shared project state</strong>Beginner and Pro stay in sync</span></div>
+      </div>
+    );
+  }
   return (
     <div className="guided-rail">
       <div className="side-heading"><div className="eyebrow">BEGINNER BUILD</div><span>{state.currentRevision}</span></div>
@@ -573,7 +645,7 @@ function GuidedRail({ state, onConstraint }: { state: EngineeringState; onConstr
   );
 }
 
-function GuidedPanel({ state, query, loading, error, onQuery, onRun, onAccept, onShowPro, onOpenScanner, onAnalyzeJ12 }: {
+function GuidedPanel({ state, query, loading, error, onQuery, onRun, onAccept, onShowPro, onOpenScanner, onAnalyzeJ12, onConstraint }: {
   state: EngineeringState;
   query: string;
   loading: boolean;
@@ -584,8 +656,28 @@ function GuidedPanel({ state, query, loading, error, onQuery, onRun, onAccept, o
   onShowPro: () => void;
   onOpenScanner: () => void;
   onAnalyzeJ12: () => void;
+  onConstraint: (constraint: EngineeringConstraint) => void;
 }) {
   const [showWhy, setShowWhy] = useState(false);
+  if (state.project.kind === 'generated') {
+    const build = state.project.build;
+    const decision = build.architecture.nextDecision;
+    const selectedDecision = state.constraints.find((constraint) => constraint.key === 'architecture-decision')?.value;
+    return (
+      <div className="guided-panel scratch-guided-panel">
+        <div className="mode-panel-head"><div><span className="mode-icon"><Sparkles size={16} /></span><div><div className="eyebrow">YOUR BUILD · {state.currentRevision.toUpperCase()}</div><h3>Beginner</h3></div></div><button onClick={onShowPro} aria-label="Open Pro workspace"><SlidersHorizontal size={15} /></button></div>
+        <div className="guided-hero created"><span>ARCHITECTURE CREATED</span><h2>{build.displayName}</h2><p>{build.intent.goalSummary}</p></div>
+        <div className="next-decision-card">
+          <div><span>NEXT DECISION</span><h3>{decision.title}</h3><p>{decision.description}</p></div>
+          <div className="decision-options">{decision.options.map((option) => <button className={selectedDecision === option.label ? 'active' : ''} key={option.id} onClick={() => onConstraint({ key: 'architecture-decision', label: decision.title, value: option.label, source: 'guided' })}><span><b>{option.label}</b><small>{option.description}</small></span>{selectedDecision === option.label ? <Check size={13} /> : <ChevronRight size={13} />}</button>)}</div>
+        </div>
+        <div className="generated-build-facts"><span><b>{build.architecture.artifacts.length}</b> concept artifacts</span><span><b>{build.architecture.relations.length}</b> relationships</span><span><b>{build.sources.length}</b> media sources</span></div>
+        <div className="guided-actions"><button className="primary" onClick={onShowPro}><Eye size={13} /> Review full graph in Pro</button></div>
+        <button className="scanner-entry" onClick={onOpenScanner}><Camera size={15} /><span><b>Add a physical reference</b><small>Take a photo, upload a photo, or upload a video</small></span><ChevronRight size={13} /></button>
+        <div className="demo-mode-note"><b>Prototype state</b><span>This architecture is deterministic demo data. No engineering inference or CAD generation was claimed.</span></div>
+      </div>
+    );
+  }
   const proposal = state.proposal;
   const changedLabels = proposal?.changed.map((change) => artifactLabel(change.artifactId)) ?? [];
   const preservedLabels = proposal?.preservedArtifactIds.map(artifactLabel) ?? [];
@@ -627,6 +719,23 @@ function GuidedPanel({ state, query, loading, error, onQuery, onRun, onAccept, o
           <button className="scanner-entry" onClick={onOpenScanner}><Camera size={15} /><span><b>Add a physical constraint</b><small>Choose a confirmed part to keep unchanged</small></span><ChevronRight size={13} /></button>
         </>
       )}
+    </div>
+  );
+}
+
+function InputSourcesPanel({ build }: { build: PrototypeBuildDefinition }) {
+  return (
+    <div className="details-section input-sources-section">
+      <div className="section-heading"><div className="eyebrow">INPUT SOURCES · {build.sources.length + 1}</div><span>Rev A</span></div>
+      <div className="original-prompt"><span>ORIGINAL PROMPT</span><p>{build.originalPrompt}</p></div>
+      {build.sources.length > 0 && <div className="input-media-list">{build.sources.map((source) => <article key={source.id}>
+        {/* eslint-disable-next-line @next/next/no-img-element -- Local object URLs cannot use the Next image optimizer. */}
+        {source.kind === 'image' ? <img src={source.url} alt={`Input source ${source.name}`} /> : <video src={source.url} controls preload="metadata" />}
+        <div><b>{source.name}</b><span>{source.kind === 'image' ? 'Image reference' : 'Video reference'}</span></div>
+      </article>)}</div>}
+      <div className="input-constraint-chips">{build.intent.requirements.map((requirement) => <span key={requirement.key}><b>{requirement.label}</b>{requirement.value}</span>)}</div>
+      {build.additionalNotes && <div className="input-notes"><span>ADDITIONAL NOTES</span><p>{build.additionalNotes}</p></div>}
+      <div className="demo-mode-note"><b>Local prototype inputs</b><span>Files remain browser-local. Their pixels, frames, and audio were not analyzed.</span></div>
     </div>
   );
 }
@@ -689,28 +798,40 @@ function ProposalCard({ proposal, experience, onAccept, onShowGraph, onShowPro }
   );
 }
 
-function ScannerPanel({ revision, observation, fixedArtifactIds, onClose, onObservation, onToggleFixed }: {
+function ScannerPanel({ revision, observation, fixedArtifactIds, artifacts, generated, onClose, onObservation, onToggleFixed }: {
   revision: string;
   observation: ScannerMatch | null;
   fixedArtifactIds: string[];
+  artifacts: Artifact[];
+  generated: boolean;
   onClose: () => void;
   onObservation: (observation: ScannerMatch) => void;
   onToggleFixed: (artifactId: string) => void;
 }) {
   const cameraInput = useRef<HTMLInputElement>(null);
-  const uploadInput = useRef<HTMLInputElement>(null);
+  const photoInput = useRef<HTMLInputElement>(null);
+  const videoInput = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState('');
   const [analysis, setAnalysis] = useState<ScannerAnalysis | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState('');
+  const mediaKind = file?.type.startsWith('video/') ? 'video' : 'image';
+  const generatedMatchOptions = artifacts.filter((artifact) => artifact.category !== 'overview').slice(0, 4).map((artifact) => [artifact.id, artifact.label] as const);
+  const matchOptions: readonly (readonly [string, string])[] = generated ? generatedMatchOptions : [['j12', 'J12 Connector'], ['motor-bom', '24V Motor M2'], ['battery', 'Li-ion Battery'], ['main-board', 'Main Control Board']];
+  const demoTarget = generated
+    ? (artifacts.find((artifact) => artifact.id === 'scratch-camera') ?? artifacts.find((artifact) => artifact.category !== 'overview') ?? artifacts[0])
+    : artifacts.find((artifact) => artifact.id === 'j12') ?? artifacts[0];
 
   useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
 
   const acquire = (nextFile: File | null) => {
     if (!nextFile) return;
-    if (!nextFile.type.startsWith('image/')) { setError('Choose an image file.'); return; }
-    if (nextFile.size > 15 * 1024 * 1024) { setError('Choose an image smaller than 15 MB.'); return; }
+    const isImage = nextFile.type.startsWith('image/');
+    const isVideo = nextFile.type.startsWith('video/');
+    if (!isImage && !isVideo) { setError('Choose a photo or video file.'); return; }
+    const maxBytes = isVideo ? 120 * 1024 * 1024 : 15 * 1024 * 1024;
+    if (nextFile.size > maxBytes) { setError(`Choose a ${isVideo ? 'video smaller than 120 MB' : 'photo smaller than 15 MB'}.`); return; }
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setFile(nextFile);
     setPreviewUrl(URL.createObjectURL(nextFile));
@@ -722,11 +843,13 @@ function ScannerPanel({ revision, observation, fixedArtifactIds, onClose, onObse
     setError('');
     setAnalyzing(true);
     try {
-      const response = await fetch('/api/scanner/demo/j12');
+      const response = await fetch(`/api/scanner/demo/${generated ? 'rover' : 'j12'}`);
       if (!response.ok) throw new Error('Synthetic scanner asset is unavailable.');
-      const demoFile = new File([await response.blob()], 'j12-connector-closeup.png', { type: 'image/png' });
+      const demoFile = new File([await response.blob()], generated ? 'inspection-rover-reference.png' : 'j12-connector-closeup.png', { type: 'image/png' });
       acquire(demoFile);
-      const result = await localScannerAdapter.analyze(demoFile);
+      const result = generated && demoTarget
+        ? { ...localScannerAdapter.confirmArtifact(demoTarget.id, demoTarget.label), explanation: 'Preset sample result for the prototype demo. The image pixels were not analyzed.' }
+        : await localScannerAdapter.analyze(demoFile);
       setAnalysis(result);
       if (result.status === 'matched') onObservation(result);
     } catch (cause) {
@@ -737,11 +860,27 @@ function ScannerPanel({ revision, observation, fixedArtifactIds, onClose, onObse
   };
 
   const analyze = async () => {
-    if (!file) { setError('Take a photo or upload an image first.'); return; }
+    if (!file) { setError('Take a photo, upload a photo, or upload a video first.'); return; }
     setAnalyzing(true);
     setError('');
     try {
-      const result = await localScannerAdapter.analyze(file);
+      let result: ScannerAnalysis;
+      if (mediaKind === 'video' && demoTarget) {
+        await sleep(650);
+        result = {
+          ...localScannerAdapter.confirmArtifact(demoTarget.id, demoTarget.label),
+          explanation: 'Preset video result for the prototype demo. The video frames and audio were not analyzed.',
+        };
+      } else if (generated) {
+        await sleep(650);
+        result = {
+          status: 'needs-confirmation',
+          mode: 'no-inference',
+          explanation: 'The photo was loaded locally. No vision model is connected, so select the artifact shown in the image.',
+        };
+      } else {
+        result = await localScannerAdapter.analyze(file);
+      }
       setAnalysis(result);
       if (result.status === 'matched') onObservation(result);
     } finally {
@@ -760,25 +899,26 @@ function ScannerPanel({ revision, observation, fixedArtifactIds, onClose, onObse
 
   return (
     <section className="mode-panel scanner-panel panel-enter" key="scanner">
-      <div className="mode-panel-head"><div><span className="mode-icon"><Camera size={15} /></span><div><div className="eyebrow">PHOTO OR UPLOAD</div><h3>Scanner</h3></div></div><button onClick={onClose}><X size={15} /></button></div>
-      <p>Take or upload a photo, then link the confirmed part to the project graph.</p>
+      <div className="mode-panel-head"><div><span className="mode-icon"><Camera size={15} /></span><div><div className="eyebrow">PHOTO · VIDEO · CAMERA</div><h3>Scanner</h3></div></div><button onClick={onClose}><X size={15} /></button></div>
+      <p>Take a photo, upload a photo, or upload a video, then link the demo result to the project graph.</p>
       <input ref={cameraInput} hidden type="file" accept="image/*" capture="environment" onChange={(event) => acquire(event.target.files?.[0] ?? null)} />
-      <input ref={uploadInput} hidden type="file" accept="image/*" onChange={(event) => acquire(event.target.files?.[0] ?? null)} />
-      <div className={`scanner-view ${activeMatch ? 'matched' : ''} ${previewUrl ? 'has-image' : ''}`}>
+      <input ref={photoInput} hidden type="file" accept="image/*" onChange={(event) => acquire(event.target.files?.[0] ?? null)} />
+      <input ref={videoInput} hidden type="file" accept="video/*" onChange={(event) => acquire(event.target.files?.[0] ?? null)} />
+      <div className={`scanner-view ${activeMatch ? 'matched' : ''} ${previewUrl ? 'has-media' : ''}`}>
         {/* eslint-disable-next-line @next/next/no-img-element -- Local object URLs cannot use the Next image optimizer. */}
-        {previewUrl ? <img src={previewUrl} alt="Locally acquired scanner input" /> : <div className="rover-silhouette"><div className="rover-body" /><div className="rover-camera" /><i className="wheel one" /><i className="wheel two" /><i className="connector-target" /></div>}
+        {previewUrl ? (mediaKind === 'video' ? <video src={previewUrl} controls playsInline preload="metadata" /> : <img src={previewUrl} alt="Locally acquired scanner input" />) : <div className="rover-silhouette"><div className="rover-body" /><div className="rover-camera" /><i className="wheel one" /><i className="wheel two" /><i className="connector-target" /></div>}
         {(analyzing || (previewUrl && !analysis)) && <div className="scan-line" />}
         {activeMatch && <div className="detected-bounds" style={{ left: `${activeMatch.bounds.x}%`, top: `${activeMatch.bounds.y}%`, width: `${activeMatch.bounds.width}%`, height: `${activeMatch.bounds.height}%` }}><span>{activeMatch.label}</span></div>}
-        <div className="scan-readout"><span>{file ? file.name : 'NO IMAGE ACQUIRED'}</span><span>{activeMatch?.mode === 'manual-observation' ? 'USER CONFIRMED' : activeMatch ? 'DEMO LABEL MATCH' : 'LOCAL INPUT'}</span></div>
+        <div className="scan-readout"><span>{file ? file.name : 'NO MEDIA ACQUIRED'}</span><span>{activeMatch?.mode === 'manual-observation' ? 'DEMO / USER LINK' : activeMatch ? 'DEMO LABEL MATCH' : mediaKind === 'video' ? 'LOCAL VIDEO' : 'LOCAL PHOTO'}</span></div>
       </div>
-      <div className="scanner-input-actions"><button onClick={() => cameraInput.current?.click()}><Camera size={13} /> Take Photo</button><button onClick={() => uploadInput.current?.click()}><Upload size={13} /> Upload Image</button></div>
+      <div className="scanner-input-actions"><button onClick={() => cameraInput.current?.click()}><Camera size={13} /> Take Photo</button><button onClick={() => photoInput.current?.click()}><Upload size={13} /> Upload Photo</button><button onClick={() => videoInput.current?.click()}><Film size={13} /> Upload Video</button></div>
       <button className="demo-asset-button" disabled={analyzing} onClick={() => void runSampleScan()}><Play size={13} /> {analyzing ? 'Running sample scan…' : 'Run sample scan'}</button>
-      <div className="demo-mode-note"><b>Demo simulation</b><span>Uses the bundled J12 image and a preset filename match. No vision AI is connected.</span></div>
-      {file && !analysis && <button className="scan-button" disabled={analyzing} onClick={() => void analyze()}><ScanLine size={15} /> {analyzing ? 'Checking local label corpus…' : 'Run demo label matcher'}</button>}
-      {analysis?.status === 'needs-confirmation' && <div className="manual-match"><div className="scanner-disclosure"><AlertTriangle size={13} /><span>{analysis.explanation}</span></div><div>{[['j12', 'J12 Connector'], ['motor-bom', '24V Motor M2'], ['battery', 'Li-ion Battery'], ['main-board', 'Main Control Board']].map(([id, label]) => <button key={id} onClick={() => confirm(id, label)}>{label}<ChevronRight size={11} /></button>)}</div></div>}
+      <div className="demo-mode-note"><b>Demo simulation</b><span>Media acquisition and previews are real. Photo labels and video results are presets; no vision, frame, or audio AI is connected.</span></div>
+      {file && !analysis && <button className="scan-button" disabled={analyzing} onClick={() => void analyze()}><ScanLine size={15} /> {analyzing ? 'Running prototype sequence…' : `Run ${mediaKind === 'video' ? 'demo video scan' : 'demo photo matcher'}`}</button>}
+      {analysis?.status === 'needs-confirmation' && <div className="manual-match"><div className="scanner-disclosure"><AlertTriangle size={13} /><span>{analysis.explanation}</span></div><div>{matchOptions.map(([id, label]) => <button key={id} onClick={() => confirm(id, label)}>{label}<ChevronRight size={11} /></button>)}</div></div>}
       {activeMatch && <div className="scanner-status"><span className="scanner-status-icon"><Check size={15} /></span><div><strong>{activeMatch.label} linked</strong><small>Product graph · {revision} · {activeMatch.confidence ? `${Math.round(activeMatch.confidence * 100)}% demo match` : 'confirmed manually'}</small></div></div>}
       {activeMatch && <><div className="scanner-disclosure"><Info size={13} /><span>{activeMatch.explanation}</span></div><button className={`fixed-part-button ${isFixed ? 'fixed' : ''}`} onClick={() => onToggleFixed(activeMatch.artifactId)}><Lock size={13} /> {isFixed ? 'Fixed constraint added' : 'Use as a fixed constraint'}</button></>}
-      {!localScannerAdapter.inferenceConnected && <div className="runtime-note"><Cable size={15} /><div><b>Vision adapter not connected</b><span>Photo/upload is real; automatic detection is explicitly simulated.</span></div></div>}
+      {!localScannerAdapter.inferenceConnected && <div className="runtime-note"><Cable size={15} /><div><b>Media inference adapter not connected</b><span>Camera, photo upload, and video upload are real; automatic detection is explicitly simulated.</span></div></div>}
       {error && <div className="backend-error">{error}</div>}
     </section>
   );
