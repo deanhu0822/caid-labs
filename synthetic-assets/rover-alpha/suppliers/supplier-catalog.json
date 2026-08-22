@@ -1,0 +1,164 @@
+{
+  "synthetic": true,
+  "snapshot_date": "2026-08-18",
+  "currency": "USD",
+  "product_id": "rover-alpha",
+  "disclaimer": "All availability, costs, contracts, and synthetic alternate part numbers are fictional demo records.",
+  "suppliers": [
+    {
+      "artifact_id": "molex",
+      "name": "Molex",
+      "role": "Manufacturer record retained from existing demo",
+      "records": [
+        {
+          "internal_part_number": "43025-0400",
+          "manufacturer_part_number": "43025-0400",
+          "description": "J12 four-circuit connector",
+          "on_hand_global": 1248,
+          "unrestricted_available": 0,
+          "allocated_to_open_builds": 1248,
+          "lead_time_days": 14,
+          "unit_cost_usd": 0.84,
+          "moq": 100,
+          "lifecycle": "Active / allocation hold",
+          "compatible_alternates": [
+            "NSI-MF4-LK"
+          ]
+        },
+        {
+          "internal_part_number": "J12-HDR-C",
+          "manufacturer_part_number": "SYN-43045-0400-DEMO",
+          "description": "Synthetic demo mating header cross-reference",
+          "on_hand_global": 840,
+          "unrestricted_available": 620,
+          "lead_time_days": 21,
+          "unit_cost_usd": 1.36,
+          "moq": 100,
+          "lifecycle": "Synthetic cross-reference"
+        }
+      ]
+    },
+    {
+      "artifact_id": "motor-supplier",
+      "name": "Motion Dynamics",
+      "synthetic_company_record": true,
+      "records": [
+        {
+          "internal_part_number": "MTR-24-220",
+          "manufacturer_part_number": "MD-MTR-24-220",
+          "on_hand_global": 384,
+          "unrestricted_available": 384,
+          "lead_time_days": 28,
+          "unit_cost_usd": 42.1,
+          "moq": 2,
+          "torque_nm": 22,
+          "peak_current_a": 7.4,
+          "lifecycle": "Active",
+          "compatible_alternates": [
+            "MTR-24-290"
+          ]
+        },
+        {
+          "internal_part_number": "MTR-24-290",
+          "manufacturer_part_number": "MD-MTR-24-290",
+          "on_hand_global": 96,
+          "unrestricted_available": 96,
+          "lead_time_days": 21,
+          "unit_cost_usd": 51.8,
+          "moq": 2,
+          "torque_nm": 29,
+          "peak_current_a": 8.8,
+          "lifecycle": "Active",
+          "compatibility": "Fits MTR-HSG-04; requires MCTRL-D1/DRV-10A, firmware, PDB fuse, and validation."
+        }
+      ]
+    },
+    {
+      "artifact_id": "camera-supplier",
+      "name": "Basler",
+      "role": "Manufacturer record retained from existing demo",
+      "records": [
+        {
+          "internal_part_number": "CM-4K-R2",
+          "manufacturer_part_number": "BAS-RVR-4K-R2",
+          "on_hand_global": 4,
+          "unrestricted_available": 0,
+          "allocated_to_open_builds": 4,
+          "lead_time_days": 84,
+          "unit_cost_usd": 412,
+          "moq": 1,
+          "lifecycle": "Allocation / shortage",
+          "compatible_alternates": [
+            "ALT-CAM-4K-L"
+          ]
+        }
+      ]
+    },
+    {
+      "artifact_id": null,
+      "name": "Northstar Interconnect",
+      "synthetic_company_record": true,
+      "records": [
+        {
+          "internal_part_number": "NSI-MF4-LK",
+          "manufacturer_part_number": "NSI-MF4-LK",
+          "on_hand_global": 560,
+          "unrestricted_available": 560,
+          "lead_time_days": 9,
+          "unit_cost_usd": 0.71,
+          "moq": 50,
+          "lifecycle": "Active",
+          "compatibility": "Electrical pinout compatible with J12; not a mechanical/PCB drop-in. +2 mm latch clearance and mounting peg change."
+        }
+      ]
+    },
+    {
+      "artifact_id": null,
+      "name": "Orion Vision Systems",
+      "synthetic_company_record": true,
+      "records": [
+        {
+          "internal_part_number": "ALT-CAM-4K-L",
+          "manufacturer_part_number": "OVS-4K-L",
+          "on_hand_global": 72,
+          "unrestricted_available": 72,
+          "lead_time_days": 14,
+          "unit_cost_usd": 365,
+          "moq": 1,
+          "lifecycle": "Active",
+          "compatibility": "Mechanical adapter plate, new camera.rs driver, CAL-CAM-12-D, +3.5 W draw, and T-CAM-12 rerun required."
+        }
+      ]
+    },
+    {
+      "artifact_id": null,
+      "name": "Northstar Energy",
+      "synthetic_company_record": true,
+      "records": [
+        {
+          "internal_part_number": "BAT-24-18",
+          "manufacturer_part_number": "NSE-2418-D",
+          "on_hand_global": 42,
+          "unrestricted_available": 42,
+          "lead_time_days": 21,
+          "unit_cost_usd": 414,
+          "moq": 1,
+          "capacity_wh": 432,
+          "mass_delta_kg": 1.1,
+          "compatibility": "Does not fit BAT-CAGE-03; needs cage/chassis D1."
+        }
+      ]
+    }
+  ],
+  "artifact_refs": [
+    "molex",
+    "motor-supplier",
+    "camera-supplier",
+    "j12-bom",
+    "motor-bom",
+    "camera-module",
+    "j12",
+    "motor-controller",
+    "battery-enclosure"
+  ]
+}

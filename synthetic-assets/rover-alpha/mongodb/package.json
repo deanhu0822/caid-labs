@@ -1,0 +1,11 @@
+{
+  "name": "forma-rover-mongodb-loader",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "load": "node load.mjs"
+  },
+  "dependencies": {
+    "mongodb": "^6.19.0"
+  }
+}

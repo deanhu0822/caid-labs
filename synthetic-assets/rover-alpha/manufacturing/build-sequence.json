@@ -1,0 +1,104 @@
+{
+  "synthetic": true,
+  "product_id": "rover-alpha",
+  "revision": "Rev C",
+  "route_id": "ROUTE-08",
+  "sequence": [
+    {
+      "order": 10,
+      "operation": "Chassis preparation",
+      "procedure": "final-assembly.md#operation-10",
+      "required_artifacts": [
+        "chassis"
+      ]
+    },
+    {
+      "order": 20,
+      "operation": "Motor installation",
+      "procedure": "motor-installation.md",
+      "required_artifacts": [
+        "motor-install",
+        "motor-bom",
+        "motor-housing",
+        "left-wheel",
+        "right-wheel"
+      ]
+    },
+    {
+      "order": 30,
+      "operation": "Board and battery installation",
+      "procedure": "final-assembly.md#operation-30",
+      "required_artifacts": [
+        "main-board",
+        "motor-controller",
+        "power-board",
+        "battery",
+        "battery-enclosure"
+      ]
+    },
+    {
+      "order": 40,
+      "operation": "Cable routing and J12 mate",
+      "procedure": "cable-routing.md",
+      "required_artifacts": [
+        "cable-routing",
+        "j12",
+        "j12-bom"
+      ]
+    },
+    {
+      "order": 50,
+      "operation": "Camera installation",
+      "procedure": "final-assembly.md#operation-50",
+      "required_artifacts": [
+        "camera-mount",
+        "camera-module"
+      ]
+    },
+    {
+      "order": 60,
+      "operation": "Firmware load",
+      "procedure": "final-assembly.md#operation-60",
+      "required_artifacts": [
+        "motor-control",
+        "camera-service",
+        "battery-mgmt",
+        "navigation"
+      ]
+    },
+    {
+      "order": 70,
+      "operation": "Final QA fixture",
+      "procedure": "final-qa-fixture.md",
+      "required_artifacts": [
+        "qa-fixture",
+        "final-qa"
+      ]
+    }
+  ],
+  "artifact_refs": [
+    "final-assembly",
+    "chassis",
+    "motor-install",
+    "motor-bom",
+    "motor-housing",
+    "left-wheel",
+    "right-wheel",
+    "main-board",
+    "motor-controller",
+    "power-board",
+    "battery",
+    "battery-enclosure",
+    "cable-routing",
+    "j12",
+    "j12-bom",
+    "camera-mount",
+    "camera-module",
+    "motor-control",
+    "camera-service",
+    "battery-mgmt",
+    "navigation",
+    "qa-fixture",
+    "final-qa"
+  ]
+}

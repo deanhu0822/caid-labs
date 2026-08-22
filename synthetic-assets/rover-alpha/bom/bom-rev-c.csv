@@ -1,0 +1,31 @@
+line,part_number,description,manufacturer,manufacturer_part_number,quantity,revision,unit_cost_usd,supplier,stock,lead_time_days,lifecycle_state,artifact_id
+1,CHS-240,Chassis assembly,Forma Synthetic,FS-CHS-240,1,C3,286,Forma Fabrication,18,21,Active,chassis
+2,WHL-L-04,Left wheel assembly,Forma Synthetic,FS-WHL-L-04,1,C1,96.4,Forma Fabrication,22,28,Active,left-wheel
+3,WHL-R-04,Right wheel assembly,Forma Synthetic,FS-WHL-R-04,1,C1,96.4,Forma Fabrication,21,28,Active,right-wheel
+4,BAT-24-12,24 V 12 Ah Li-ion battery,Northstar Energy,NSE-2412-C,1,C,318,Northstar Energy,36,35,Active,battery
+5,BAT-CAGE-03,Battery enclosure,Forma Synthetic,FS-BAT-CAGE-03,1,C3,42.6,Forma Fabrication,55,18,Active,battery-enclosure
+6,MCB-C4,Main control board,Forma Synthetic,FS-MCB-C4,1,C4,184.3,Forma Electronics,27,42,Active,main-board
+7,PDB-24V,Power distribution board,Forma Synthetic,FS-PDB-24V-C2,1,C2,72.8,Forma Electronics,48,35,Active,power-board
+8,CAM-MNT-C,Camera mount,Forma Synthetic,FS-CAM-MNT-C,1,C2,64.2,Forma Fabrication,31,24,Active,camera-mount
+9,CM-4K-R2,4K global-shutter camera module,Basler,BAS-RVR-4K-R2,1,C,412,Basler,4,84,Allocation,camera-module
+10,LIDAR-2D-A,2D safety lidar,Orion Sensing,OS-L2-A,1,A,278.5,Orion Sensing,19,56,Active,
+11,MCTRL-8A,Dual-channel motor controller,Forma Synthetic,FS-MCTRL-8A-C2,1,C2,126.2,Forma Electronics,44,35,Active,motor-controller
+12,ENC-2048,2048 CPR wheel encoder,Kestrel Motion,KM-E2048,2,B,38.7,Kestrel Motion,220,21,Active,
+13,MTR-HSG-04,Motor housing,Forma Synthetic,FS-MTR-HSG-04,2,C1,29.8,Forma Fabrication,84,18,Active,motor-housing
+14,HAR-MAIN-C,Main power harness,Forma Synthetic,FS-HAR-MAIN-C,1,C,31.4,Forma Harness,63,14,Active,
+15,HAR-J12-C,J12 four-circuit harness,Forma Synthetic,FS-HAR-J12-C,1,C,18.6,Forma Harness,12,21,Active,
+16,FUSE-10A-ATO,10 A motor branch fuse,Northstar Components,NSC-F10A,2,A,1.1,Northstar Components,960,7,Active,
+17,WHL-TIRE-180,180 mm traction tire,Kestrel Motion,KM-T180,4,B,14.8,Kestrel Motion,146,28,Active,
+18,MTR-24-220,"24 V geared motor, 22 N·m",Motion Dynamics,MD-MTR-24-220,2,B,42.1,Motion Dynamics,384,28,Active,motor-bom
+19,GEAR-12-1,12:1 planetary gearbox,Motion Dynamics,MD-G12-1,2,B,54.6,Motion Dynamics,114,35,Active,
+20,BRG-608-2RS,Sealed wheel bearing,Northstar Components,NSC-608-2RS,8,A,3.25,Northstar Components,2400,7,Active,
+21,SHUNT-010,10 mΩ current shunt,Northstar Components,NSC-SH010,2,C,2.9,Northstar Components,780,14,Active,
+22,DRV-8A,8 A motor driver module,Forma Synthetic,FS-DRV-8A,2,C,18.9,Forma Electronics,260,28,Active,motor-driver
+23,MCU-STM32H7,Main controller MCU,STMicroelectronics,STM32H743ZIT6,1,A,26.2,Northstar Components,92,42,Active,
+24,IMU-6AX-C,Six-axis IMU module,Orion Sensing,OS-IMU6-C,1,C,34.7,Orion Sensing,75,35,Active,
+25,DCDC-24-5-10A,24 V to 5 V converter,Northstar Power,NSP-D24510,1,B,46.5,Northstar Power,38,28,Active,
+26,ESTOP-24V,24 V emergency-stop switch,Kestrel Controls,KC-ESTOP24,1,B,22.4,Kestrel Controls,67,21,Active,
+27,43025-0400,J12 Micro-Fit 3.0 four-circuit connector,Molex,43025-0400,1,C,0.84,Molex,1248,14,Low / allocated,j12-bom
+28,J12-HDR-C,J12 right-angle mating header,Molex,SYN-43045-0400-DEMO,1,C,1.36,Molex,840,21,Synthetic cross-reference,
+29,QA-LABEL-C,Rev C serialized QA label,Forma Synthetic,FS-QA-LABEL-C,1,C,0.22,Forma Fabrication,4800,5,Active,
+30,FAST-KIT-C,Rev C chassis fastener kit,Forma Synthetic,FS-FAST-KIT-C,1,C,12.8,Forma Fabrication,130,14,Active,

@@ -1,0 +1,59 @@
+{
+  "synthetic": true,
+  "agent": "Product Agent",
+  "product_id": "rover-alpha",
+  "tasks": [
+    {
+      "id": "PRD-001",
+      "prompt": "What systems are affected if J12 changes?",
+      "expected_answer": "Direct blast radius: MCB-C4 PCB footprint/pin map, CHS-240 opening, J12 BOM/supplier record, HAR-J12-C and WI-114, motor_ctrl.c GPIO_17/ADC3 mapping, QA-FIX-C adapter, and power/final QA validation.",
+      "evidence_files": [
+        "product.json",
+        "electrical/j12-connector.json",
+        "manufacturing/cable-routing.md"
+      ],
+      "artifact_refs": [
+        "j12",
+        "main-board",
+        "chassis",
+        "j12-bom",
+        "molex",
+        "motor-control",
+        "qa-fixture",
+        "cable-routing"
+      ]
+    },
+    {
+      "id": "PRD-002",
+      "prompt": "Why is HAR-J12-B incompatible with Rev C?",
+      "expected_answer": "Rev B has two circuits for power only. Rev C MCB-C4 and 43025-0400 require four circuits; pins 3 and 4 carry GPIO_17 MOTOR_PWR_EN and ADC3 MOTOR_PWR_SENSE. QA-FIX-C also expects both.",
+      "evidence_files": [
+        "revisions/rev-b.json",
+        "revisions/rev-c.json",
+        "electrical/j12-connector.json"
+      ],
+      "artifact_refs": [
+        "j12",
+        "main-board",
+        "motor-control",
+        "qa-fixture"
+      ]
+    },
+    {
+      "id": "PRD-003",
+      "prompt": "What constrains the current 8 kg payload rating?",
+      "expected_answer": "The MTR-24-220 has only 14% observed torque margin at 8 kg and peak current is 7.4 A against the MCTRL-8A 8.0 A ceiling. The chassis GVW limit is 22.5 kg versus 22.2 kg at rated payload.",
+      "evidence_files": [
+        "specs/payload-and-drive.md",
+        "tests/motor-load-test-result.json",
+        "mechanical/chassis.json"
+      ],
+      "artifact_refs": [
+        "motor-bom",
+        "motor-controller",
+        "chassis",
+        "motor-load-test"
+      ]
+    }
+  ]
+}

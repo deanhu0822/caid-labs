@@ -1,0 +1,32 @@
+{
+  "synthetic": true,
+  "test_id": "T-PWR-24",
+  "result_id": "T-PWR-24-DVT-011",
+  "date": "2026-08-17",
+  "product_id": "rover-alpha",
+  "revision": "Rev C",
+  "outcome": "PASS",
+  "configuration": {
+    "battery": "BAT-24-12",
+    "energy_wh_nominal": 288,
+    "reserve_percent": 15,
+    "board": "PDB-24V",
+    "connector": "43025-0400"
+  },
+  "measurements": {
+    "idle_current_a": 1.62,
+    "typical_power_w": 91.8,
+    "peak_power_w": 312,
+    "peak_battery_current_a": 13.1,
+    "j12_contact_resistance_mohm_max": 54,
+    "undervoltage_shutdown_v": 20.1,
+    "estimated_runtime_h": 2.67
+  },
+  "artifact_refs": [
+    "power-test",
+    "power-board",
+    "battery",
+    "battery-mgmt",
+    "j12"
+  ]
+}

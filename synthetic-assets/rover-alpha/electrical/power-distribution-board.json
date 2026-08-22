@@ -1,0 +1,48 @@
+{
+  "synthetic": true,
+  "product_id": "rover-alpha",
+  "artifact_id": "power-board",
+  "board_id": "PDB-24V",
+  "board_revision": "C2",
+  "layers": 4,
+  "input": {
+    "battery": "BAT-24-12",
+    "nominal_voltage_vdc": 24,
+    "range_vdc": [
+      19.2,
+      29.4
+    ],
+    "fuse_a": 40
+  },
+  "branches": [
+    {
+      "id": "MOTOR_L",
+      "voltage_vdc": 24,
+      "fuse_a": 10,
+      "continuous_limit_a": 8,
+      "load": "MCTRL-8A channel L"
+    },
+    {
+      "id": "MOTOR_R",
+      "voltage_vdc": 24,
+      "fuse_a": 10,
+      "continuous_limit_a": 8,
+      "load": "MCTRL-8A channel R"
+    },
+    {
+      "id": "COMPUTE_5V",
+      "voltage_vdc": 5,
+      "continuous_limit_a": 10,
+      "load": "MCB-C4 and camera"
+    }
+  ],
+  "idle_draw_w": 2.1,
+  "current_telemetry": "BMS_CAN",
+  "artifact_refs": [
+    "main-board",
+    "motor-controller",
+    "battery-mgmt",
+    "battery",
+    "power-test"
+  ]
+}

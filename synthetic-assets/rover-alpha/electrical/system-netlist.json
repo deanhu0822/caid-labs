@@ -1,0 +1,117 @@
+{
+  "synthetic": true,
+  "product_id": "rover-alpha",
+  "revision": "Rev C",
+  "format": "Simplified reasoning netlist; not EDA interchange.",
+  "components": [
+    {
+      "ref": "PCB1",
+      "part_number": "MCB-C4",
+      "artifact_id": "main-board"
+    },
+    {
+      "ref": "PCB2",
+      "part_number": "MCTRL-8A",
+      "artifact_id": "motor-controller"
+    },
+    {
+      "ref": "PCB3",
+      "part_number": "PDB-24V",
+      "artifact_id": "power-board"
+    },
+    {
+      "ref": "J12",
+      "part_number": "43025-0400",
+      "artifact_id": "j12"
+    },
+    {
+      "ref": "M1",
+      "part_number": "MTR-24-220",
+      "artifact_id": "motor-bom"
+    },
+    {
+      "ref": "M2",
+      "part_number": "MTR-24-220",
+      "artifact_id": "motor-bom"
+    },
+    {
+      "ref": "BT1",
+      "part_number": "BAT-24-12",
+      "artifact_id": "battery"
+    },
+    {
+      "ref": "CAM1",
+      "part_number": "CM-4K-R2",
+      "artifact_id": "camera-module"
+    }
+  ],
+  "nets": [
+    {
+      "name": "VBAT_24V",
+      "nominal_v": 24,
+      "nodes": [
+        "BT1:+",
+        "PCB3:J1.1"
+      ]
+    },
+    {
+      "name": "VMOTOR_24V",
+      "nominal_v": 24,
+      "max_design_a": 9,
+      "nodes": [
+        "PCB3:J3.1",
+        "PCB1:J12.1",
+        "PCB2:J1.1"
+      ]
+    },
+    {
+      "name": "MOTOR_RETURN",
+      "nominal_v": 0,
+      "max_design_a": 9,
+      "nodes": [
+        "PCB3:GND",
+        "PCB1:J12.2",
+        "PCB2:J1.2"
+      ]
+    },
+    {
+      "name": "MOTOR_PWR_EN",
+      "nominal_v": 3.3,
+      "nodes": [
+        "PCB1:U1.GPIO_17",
+        "PCB1:J12.3",
+        "PCB2:EN"
+      ]
+    },
+    {
+      "name": "MOTOR_PWR_SENSE",
+      "range_v": [
+        0,
+        3.3
+      ],
+      "nodes": [
+        "PCB2:ISENSE",
+        "PCB1:J12.4",
+        "PCB1:U1.ADC3"
+      ]
+    },
+    {
+      "name": "CAN1",
+      "differential": true,
+      "nodes": [
+        "PCB1:CAN1",
+        "PCB2:CAN1",
+        "PCB3:CAN1"
+      ]
+    }
+  ],
+  "artifact_refs": [
+    "main-board",
+    "motor-controller",
+    "power-board",
+    "j12",
+    "motor-bom",
+    "battery",
+    "camera-module"
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "synthetic": true,
+  "test_id": "T-CAM-12",
+  "result_id": "T-CAM-12-DVT-023",
+  "date": "2026-08-15",
+  "product_id": "rover-alpha",
+  "revision": "Rev C",
+  "outcome": "PASS",
+  "configuration": {
+    "camera": "CM-4K-R2",
+    "mount": "CAM-MNT-C",
+    "profile": "CAL-CAM-12-C",
+    "image_size": [
+      3840,
+      2160
+    ]
+  },
+  "measurements": {
+    "frames_used": 24,
+    "mean_reprojection_error_px": 0.42,
+    "focal_length_px": 2718.4,
+    "mount_roll_deg": 0.18
+  },
+  "artifact_refs": [
+    "camera-cal",
+    "camera-module",
+    "camera-mount",
+    "camera-service"
+  ]
+}

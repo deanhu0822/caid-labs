@@ -1,0 +1,98 @@
+{
+  "synthetic": true,
+  "product_id": "rover-alpha",
+  "artifact_id": "j12",
+  "reference_designator": "J12",
+  "revision": "Rev C",
+  "manufacturer": "Molex",
+  "manufacturer_part_number": "43025-0400",
+  "family": "Micro-Fit 3.0",
+  "circuits": 4,
+  "keying": "Rev C four-circuit key",
+  "role": "Motor power interlock and telemetry connector between MCB-C4 and chassis harness HAR-J12-C",
+  "ratings": {
+    "voltage_vdc": 24,
+    "current_a_per_power_contact_design": 9,
+    "signal_voltage_v": 3.3,
+    "operating_temperature_c": [
+      -10,
+      45
+    ]
+  },
+  "pins": [
+    {
+      "pin": 1,
+      "net": "VMOTOR_24V",
+      "direction": "power_out",
+      "wire_color": "red",
+      "max_current_a": 9
+    },
+    {
+      "pin": 2,
+      "net": "MOTOR_RETURN",
+      "direction": "power_return",
+      "wire_color": "black",
+      "max_current_a": 9
+    },
+    {
+      "pin": 3,
+      "net": "MOTOR_PWR_EN",
+      "direction": "logic_out",
+      "firmware_symbol": "J12_ENABLE_PIN",
+      "mcu_signal": "GPIO_17"
+    },
+    {
+      "pin": 4,
+      "net": "MOTOR_PWR_SENSE",
+      "direction": "analog_in",
+      "firmware_symbol": "MOTOR_POWER_SENSE",
+      "mcu_signal": "ADC3"
+    }
+  ],
+  "pcb_interface": {
+    "board": "MCB-C4",
+    "footprint": "MF3_2x2_RA_C",
+    "keepout_mm": [
+      38,
+      25
+    ],
+    "mounting_peg_pattern": "PEG-C"
+  },
+  "chassis_interface": {
+    "chassis": "CHS-240",
+    "opening_mm": [
+      34,
+      22
+    ],
+    "rear_clearance_mm": 8
+  },
+  "harness": {
+    "part_number": "HAR-J12-C",
+    "wire_gauge_power_awg": 16,
+    "wire_gauge_signal_awg": 24,
+    "mate_verification_step": "WI-114 step 6"
+  },
+  "alternate": {
+    "supplier": "Northstar Interconnect",
+    "part_number": "NSI-MF4-LK",
+    "electrical_compatibility": "Pin-for-pin at 24 V / 9 A",
+    "direct_drop_in": false,
+    "consequences": [
+      "Mounting peg holes differ from PEG-C",
+      "Latch requires +2 mm chassis clearance",
+      "WI-114 and QA-FIX-C adapter must be revised"
+    ]
+  },
+  "revision_conflict": {
+    "incompatible_part": "HAR-J12-B",
+    "reason": "Rev B harness has only two circuits and cannot carry MOTOR_PWR_EN or MOTOR_PWR_SENSE required by MCB-C4."
+  },
+  "artifact_refs": [
+    "main-board",
+    "chassis",
+    "motor-control",
+    "j12-bom",
+    "cable-routing",
+    "qa-fixture"
+  ]
+}

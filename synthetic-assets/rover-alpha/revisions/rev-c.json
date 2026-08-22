@@ -1,0 +1,59 @@
+{
+  "synthetic": true,
+  "product_id": "rover-alpha",
+  "revision": "Rev C",
+  "date": "2026-08-18",
+  "phase": "DVT",
+  "changes": [
+    {
+      "area": "Connector",
+      "artifact_id": "j12",
+      "from": "43025-0200 / HAR-J12-B",
+      "to": "43025-0400 / HAR-J12-C",
+      "reason": "Add motor enable and current-sense circuits"
+    },
+    {
+      "area": "Electrical",
+      "artifact_id": "main-board",
+      "from": "MCB-B3",
+      "to": "MCB-C4",
+      "reason": "Route J12 pin 3 to GPIO_17 and pin 4 to ADC3"
+    },
+    {
+      "area": "Battery",
+      "artifact_id": "battery",
+      "from": "BAT-24-10-B",
+      "to": "BAT-24-12",
+      "reason": "Raise nominal runtime to 2.67 h"
+    },
+    {
+      "area": "Camera",
+      "artifact_id": "camera-module",
+      "from": "CM-1080-R1",
+      "to": "CM-4K-R2",
+      "reason": "Inspection resolution requirement"
+    },
+    {
+      "area": "Firmware",
+      "artifact_id": "camera-service",
+      "from": "CAL-CAM-12-B",
+      "to": "CAL-CAM-12-C",
+      "reason": "New camera intrinsics and 4K stream"
+    },
+    {
+      "area": "Mechanical",
+      "artifact_id": "chassis",
+      "from": "CHS-240-B2",
+      "to": "CHS-240-C3",
+      "reason": "J12 service opening and battery rail reinforcement"
+    }
+  ],
+  "artifact_refs": [
+    "j12",
+    "main-board",
+    "battery",
+    "camera-module",
+    "camera-service",
+    "chassis"
+  ]
+}

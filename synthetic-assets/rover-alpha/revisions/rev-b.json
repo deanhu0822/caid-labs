@@ -1,0 +1,51 @@
+{
+  "synthetic": true,
+  "product_id": "rover-alpha",
+  "revision": "Rev B",
+  "date": "2026-06-04",
+  "phase": "EVT2",
+  "changes": [
+    {
+      "area": "Motor",
+      "artifact_id": "motor-bom",
+      "from": "MTR-24-180",
+      "to": "MTR-24-220",
+      "reason": "Increase grade torque margin"
+    },
+    {
+      "area": "Connector",
+      "artifact_id": "j12",
+      "from": "J12-2P-A",
+      "to": "43025-0200 / HAR-J12-B",
+      "reason": "Serviceable two-circuit motor power disconnect"
+    },
+    {
+      "area": "Manufacturing",
+      "artifact_id": "cable-routing",
+      "from": "WI-101",
+      "to": "WI-114-B",
+      "reason": "Route the new J12 power disconnect"
+    },
+    {
+      "area": "Battery",
+      "artifact_id": "battery",
+      "from": "BAT-24-10-A",
+      "to": "BAT-24-10-B",
+      "reason": "New key and BMS telemetry harness"
+    }
+  ],
+  "incompatibilities": [
+    {
+      "part": "HAR-J12-B",
+      "incompatible_with": "MCB-C4",
+      "reason": "Only two circuits; Rev C needs GPIO_17 enable and ADC3 current sense on pins 3 and 4."
+    }
+  ],
+  "artifact_refs": [
+    "motor-bom",
+    "j12",
+    "cable-routing",
+    "battery",
+    "main-board"
+  ]
+}

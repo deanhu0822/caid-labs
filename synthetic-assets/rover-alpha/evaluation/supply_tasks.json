@@ -1,0 +1,60 @@
+{
+  "synthetic": true,
+  "agent": "Supply Agent",
+  "product_id": "rover-alpha",
+  "tasks": [
+    {
+      "id": "SUP-001",
+      "prompt": "J12 is unavailable. What replacement can we use and what are the tradeoffs?",
+      "expected_answer": "NSI-MF4-LK is available (560 units, 9-day lead, $0.71) and electrically pin-compatible. It is not a drop-in: mounting pegs differ, latch needs +2 mm chassis clearance, and WI-114/QA-FIX-C/BOM/PCB must change.",
+      "evidence_files": [
+        "suppliers/supplier-catalog.json",
+        "electrical/j12-connector.json"
+      ],
+      "artifact_refs": [
+        "j12",
+        "j12-bom",
+        "main-board",
+        "chassis",
+        "cable-routing",
+        "qa-fixture"
+      ]
+    },
+    {
+      "id": "SUP-002",
+      "prompt": "Which current production component presents the greatest shortage risk?",
+      "expected_answer": "CM-4K-R2: only four global units, zero unrestricted, and 84-day lead. ALT-CAM-4K-L is available but requires mechanical, firmware, calibration, and power changes.",
+      "evidence_files": [
+        "suppliers/supplier-catalog.json",
+        "specs/camera-environment.md"
+      ],
+      "artifact_refs": [
+        "camera-module",
+        "camera-supplier",
+        "camera-mount",
+        "camera-service",
+        "camera-cal",
+        "battery"
+      ]
+    },
+    {
+      "id": "SUP-003",
+      "prompt": "Can we source the higher-torque motor now?",
+      "expected_answer": "Yes. MTR-24-290 has 96 unrestricted units and a 21-day lead. It fits the housing but triggers controller, driver, fuse, firmware, J12 thermal, test, and runtime consequences.",
+      "evidence_files": [
+        "suppliers/supplier-catalog.json",
+        "mechanical/motor-housing.json",
+        "electrical/motor-controller.json"
+      ],
+      "artifact_refs": [
+        "motor-bom",
+        "motor-housing",
+        "motor-controller",
+        "motor-driver",
+        "power-board",
+        "motor-control",
+        "j12"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,65 @@
+{
+  "synthetic": true,
+  "agent": "Builder Agent",
+  "product_id": "rover-alpha",
+  "tasks": [
+    {
+      "id": "BLD-001",
+      "prompt": "Increase payload capacity by 30% using currently available parts. Produce a build/change plan.",
+      "expected_answer": "Target 10.4 kg. Select available MTR-24-290 motors (+31.8% torque), but do not call them drop-in: create MCTRL-D1 with DRV-10A, 12 A PDB branch protection, 9.2 A firmware limit, J12 thermal validation or J14 concept, update BOM/WI-082, and rerun T-MTR-08/T-PWR-24. Account for +0.24 kg motor mass and reduced runtime.",
+      "evidence_files": [
+        "specs/payload-and-drive.md",
+        "suppliers/supplier-catalog.json",
+        "electrical/motor-controller.json",
+        "tests/motor-load-test-result.json"
+      ],
+      "artifact_refs": [
+        "motor-bom",
+        "motor-controller",
+        "motor-driver",
+        "power-board",
+        "motor-control",
+        "battery",
+        "j12",
+        "motor-install",
+        "motor-load-test"
+      ]
+    },
+    {
+      "id": "BLD-002",
+      "prompt": "Increase runtime to 4 hours without changing mission duty cycle.",
+      "expected_answer": "Current runtime is 2.67 h. BAT-24-18 supplies the required 432 Wh but does not fit BAT-CAGE-03 and adds 1.1 kg. Plan a D1 cage/chassis extension, recheck payload/torque, update BMS capacity, BOM and power tests.",
+      "evidence_files": [
+        "specs/power-runtime.md",
+        "mechanical/battery-enclosure.json",
+        "suppliers/supplier-catalog.json"
+      ],
+      "artifact_refs": [
+        "battery",
+        "battery-enclosure",
+        "chassis",
+        "battery-mgmt",
+        "power-test",
+        "motor-bom"
+      ]
+    },
+    {
+      "id": "BLD-003",
+      "prompt": "Replace J12 with the available alternate and list build changes.",
+      "expected_answer": "Use NSI-MF4-LK only with a controlled D1 change: update MCB footprint/peg holes, add 2 mm chassis clearance, revise BOM and WI-114, build a QA-FIX adapter, retain the four-pin net mapping, and rerun power/retention tests.",
+      "evidence_files": [
+        "electrical/j12-connector.json",
+        "suppliers/supplier-catalog.json",
+        "manufacturing/cable-routing.md"
+      ],
+      "artifact_refs": [
+        "j12",
+        "main-board",
+        "chassis",
+        "j12-bom",
+        "cable-routing",
+        "qa-fixture"
+      ]
+    }
+  ]
+}

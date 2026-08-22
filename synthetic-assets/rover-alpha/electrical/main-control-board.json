@@ -1,0 +1,54 @@
+{
+  "synthetic": true,
+  "product_id": "rover-alpha",
+  "artifact_id": "main-board",
+  "board_id": "MCB-C4",
+  "board_revision": "C4",
+  "layers": 6,
+  "dimensions_mm": [
+    148,
+    96,
+    1.6
+  ],
+  "nominal_input_vdc": 24,
+  "owner": "Electrical",
+  "status": "Released",
+  "processors": [
+    {
+      "reference": "U1",
+      "part_number": "MCU-STM32H7",
+      "role": "main control"
+    }
+  ],
+  "connectors": [
+    {
+      "reference": "J12",
+      "part_number": "43025-0400",
+      "circuits": 4,
+      "footprint": "MF3_2x2_RA_C"
+    },
+    {
+      "reference": "J5",
+      "part_number": "HAR-MAIN-C",
+      "role": "PDB link"
+    }
+  ],
+  "gpio_mapping": {
+    "GPIO_17": "MOTOR_PWR_EN via J12 pin 3",
+    "ADC3": "MOTOR_PWR_SENSE via J12 pin 4",
+    "CAN1": "MCTRL-8A command/telemetry"
+  },
+  "design_limits": {
+    "j12_continuous_current_a": 9,
+    "motor_command_current_limit_a": 8,
+    "board_temperature_c_max": 85
+  },
+  "artifact_refs": [
+    "rover",
+    "j12",
+    "motor-controller",
+    "power-board",
+    "motor-control",
+    "product-agent"
+  ]
+}

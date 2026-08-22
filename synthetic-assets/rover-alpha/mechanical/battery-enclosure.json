@@ -1,0 +1,46 @@
+{
+  "synthetic": true,
+  "product_id": "rover-alpha",
+  "revision": "Rev C",
+  "units": {
+    "length": "mm",
+    "mass": "kg",
+    "torque": "N·m"
+  },
+  "artifact_id": "battery-enclosure",
+  "part_number": "BAT-CAGE-03",
+  "part_revision": "C3",
+  "name": "Battery Enclosure",
+  "representation": "Structured envelope metadata plus simplified OpenSCAD; not production CAD.",
+  "material": "5052-H32 aluminum",
+  "mass_kg": 0.42,
+  "internal_envelope_mm": [
+    155,
+    112,
+    78
+  ],
+  "installed_battery_envelope_mm": [
+    148,
+    104,
+    72
+  ],
+  "retention_load_n": 900,
+  "thermal_clearance_mm": 6,
+  "ingress_gasket": "Synthetic EPDM-40",
+  "alternate_fit_assessment": {
+    "part_number": "BAT-24-18",
+    "envelope_mm": [
+      165,
+      112,
+      78
+    ],
+    "fits_rev_c": false,
+    "required_change": "Lengthen cage and chassis rail by 12 mm; Rev D1 concept."
+  },
+  "artifact_refs": [
+    "chassis",
+    "battery",
+    "battery-mgmt",
+    "power-board"
+  ]
+}

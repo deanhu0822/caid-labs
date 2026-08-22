@@ -1,0 +1,51 @@
+{
+  "synthetic": true,
+  "product_id": "rover-alpha",
+  "revision": "Rev A",
+  "date": "2026-05-12",
+  "phase": "EVT",
+  "changes": [
+    {
+      "area": "Electrical",
+      "artifact_id": "main-board",
+      "from": null,
+      "to": "MCB-A2",
+      "reason": "Initial control architecture"
+    },
+    {
+      "area": "Electrical",
+      "artifact_id": "power-board",
+      "from": null,
+      "to": "PDB-24V-A1",
+      "reason": "Initial 24 V distribution"
+    },
+    {
+      "area": "Mechanical",
+      "artifact_id": "chassis",
+      "from": null,
+      "to": "CHS-240-A1",
+      "reason": "Initial rover envelope"
+    },
+    {
+      "area": "Motor",
+      "artifact_id": "motor-bom",
+      "from": null,
+      "to": "MTR-24-180",
+      "reason": "18 N·m EVT motor"
+    },
+    {
+      "area": "Battery",
+      "artifact_id": "battery",
+      "from": null,
+      "to": "BAT-24-10",
+      "reason": "10 Ah EVT pack"
+    }
+  ],
+  "artifact_refs": [
+    "main-board",
+    "power-board",
+    "chassis",
+    "motor-bom",
+    "battery"
+  ]
+}

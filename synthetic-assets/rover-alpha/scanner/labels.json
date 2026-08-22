@@ -1,0 +1,219 @@
+{
+  "synthetic": true,
+  "format": "Forma scanner demo bounding boxes",
+  "coordinate_system": "pixels, origin top-left",
+  "images": [
+    {
+      "file": "rover-overview.svg",
+      "width": 1200,
+      "height": 800,
+      "split": "demo",
+      "objects": [
+        {
+          "label": "rover",
+          "artifact_id": "rover",
+          "bbox_xywh": [
+            180,
+            130,
+            840,
+            520
+          ]
+        },
+        {
+          "label": "j12_connector",
+          "artifact_id": "j12",
+          "bbox_xywh": [
+            770,
+            340,
+            110,
+            90
+          ]
+        }
+      ]
+    },
+    {
+      "file": "main-board-exposed.svg",
+      "width": 1200,
+      "height": 800,
+      "split": "demo",
+      "objects": [
+        {
+          "label": "main_control_board",
+          "artifact_id": "main-board",
+          "bbox_xywh": [
+            160,
+            130,
+            880,
+            560
+          ]
+        },
+        {
+          "label": "j12_connector",
+          "artifact_id": "j12",
+          "bbox_xywh": [
+            835,
+            180,
+            130,
+            110
+          ]
+        }
+      ]
+    },
+    {
+      "file": "j12-highlighted.svg",
+      "width": 1200,
+      "height": 800,
+      "split": "demo",
+      "objects": [
+        {
+          "label": "j12_connector",
+          "artifact_id": "j12",
+          "bbox_xywh": [
+            385,
+            225,
+            430,
+            350
+          ],
+          "attributes": {
+            "part_number": "43025-0400",
+            "pins": 4,
+            "revision": "Rev C"
+          }
+        }
+      ]
+    },
+    {
+      "file": "motor-assembly.svg",
+      "width": 1200,
+      "height": 800,
+      "split": "demo",
+      "objects": [
+        {
+          "label": "motor_assembly",
+          "artifact_id": "motor-bom",
+          "bbox_xywh": [
+            200,
+            190,
+            760,
+            440
+          ]
+        },
+        {
+          "label": "motor_housing",
+          "artifact_id": "motor-housing",
+          "bbox_xywh": [
+            565,
+            300,
+            360,
+            220
+          ]
+        }
+      ]
+    },
+    {
+      "file": "battery-assembly.svg",
+      "width": 1200,
+      "height": 800,
+      "split": "demo",
+      "objects": [
+        {
+          "label": "battery_assembly",
+          "artifact_id": "battery",
+          "bbox_xywh": [
+            215,
+            160,
+            770,
+            490
+          ]
+        },
+        {
+          "label": "battery_enclosure",
+          "artifact_id": "battery-enclosure",
+          "bbox_xywh": [
+            245,
+            190,
+            710,
+            430
+          ]
+        }
+      ]
+    },
+    {
+      "file": "rover-j12-wide.png",
+      "width": 1536,
+      "height": 1024,
+      "split": "synthetic-photo",
+      "objects": [
+        {
+          "label": "rover",
+          "artifact_id": "rover",
+          "bbox_xywh": [
+            190,
+            55,
+            1170,
+            850
+          ]
+        },
+        {
+          "label": "j12_connector",
+          "artifact_id": "j12",
+          "bbox_xywh": [
+            940,
+            485,
+            120,
+            125
+          ]
+        }
+      ]
+    },
+    {
+      "file": "j12-connector-closeup.png",
+      "width": 1536,
+      "height": 1024,
+      "split": "synthetic-photo",
+      "objects": [
+        {
+          "label": "j12_connector",
+          "artifact_id": "j12",
+          "bbox_xywh": [
+            650,
+            290,
+            430,
+            390
+          ]
+        }
+      ]
+    },
+    {
+      "file": "rover-six-pin-negative.png",
+      "width": 1536,
+      "height": 1024,
+      "split": "negative",
+      "objects": [
+        {
+          "label": "alternate_six_pin_connector",
+          "artifact_id": null,
+          "bbox_xywh": [
+            790,
+            500,
+            180,
+            130
+          ],
+          "attributes": {
+            "expected_match": false,
+            "reason": "Six pins; not J12 43025-0400"
+          }
+        }
+      ]
+    }
+  ],
+  "artifact_refs": [
+    "rover",
+    "main-board",
+    "j12",
+    "motor-bom",
+    "motor-housing",
+    "battery",
+    "battery-enclosure"
+  ]
+}

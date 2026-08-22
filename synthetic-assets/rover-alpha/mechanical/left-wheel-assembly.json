@@ -1,0 +1,37 @@
+{
+  "synthetic": true,
+  "product_id": "rover-alpha",
+  "revision": "Rev C",
+  "units": {
+    "length": "mm",
+    "mass": "kg",
+    "torque": "N·m"
+  },
+  "artifact_id": "left-wheel",
+  "part_number": "WHL-L-04",
+  "part_revision": "C1",
+  "name": "Left Wheel Assembly",
+  "wheel_diameter_mm": 180,
+  "tire_width_mm": 62,
+  "mass_kg": 0.95,
+  "reduction_ratio": "12:1",
+  "rated_output_torque_nm": 22,
+  "peak_output_torque_nm": 25.1,
+  "encoder_counts_per_revolution": 2048,
+  "mating_components": [
+    "CHS-240",
+    "MTR-HSG-04",
+    "MTR-24-220",
+    "GEAR-12-1"
+  ],
+  "assembly_torque_nm": {
+    "axle_nut": 18,
+    "motor_mount": 6
+  },
+  "artifact_refs": [
+    "chassis",
+    "motor-housing",
+    "motor-bom",
+    "motor-install"
+  ]
+}

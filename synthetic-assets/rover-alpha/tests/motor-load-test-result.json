@@ -1,0 +1,33 @@
+{
+  "synthetic": true,
+  "test_id": "T-MTR-08",
+  "result_id": "T-MTR-08-DVT-017",
+  "date": "2026-08-16",
+  "product_id": "rover-alpha",
+  "revision": "Rev C",
+  "outcome": "PASS",
+  "configuration": {
+    "payload_kg": 8,
+    "motor": "MTR-24-220",
+    "controller": "MCTRL-8A",
+    "driver": "DRV-8A",
+    "connector": "43025-0400"
+  },
+  "measurements": {
+    "rated_load_kg": 8,
+    "observed_torque_margin_percent": 14,
+    "peak_controller_current_a": 7.4,
+    "controller_limit_a": 8,
+    "controller_case_c": 68.2,
+    "j12_temperature_rise_c": 18,
+    "speed_error_percent": 2.7
+  },
+  "engineering_note": "A 30% payload increase consumes current and torque margin; MTR-24-290 plus D1 electrical changes is the recommended concept.",
+  "artifact_refs": [
+    "motor-load-test",
+    "motor-bom",
+    "motor-controller",
+    "motor-driver",
+    "j12"
+  ]
+}

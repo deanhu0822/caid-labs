@@ -1,0 +1,108 @@
+{
+  "synthetic": true,
+  "product_id": "rover-alpha",
+  "scenarios": [
+    {
+      "id": "SCN-001",
+      "title": "Payload increase",
+      "goal": "Increase payload capacity by 30%.",
+      "current_state": {
+        "payload_kg": 8,
+        "target_kg": 10.4,
+        "torque_margin_percent": 14,
+        "peak_current_a": 7.4,
+        "controller_limit_a": 8
+      },
+      "discovery": [
+        "MTR-24-290 gives +31.8% torque and is available",
+        "Its 8.8 A peak exceeds MCTRL-8A/DRV-8A Rev C limits",
+        "Upgrade affects firmware, PDB protection, J12 thermal margin, battery draw, and BOM"
+      ],
+      "artifact_refs": [
+        "motor-bom",
+        "motor-controller",
+        "motor-driver",
+        "power-board",
+        "battery",
+        "battery-mgmt",
+        "motor-control",
+        "motor-housing",
+        "j12"
+      ]
+    },
+    {
+      "id": "SCN-002",
+      "title": "J12 replacement",
+      "goal": "Replace J12 because unrestricted inventory is zero.",
+      "discovery": [
+        "NSI-MF4-LK is electrically pin-compatible and available",
+        "It is not a PCB/mechanical drop-in",
+        "Requires peg/footprint change, +2 mm chassis clearance, BOM revision, WI-114 update, and QA-FIX-C adapter"
+      ],
+      "artifact_refs": [
+        "j12",
+        "j12-bom",
+        "main-board",
+        "chassis",
+        "cable-routing",
+        "qa-fixture",
+        "molex"
+      ]
+    },
+    {
+      "id": "SCN-003",
+      "title": "Four-hour runtime",
+      "goal": "Increase typical runtime to 4 hours.",
+      "discovery": [
+        "Current usable energy is 244.8 Wh and runtime 2.67 h",
+        "432 Wh nominal is required at the current duty cycle",
+        "BAT-24-18 meets energy but does not fit BAT-CAGE-03 and adds 1.1 kg",
+        "Chassis/cage and payload tradeoffs must be resolved"
+      ],
+      "artifact_refs": [
+        "battery",
+        "battery-enclosure",
+        "chassis",
+        "power-board",
+        "battery-mgmt",
+        "motor-bom"
+      ]
+    },
+    {
+      "id": "SCN-004",
+      "title": "Camera supplier shortage",
+      "goal": "Maintain builds while CM-4K-R2 is allocation constrained.",
+      "discovery": [
+        "Unrestricted stock is zero and lead time is 84 days",
+        "ALT-CAM-4K-L is available",
+        "Alternate requires mount plate, new camera.rs driver, recalibration, and adds 3.5 W"
+      ],
+      "artifact_refs": [
+        "camera-module",
+        "camera-supplier",
+        "camera-mount",
+        "camera-service",
+        "camera-cal",
+        "battery"
+      ]
+    },
+    {
+      "id": "SCN-005",
+      "title": "Revision conflict",
+      "goal": "Explain why a Rev B motor harness fails on a Rev C rover.",
+      "discovery": [
+        "HAR-J12-B has only two circuits",
+        "MCB-C4 requires four-circuit 43025-0400",
+        "GPIO_17 enable and ADC3 current sense are absent",
+        "QA-FIX-C expects those signals"
+      ],
+      "artifact_refs": [
+        "j12",
+        "main-board",
+        "motor-control",
+        "cable-routing",
+        "qa-fixture"
+      ]
+    }
+  ]
+}

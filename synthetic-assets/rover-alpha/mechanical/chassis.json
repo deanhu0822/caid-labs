@@ -1,0 +1,67 @@
+{
+  "synthetic": true,
+  "product_id": "rover-alpha",
+  "revision": "Rev C",
+  "units": {
+    "length": "mm",
+    "mass": "kg",
+    "torque": "N·m"
+  },
+  "artifact_id": "chassis",
+  "part_number": "CHS-240",
+  "part_revision": "C3",
+  "name": "Chassis",
+  "representation": "Structured envelope metadata; not production CAD.",
+  "material": "6061-T6 aluminum",
+  "finish": "Black hard-anodize, synthetic specification",
+  "dimensions_mm": {
+    "length": 620,
+    "width": 420,
+    "height": 145,
+    "wall_nominal": 3
+  },
+  "mass_kg": 2.4,
+  "tolerance_mm": {
+    "general": 0.25,
+    "j12_cutout": 0.15
+  },
+  "rated_payload_kg": 8,
+  "gross_vehicle_mass_limit_kg": 22.5,
+  "interfaces": [
+    {
+      "id": "IF-CHS-J12",
+      "component": "43025-0400",
+      "opening_mm": [
+        34,
+        22
+      ],
+      "clearance_mm": 1,
+      "note": "Northstar alternate requires 2 mm additional rear clearance and revised mounting holes."
+    },
+    {
+      "id": "IF-CHS-BAT",
+      "component": "BAT-CAGE-03",
+      "mounting_pattern_mm": [
+        132,
+        94
+      ]
+    },
+    {
+      "id": "IF-CHS-MTR",
+      "component": "MTR-HSG-04",
+      "quantity": 2,
+      "mounting_pattern_mm": [
+        74,
+        52
+      ]
+    }
+  ],
+  "artifact_refs": [
+    "rover",
+    "left-wheel",
+    "right-wheel",
+    "battery-enclosure",
+    "motor-housing",
+    "j12"
+  ]
+}

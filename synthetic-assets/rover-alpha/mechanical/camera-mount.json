@@ -1,0 +1,42 @@
+{
+  "synthetic": true,
+  "product_id": "rover-alpha",
+  "revision": "Rev C",
+  "units": {
+    "length": "mm",
+    "mass": "kg",
+    "torque": "N·m"
+  },
+  "artifact_id": "camera-mount",
+  "part_number": "CAM-MNT-C",
+  "part_revision": "C2",
+  "name": "Camera Mount",
+  "representation": "Structured envelope metadata plus simplified OpenSCAD; not production CAD.",
+  "material": "6061-T6 aluminum",
+  "mass_kg": 0.36,
+  "dimensions_mm": {
+    "base_diameter": 96,
+    "mast_height": 168,
+    "camera_plate": [
+      82,
+      54,
+      5
+    ]
+  },
+  "pan_range_deg": 270,
+  "tilt_range_deg": [
+    -25,
+    75
+  ],
+  "resonant_frequency_hz_min": 68,
+  "mating_components": [
+    "CHS-240",
+    "CM-4K-R2"
+  ],
+  "artifact_refs": [
+    "rover",
+    "chassis",
+    "camera-module",
+    "camera-cal"
+  ]
+}

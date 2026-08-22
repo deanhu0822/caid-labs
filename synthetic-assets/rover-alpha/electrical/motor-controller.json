@@ -1,0 +1,34 @@
+{
+  "synthetic": true,
+  "product_id": "rover-alpha",
+  "artifact_id": "motor-controller",
+  "board_id": "MCTRL-8A",
+  "board_revision": "C2",
+  "channels": 2,
+  "nominal_voltage_vdc": 24,
+  "continuous_current_a_per_channel": 6.5,
+  "peak_current_a_per_channel": 8,
+  "peak_duration_s": 10,
+  "installed_driver": "DRV-8A",
+  "current_sense_shunt_ohm": 0.01,
+  "cooling": "Conducted to CHS-240",
+  "command_bus": "CAN1",
+  "upgrade_assessment": {
+    "target_motor": "MTR-24-290",
+    "peak_current_a": 8.8,
+    "compatible_as_is": false,
+    "required_changes": [
+      "DRV-10A power stage",
+      "12 A PDB branch fuse",
+      "Firmware current limit 9.2 A",
+      "D1 thermal validation"
+    ]
+  },
+  "artifact_refs": [
+    "main-board",
+    "motor-control",
+    "motor-driver",
+    "motor-bom",
+    "power-board"
+  ]
+}

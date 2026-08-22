@@ -1,0 +1,28 @@
+{
+  "synthetic": true,
+  "test_id": "T-FINAL-C",
+  "result_id": "T-FINAL-C-DVT-008",
+  "date": "2026-08-18",
+  "product_id": "rover-alpha",
+  "revision": "Rev C",
+  "outcome": "PASS",
+  "unit_serial": "SYN-RA-C-008",
+  "measurements": {
+    "j12_retention_n": 38,
+    "enable_response_ms": 12,
+    "adc3_current_error_percent": 1.8,
+    "idle_current_a": 1.62,
+    "route_distance_m": 20,
+    "safety_stops": 0,
+    "seal_visual_defects": 0
+  },
+  "artifact_refs": [
+    "final-qa",
+    "final-assembly",
+    "qa-fixture",
+    "j12",
+    "navigation",
+    "camera-service",
+    "motor-control"
+  ]
+}

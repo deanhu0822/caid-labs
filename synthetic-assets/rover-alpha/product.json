@@ -1,0 +1,684 @@
+{
+  "schema_version": "1.0.0",
+  "synthetic": true,
+  "product_id": "rover-alpha",
+  "name": "Autonomous Inspection Rover",
+  "revision": "Rev C",
+  "build_phase": "DVT",
+  "generated_for": "Forma local-agent demonstration",
+  "units": "SI unless stated",
+  "disclaimer": "All engineering content, supplier availability, costs, test results, and alternates are synthetic demo data. Real manufacturer names and the Molex part number are retained only because they already appear in the Forma demo.",
+  "graph_summary": {
+    "artifact_count": 34,
+    "relationship_count": 40,
+    "graph_health_percent": 96,
+    "unresolved_links": 2
+  },
+  "key_identifiers": {
+    "j12": "43025-0400",
+    "main_board": "MCB-C4",
+    "motor": "MTR-24-220",
+    "motor_controller": "MCTRL-8A",
+    "power_board": "PDB-24V",
+    "camera": "CM-4K-R2",
+    "battery": "BAT-24-12"
+  },
+  "artifacts": [
+    {
+      "id": "rover",
+      "label": "Autonomous Inspection Rover",
+      "category": "overview",
+      "category_label": "Overview",
+      "code": "PRODUCT · REV C",
+      "identifier": "rover-alpha",
+      "revision": "Rev C",
+      "source_files": [
+        "README.md",
+        "specs/system-spec.md",
+        "product.json"
+      ]
+    },
+    {
+      "id": "chassis",
+      "label": "Chassis",
+      "category": "mechanical",
+      "category_label": "Mechanical",
+      "code": "MECH · ASM",
+      "identifier": "CHS-240",
+      "source_files": [
+        "mechanical/chassis.json",
+        "mechanical/chassis.scad",
+        "mechanical/assembly-envelope.svg"
+      ]
+    },
+    {
+      "id": "left-wheel",
+      "label": "Left Wheel Assembly",
+      "category": "mechanical",
+      "category_label": "Mechanical",
+      "code": "MECH · ASM",
+      "identifier": "WHL-L-04",
+      "source_files": [
+        "mechanical/left-wheel-assembly.json"
+      ]
+    },
+    {
+      "id": "right-wheel",
+      "label": "Right Wheel Assembly",
+      "category": "mechanical",
+      "category_label": "Mechanical",
+      "code": "MECH · ASM",
+      "identifier": "WHL-R-04",
+      "source_files": [
+        "mechanical/right-wheel-assembly.json"
+      ]
+    },
+    {
+      "id": "camera-mount",
+      "label": "Camera Mount",
+      "category": "mechanical",
+      "category_label": "Mechanical",
+      "code": "MECH · STEP",
+      "identifier": "CAM-MNT-C",
+      "source_files": [
+        "mechanical/camera-mount.json",
+        "mechanical/camera-mount.scad"
+      ]
+    },
+    {
+      "id": "battery-enclosure",
+      "label": "Battery Enclosure",
+      "category": "mechanical",
+      "category_label": "Mechanical",
+      "code": "MECH · STEP",
+      "identifier": "BAT-CAGE-03",
+      "source_files": [
+        "mechanical/battery-enclosure.json",
+        "mechanical/battery-enclosure.scad"
+      ]
+    },
+    {
+      "id": "motor-housing",
+      "label": "Motor Housing",
+      "category": "mechanical",
+      "category_label": "Mechanical",
+      "code": "MECH · STEP",
+      "identifier": "MTR-HSG-04",
+      "source_files": [
+        "mechanical/motor-housing.json"
+      ]
+    },
+    {
+      "id": "main-board",
+      "label": "Main Control Board",
+      "category": "pcb",
+      "category_label": "PCB / Electrical",
+      "code": "PCB · KICAD",
+      "identifier": "MCB-C4",
+      "source_files": [
+        "electrical/main-control-board.json",
+        "electrical/system-netlist.json"
+      ]
+    },
+    {
+      "id": "motor-controller",
+      "label": "Motor Controller",
+      "category": "pcb",
+      "category_label": "PCB / Electrical",
+      "code": "PCB · ALTIUM",
+      "identifier": "MCTRL-8A",
+      "source_files": [
+        "electrical/motor-controller.json",
+        "electrical/system-netlist.json"
+      ]
+    },
+    {
+      "id": "power-board",
+      "label": "Power Distribution Board",
+      "category": "pcb",
+      "category_label": "PCB / Electrical",
+      "code": "PCB · KICAD",
+      "identifier": "PDB-24V",
+      "source_files": [
+        "electrical/power-distribution-board.json",
+        "electrical/system-netlist.json"
+      ]
+    },
+    {
+      "id": "j12",
+      "label": "J12 Connector",
+      "category": "pcb",
+      "category_label": "PCB / Electrical",
+      "code": "PART · CONNECTOR",
+      "identifier": "MOLEX · 4-PIN",
+      "source_files": [
+        "electrical/j12-connector.json",
+        "electrical/system-netlist.json"
+      ]
+    },
+    {
+      "id": "motor-control",
+      "label": "Motor Control",
+      "category": "firmware",
+      "category_label": "Firmware",
+      "code": "FW · GIT",
+      "identifier": "motor_ctrl.c",
+      "source_files": [
+        "firmware/motor_ctrl.c",
+        "firmware/README.md"
+      ]
+    },
+    {
+      "id": "camera-service",
+      "label": "Camera Service",
+      "category": "firmware",
+      "category_label": "Firmware",
+      "code": "FW · GIT",
+      "identifier": "camera.rs",
+      "source_files": [
+        "firmware/camera.rs",
+        "firmware/README.md"
+      ]
+    },
+    {
+      "id": "battery-mgmt",
+      "label": "Battery Management",
+      "category": "firmware",
+      "category_label": "Firmware",
+      "code": "FW · GIT",
+      "identifier": "bms.c",
+      "source_files": [
+        "firmware/bms.c",
+        "firmware/README.md"
+      ]
+    },
+    {
+      "id": "navigation",
+      "label": "Navigation Firmware",
+      "category": "firmware",
+      "category_label": "Firmware",
+      "code": "FW · GIT",
+      "identifier": "nav-stack",
+      "source_files": [
+        "firmware/nav_stack.c",
+        "firmware/README.md"
+      ]
+    },
+    {
+      "id": "j12-bom",
+      "label": "J12 Molex Connector",
+      "category": "bom",
+      "category_label": "BOM",
+      "code": "BOM · LINE 27",
+      "identifier": "43025-0400",
+      "source_files": [
+        "bom/bom-rev-c.csv",
+        "bom/bom-rev-c.xlsx"
+      ]
+    },
+    {
+      "id": "motor-bom",
+      "label": "24V Motor",
+      "category": "bom",
+      "category_label": "BOM",
+      "code": "BOM · LINE 18",
+      "identifier": "MTR-24-220",
+      "source_files": [
+        "bom/bom-rev-c.csv",
+        "bom/bom-rev-c.xlsx"
+      ]
+    },
+    {
+      "id": "camera-module",
+      "label": "Camera Module",
+      "category": "bom",
+      "category_label": "BOM",
+      "code": "BOM · LINE 09",
+      "identifier": "CM-4K-R2",
+      "source_files": [
+        "bom/bom-rev-c.csv",
+        "bom/bom-rev-c.xlsx"
+      ]
+    },
+    {
+      "id": "battery",
+      "label": "Li-ion Battery",
+      "category": "bom",
+      "category_label": "BOM",
+      "code": "BOM · LINE 04",
+      "identifier": "24V · 12AH",
+      "source_files": [
+        "bom/bom-rev-c.csv",
+        "bom/bom-rev-c.xlsx"
+      ]
+    },
+    {
+      "id": "motor-driver",
+      "label": "Motor Driver",
+      "category": "bom",
+      "category_label": "BOM",
+      "code": "BOM · LINE 22",
+      "identifier": "DRV-8A",
+      "source_files": [
+        "bom/bom-rev-c.csv",
+        "bom/bom-rev-c.xlsx"
+      ]
+    },
+    {
+      "id": "final-assembly",
+      "label": "Final Assembly",
+      "category": "manufacturing",
+      "category_label": "Manufacturing",
+      "code": "MFG · ROUTE",
+      "identifier": "ROUTE-08",
+      "source_files": [
+        "manufacturing/final-assembly.md",
+        "manufacturing/build-sequence.json"
+      ]
+    },
+    {
+      "id": "cable-routing",
+      "label": "Cable Routing",
+      "category": "manufacturing",
+      "category_label": "Manufacturing",
+      "code": "MFG · WORK INST",
+      "identifier": "WI-114",
+      "source_files": [
+        "manufacturing/cable-routing.md",
+        "manufacturing/build-sequence.json"
+      ]
+    },
+    {
+      "id": "motor-install",
+      "label": "Motor Installation",
+      "category": "manufacturing",
+      "category_label": "Manufacturing",
+      "code": "MFG · WORK INST",
+      "identifier": "WI-082",
+      "source_files": [
+        "manufacturing/motor-installation.md",
+        "manufacturing/build-sequence.json"
+      ]
+    },
+    {
+      "id": "qa-fixture",
+      "label": "Final QA Fixture",
+      "category": "manufacturing",
+      "category_label": "Manufacturing",
+      "code": "MFG · FIXTURE",
+      "identifier": "QA-FIX-C",
+      "source_files": [
+        "manufacturing/final-qa-fixture.md",
+        "manufacturing/build-sequence.json"
+      ]
+    },
+    {
+      "id": "molex",
+      "label": "Molex",
+      "category": "suppliers",
+      "category_label": "Suppliers",
+      "code": "SUPPLIER",
+      "identifier": "AVL · PRIMARY",
+      "source_files": [
+        "suppliers/supplier-catalog.json"
+      ]
+    },
+    {
+      "id": "motor-supplier",
+      "label": "Motion Dynamics",
+      "category": "suppliers",
+      "category_label": "Suppliers",
+      "code": "SUPPLIER",
+      "identifier": "AVL · PRIMARY",
+      "source_files": [
+        "suppliers/supplier-catalog.json"
+      ]
+    },
+    {
+      "id": "camera-supplier",
+      "label": "Basler",
+      "category": "suppliers",
+      "category_label": "Suppliers",
+      "code": "SUPPLIER",
+      "identifier": "AVL · PRIMARY",
+      "source_files": [
+        "suppliers/supplier-catalog.json"
+      ]
+    },
+    {
+      "id": "motor-load-test",
+      "label": "Motor Load Test",
+      "category": "tests",
+      "category_label": "Tests",
+      "code": "TEST · RIG",
+      "identifier": "T-MTR-08",
+      "source_files": [
+        "tests/motor-load-test-procedure.md",
+        "tests/motor-load-test-result.json"
+      ]
+    },
+    {
+      "id": "power-test",
+      "label": "Power Test",
+      "category": "tests",
+      "category_label": "Tests",
+      "code": "TEST · BENCH",
+      "identifier": "T-PWR-24",
+      "source_files": [
+        "tests/power-test-procedure.md",
+        "tests/power-test-result.json"
+      ]
+    },
+    {
+      "id": "camera-cal",
+      "label": "Camera Calibration",
+      "category": "tests",
+      "category_label": "Tests",
+      "code": "TEST · CAL",
+      "identifier": "T-CAM-12",
+      "source_files": [
+        "tests/camera-calibration-procedure.md",
+        "tests/camera-calibration-result.json"
+      ]
+    },
+    {
+      "id": "final-qa",
+      "label": "Final QA",
+      "category": "tests",
+      "category_label": "Tests",
+      "code": "TEST · ROUTE",
+      "identifier": "T-FINAL-C",
+      "source_files": [
+        "tests/final-qa-procedure.md",
+        "tests/final-qa-result.json"
+      ]
+    },
+    {
+      "id": "product-agent",
+      "label": "Product Agent",
+      "category": "agents",
+      "category_label": "Agents",
+      "code": "AGENT · LOCAL",
+      "identifier": "dependency reasoning",
+      "source_files": [
+        "evaluation/product_questions.json"
+      ]
+    },
+    {
+      "id": "supply-agent",
+      "label": "Supply Agent",
+      "category": "agents",
+      "category_label": "Agents",
+      "code": "AGENT · LOCAL",
+      "identifier": "availability watch",
+      "source_files": [
+        "evaluation/supply_tasks.json"
+      ]
+    },
+    {
+      "id": "build-agent",
+      "label": "Build Agent",
+      "category": "agents",
+      "category_label": "Agents",
+      "code": "AGENT · LOCAL",
+      "identifier": "assembly reasoning",
+      "source_files": [
+        "evaluation/builder_tasks.json"
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "id": "rover-chassis-contains",
+      "source": "rover",
+      "target": "chassis",
+      "kind": "contains"
+    },
+    {
+      "id": "rover-main-board-contains",
+      "source": "rover",
+      "target": "main-board",
+      "kind": "contains"
+    },
+    {
+      "id": "rover-camera-mount-contains",
+      "source": "rover",
+      "target": "camera-mount",
+      "kind": "contains"
+    },
+    {
+      "id": "rover-final-assembly-depends",
+      "source": "rover",
+      "target": "final-assembly",
+      "kind": "depends"
+    },
+    {
+      "id": "chassis-left-wheel-contains",
+      "source": "chassis",
+      "target": "left-wheel",
+      "kind": "contains"
+    },
+    {
+      "id": "chassis-right-wheel-contains",
+      "source": "chassis",
+      "target": "right-wheel",
+      "kind": "contains"
+    },
+    {
+      "id": "chassis-battery-enclosure-contains",
+      "source": "chassis",
+      "target": "battery-enclosure",
+      "kind": "contains"
+    },
+    {
+      "id": "chassis-motor-housing-contains",
+      "source": "chassis",
+      "target": "motor-housing",
+      "kind": "contains"
+    },
+    {
+      "id": "main-board-j12-contains",
+      "source": "main-board",
+      "target": "j12",
+      "kind": "contains"
+    },
+    {
+      "id": "main-board-motor-controller-contains",
+      "source": "main-board",
+      "target": "motor-controller",
+      "kind": "contains"
+    },
+    {
+      "id": "main-board-power-board-contains",
+      "source": "main-board",
+      "target": "power-board",
+      "kind": "contains"
+    },
+    {
+      "id": "j12-chassis-routes",
+      "source": "j12",
+      "target": "chassis",
+      "kind": "routes"
+    },
+    {
+      "id": "j12-motor-control-drives",
+      "source": "j12",
+      "target": "motor-control",
+      "kind": "drives"
+    },
+    {
+      "id": "j12-j12-bom-depends",
+      "source": "j12",
+      "target": "j12-bom",
+      "kind": "depends"
+    },
+    {
+      "id": "j12-qa-fixture-validated",
+      "source": "j12",
+      "target": "qa-fixture",
+      "kind": "validated"
+    },
+    {
+      "id": "j12-bom-molex-sourced",
+      "source": "j12-bom",
+      "target": "molex",
+      "kind": "sourced"
+    },
+    {
+      "id": "cable-routing-j12-depends",
+      "source": "cable-routing",
+      "target": "j12",
+      "kind": "depends"
+    },
+    {
+      "id": "motor-controller-motor-control-drives",
+      "source": "motor-controller",
+      "target": "motor-control",
+      "kind": "drives"
+    },
+    {
+      "id": "motor-controller-motor-driver-depends",
+      "source": "motor-controller",
+      "target": "motor-driver",
+      "kind": "depends"
+    },
+    {
+      "id": "motor-control-motor-bom-drives",
+      "source": "motor-control",
+      "target": "motor-bom",
+      "kind": "drives"
+    },
+    {
+      "id": "motor-bom-motor-supplier-sourced",
+      "source": "motor-bom",
+      "target": "motor-supplier",
+      "kind": "sourced"
+    },
+    {
+      "id": "motor-install-motor-bom-depends",
+      "source": "motor-install",
+      "target": "motor-bom",
+      "kind": "depends"
+    },
+    {
+      "id": "motor-housing-motor-bom-contains",
+      "source": "motor-housing",
+      "target": "motor-bom",
+      "kind": "contains"
+    },
+    {
+      "id": "power-board-battery-mgmt-drives",
+      "source": "power-board",
+      "target": "battery-mgmt",
+      "kind": "drives"
+    },
+    {
+      "id": "power-board-battery-depends",
+      "source": "power-board",
+      "target": "battery",
+      "kind": "depends"
+    },
+    {
+      "id": "battery-enclosure-battery-contains",
+      "source": "battery-enclosure",
+      "target": "battery",
+      "kind": "contains"
+    },
+    {
+      "id": "camera-mount-camera-module-contains",
+      "source": "camera-mount",
+      "target": "camera-module",
+      "kind": "contains"
+    },
+    {
+      "id": "camera-service-camera-module-depends",
+      "source": "camera-service",
+      "target": "camera-module",
+      "kind": "depends"
+    },
+    {
+      "id": "camera-module-camera-supplier-sourced",
+      "source": "camera-module",
+      "target": "camera-supplier",
+      "kind": "sourced"
+    },
+    {
+      "id": "navigation-motor-control-depends",
+      "source": "navigation",
+      "target": "motor-control",
+      "kind": "depends"
+    },
+    {
+      "id": "navigation-camera-service-depends",
+      "source": "navigation",
+      "target": "camera-service",
+      "kind": "depends"
+    },
+    {
+      "id": "final-assembly-cable-routing-depends",
+      "source": "final-assembly",
+      "target": "cable-routing",
+      "kind": "depends"
+    },
+    {
+      "id": "final-assembly-motor-install-depends",
+      "source": "final-assembly",
+      "target": "motor-install",
+      "kind": "depends"
+    },
+    {
+      "id": "motor-load-test-motor-bom-validated",
+      "source": "motor-load-test",
+      "target": "motor-bom",
+      "kind": "validated"
+    },
+    {
+      "id": "power-test-power-board-validated",
+      "source": "power-test",
+      "target": "power-board",
+      "kind": "validated"
+    },
+    {
+      "id": "camera-cal-camera-module-validated",
+      "source": "camera-cal",
+      "target": "camera-module",
+      "kind": "validated"
+    },
+    {
+      "id": "final-qa-final-assembly-validated",
+      "source": "final-qa",
+      "target": "final-assembly",
+      "kind": "validated"
+    },
+    {
+      "id": "main-board-product-agent-changed",
+      "source": "main-board",
+      "target": "product-agent",
+      "kind": "changed"
+    },
+    {
+      "id": "j12-bom-supply-agent-changed",
+      "source": "j12-bom",
+      "target": "supply-agent",
+      "kind": "changed"
+    },
+    {
+      "id": "final-assembly-build-agent-changed",
+      "source": "final-assembly",
+      "target": "build-agent",
+      "kind": "changed"
+    }
+  ],
+  "known_unresolved_links": [
+    {
+      "id": "UNRES-001",
+      "from": "CM-4K-R2",
+      "description": "Production lens lot qualification record is intentionally absent."
+    },
+    {
+      "id": "UNRES-002",
+      "from": "QA-FIX-C",
+      "description": "Fixture calibration certificate is represented by a sample result, not a metrology certificate."
+    }
+  ]
+}

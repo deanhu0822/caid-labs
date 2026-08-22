@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720">
+<rect width="1200" height="720" fill="#071019"/><g stroke="#31465b" stroke-width="1" opacity=".5"><path d="M0 120H1200M0 240H1200M0 360H1200M0 480H1200M0 600H1200"/><path d="M200 0V720M400 0V720M600 0V720M800 0V720M1000 0V720"/></g>
+<text x="60" y="68" fill="#adff5b" font-family="monospace" font-size="24">SYNTHETIC DEMO · CHS-240 · REV C3</text>
+<rect x="210" y="205" width="780" height="310" rx="34" fill="#263541" stroke="#76d5e1" stroke-width="4"/><rect x="330" y="255" width="250" height="170" fill="#111c26" stroke="#e2aa45" stroke-width="3"/>
+<rect x="735" y="278" width="125" height="82" rx="8" fill="#111c26" stroke="#adff5b" stroke-width="4"/><circle cx="765" cy="305" r="8" fill="#d8c08b"/><circle cx="830" cy="305" r="8" fill="#d8c08b"/><circle cx="765" cy="338" r="8" fill="#d8c08b"/><circle cx="830" cy="338" r="8" fill="#d8c08b"/>
+<g fill="#16222d" stroke="#9aa8c7" stroke-width="4"><circle cx="285" cy="535" r="82"/><circle cx="915" cy="535" r="82"/></g>
+<g font-family="monospace" font-size="20"><text x="330" y="245" fill="#e2aa45">BAT-CAGE-03</text><text x="735" y="268" fill="#adff5b">J12 · 43025-0400</text><text x="60" y="665" fill="#6b7d90">Reference envelope only — dimensions in mechanical/chassis.json</text></g></svg>

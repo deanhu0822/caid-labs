@@ -1,0 +1,40 @@
+{
+  "synthetic": true,
+  "product_id": "rover-alpha",
+  "revision": "Rev C",
+  "units": {
+    "length": "mm",
+    "mass": "kg",
+    "torque": "N·m"
+  },
+  "artifact_id": "motor-housing",
+  "part_number": "MTR-HSG-04",
+  "part_revision": "C1",
+  "name": "Motor Housing",
+  "material": "Glass-filled nylon with aluminum heat spreader",
+  "mass_kg": 0.31,
+  "quantity_per_rover": 2,
+  "motor_envelope_mm": {
+    "diameter_max": 72,
+    "length_max": 112
+  },
+  "installed_motor": {
+    "part_number": "MTR-24-220",
+    "diameter_mm": 68,
+    "length_mm": 98
+  },
+  "upgrade_motor_fit": {
+    "part_number": "MTR-24-290",
+    "diameter_mm": 70,
+    "length_mm": 108,
+    "fits": true,
+    "mass_delta_kg_each": 0.12
+  },
+  "heat_rejection_w_continuous": 45,
+  "artifact_refs": [
+    "chassis",
+    "motor-bom",
+    "motor-controller",
+    "motor-install"
+  ]
+}
