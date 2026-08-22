@@ -6,8 +6,8 @@
     "node": ">=22.13.0"
   },
   "scripts": {
-    "dev": "vinext dev",
-    "build": "vinext build",
+    "dev": "next dev",
+    "build": "next build",
     "start": "node scripts/start.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next"
   },

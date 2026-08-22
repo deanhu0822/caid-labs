@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-const cliPath = fileURLToPath(new URL('../node_modules/vinext/dist/cli.js', import.meta.url));
+const cliPath = fileURLToPath(new URL('../node_modules/next/dist/bin/next', import.meta.url));
 const child = spawn(process.execPath, [cliPath, 'dev'], { stdio: 'inherit' });
 
 child.on('exit', (code, signal) => {
