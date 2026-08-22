@@ -139,7 +139,7 @@ function payloadProposal(response: AgentResponse, state: EngineeringState): Engi
     return createProposal({
       objective: response.question,
       title: 'Motor M2 conflicts with the 30% payload target',
-      summary: 'Forma preserved the observed Motor M2 constraint and rejected an unsupported mutation instead of silently replacing it.',
+      summary: 'Forma Labs kept the fixed Motor M2 and rejected the payload change because the two requirements conflict.',
       why: 'The current motor has 14% measured torque margin at 8 kg; the corpus does not contain a validated assignment that reaches 10.4 kg while retaining it.',
       tradeoff: 'Lower the payload target, release the fixed-motor constraint, or add a validated drivetrain option.',
       nextAction: 'Choose whether Motor M2 or the 30% payload target is the harder constraint.',

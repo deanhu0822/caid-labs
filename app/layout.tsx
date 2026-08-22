@@ -14,18 +14,18 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL('http://localhost:3000'),
-  title: 'Forma — Physical Product Graph',
-  description: 'Explore the connected dependencies behind an autonomous inspection rover.',
+  title: 'Forma Labs — Rover Engineering Workspace',
+  description: 'Review rover parts, dependencies, engineering changes, revisions, and validation results.',
   icons: { icon: '/favicon.svg' },
   openGraph: {
-    title: 'Forma — Physical Product Graph',
-    description: 'See how physical-product changes propagate across mechanical, electrical, firmware, BOM, manufacturing, suppliers, and tests.',
-    images: [{ url: '/og.png', width: 1536, height: 864, alt: 'Forma physical product dependency graph' }],
+    title: 'Forma Labs — Rover Engineering Workspace',
+    description: 'Review how rover changes affect mechanical, electrical, firmware, BOM, manufacturing, supplier, and test artifacts.',
+    images: [{ url: '/og.png', width: 1536, height: 864, alt: 'Forma Labs rover engineering graph' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Forma — Physical Product Graph',
-    description: 'See how physical-product changes propagate across engineering domains.',
+    title: 'Forma Labs — Rover Engineering Workspace',
+    description: 'Review rover dependencies, proposed changes, validation results, and revisions.',
     images: ['/og.png'],
   },
 };

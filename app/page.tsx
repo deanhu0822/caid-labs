@@ -27,6 +27,7 @@ import {
   ChevronRight,
   CircleDot,
   CircleX,
+  Code2,
   Cpu,
   Eye,
   Focus,
@@ -75,6 +76,7 @@ import {
   type ValidationStatus,
 } from '@/lib/engineering-state';
 import { localScannerAdapter, type ScannerAnalysis, type ScannerMatch } from '@/lib/scanner-analysis';
+import { DEMO_CODE_PREVIEWS, type DemoCodePreview } from './demo-code';
 
 type ArtifactData = Artifact & { activeRevision: string };
 type ArtifactNode = Node<ArtifactData, 'artifact'>;
@@ -133,6 +135,7 @@ export default function Home() {
   const [builderError, setBuilderError] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [codeArtifactId, setCodeArtifactId] = useState<string | null>(null);
   const [demoRunning, setDemoRunning] = useState(false);
   const [demoLabel, setDemoLabel] = useState('');
   const demoToken = useRef(0);
@@ -215,6 +218,7 @@ export default function Home() {
 
   const chooseNode = (id: string) => {
     dispatch({ type: 'SELECT_ARTIFACT', artifactId: id });
+    setCodeArtifactId(DEMO_CODE_PREVIEWS[id] ? id : null);
     if (!activeCategories.has(ARTIFACTS.find((item) => item.id === id)!.category)) {
       setActiveCategories((current) => new Set([...current, ARTIFACTS.find((item) => item.id === id)!.category]));
     }
@@ -243,36 +247,37 @@ export default function Home() {
     if (demoRunning) return;
     const token = ++demoToken.current;
     setDemoRunning(true);
+    setCodeArtifactId(null);
     setBuilderError('');
     dispatch({ type: 'SET_FOCUS', artifactIds: [] });
     setImpactOpen(false);
     dispatch({ type: 'SET_EXPERIENCE', mode: 'guided' });
     setMode('builder');
     dispatch({ type: 'SELECT_ARTIFACT', artifactId: 'j12' });
-    setDemoLabel('1 / 6 · Guided intent: increase payload by 30%');
+    setDemoLabel('1 / 6 · Beginner request: increase payload by 30%');
     await sleep(1600);
     if (token !== demoToken.current) return;
     setBuilderQuery('Increase payload capacity');
-    setDemoLabel('2 / 6 · Propagating constraints through the graph');
+    setDemoLabel('2 / 6 · Checking constraints and affected artifacts');
     await sleep(600);
     await runBuilder('Increase payload capacity');
     await sleep(2200);
     dispatch({ type: 'ACCEPT_PROPOSAL' });
-    setDemoLabel('3 / 6 · Validated mutation accepted as the next revision');
+    setDemoLabel('3 / 6 · Change accepted as the next revision');
     await sleep(1800);
     dispatch({ type: 'SET_EXPERIENCE', mode: 'pro' });
     setMode('builder');
-    setDemoLabel('4 / 6 · Pro reveals calculations, evidence, and validation');
+    setDemoLabel('4 / 6 · Pro shows calculations, source files, and checks');
     await sleep(2200);
     setMode('scanner');
     setDemoLabel('5 / 6 · Scanner is ready for a photo or upload');
     await sleep(1800);
     const observation = localScannerAdapter.confirmArtifact('j12', 'J12 Connector');
     dispatch({ type: 'SET_SCANNER_OBSERVATION', observation });
-    setDemoLabel('6 / 6 · Simulated demo observation linked to J12');
+    setDemoLabel('6 / 6 · Demo image linked to J12');
     await sleep(2000);
     setDemoRunning(false);
-    setDemoLabel('Demo complete · one machine, two views, physical input linked');
+    setDemoLabel('Demo complete');
     await sleep(2200);
     setDemoLabel('');
   };
@@ -299,6 +304,7 @@ export default function Home() {
   const revisionChanges = revisionRecord?.changedArtifactIds ?? REVISION_CHANGES[revision] ?? [];
 
   const analyzeJ12Change = () => {
+    setCodeArtifactId(null);
     const nextProposal = j12ChangeProposal(engineering);
     dispatch({ type: 'SET_PROPOSAL', proposal: nextProposal });
     dispatch({ type: 'SELECT_ARTIFACT', artifactId: 'j12' });
@@ -316,23 +322,38 @@ export default function Home() {
     <main className={`app-shell ${engineering.experienceMode}-experience`}>
       <header className="topbar">
         <div className="brand-mark"><GitBranch size={16} /></div>
-        <div className="brand">FORMA <span>/</span> rover-alpha <span>/</span> {revision.toLowerCase().replace(' ', '-')}</div>
+        <div className="brand">FORMA LABS <span>/</span> rover-alpha <span>/</span> {revision.toLowerCase().replace(' ', '-')}</div>
         <div className="experience-switch" aria-label="Experience mode">
-          <button aria-label="Guided mode" className={engineering.experienceMode === 'guided' ? 'active' : ''} onClick={() => switchExperience('guided')}><Sparkles size={12} /><span><b>Guided</b><small>AI-assisted building</small></span></button>
+          <button aria-label="Beginner mode" className={engineering.experienceMode === 'guided' ? 'active' : ''} onClick={() => switchExperience('guided')}><Sparkles size={12} /><span><b>Beginner</b><small>Step-by-step workflow</small></span></button>
           <button aria-label="Pro mode" className={engineering.experienceMode === 'pro' ? 'active' : ''} onClick={() => switchExperience('pro')}><SlidersHorizontal size={12} /><span><b>Pro</b><small>Engineering workspace</small></span></button>
         </div>
         <nav aria-label="Workspace modes">
           {(['graph', 'builder', 'scanner'] as AppMode[]).map((item) => (
-            <button key={item} className={mode === item ? 'active' : ''} onClick={() => setMode(item)}>
+            <button key={item} className={mode === item ? 'active' : ''} onClick={() => { setMode(item); setCodeArtifactId(null); }}>
               {item === 'graph' ? <Layers3 size={14} /> : item === 'builder' ? <Sparkles size={14} /> : <ScanLine size={14} />}
               {item[0].toUpperCase() + item.slice(1)}
             </button>
           ))}
-          <button className={mode === 'agents' ? 'active' : ''} onClick={() => setMode('agents')}><Bot size={14} /> Agents</button>
+          <button className={mode === 'agents' ? 'active' : ''} onClick={() => { setMode('agents'); setCodeArtifactId(null); }}><Bot size={14} /> Agents</button>
         </nav>
         <div className="header-actions">
-          <button className="how-button" onClick={() => setHowOpen(true)}><Info size={14} /> <span>How Forma works</span></button>
-          <button onClick={() => setSearchOpen(true)}><Search size={15} /> <span>Search graph</span><kbd>/</kbd></button>
+          <div className="header-search" onFocus={() => setSearchOpen(true)} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget as HTMLElement | null)) setSearchOpen(false); }}>
+            <Search size={14} />
+            <input
+              aria-label="Search artifacts"
+              value={searchTerm}
+              onChange={(event) => { setSearchTerm(event.target.value); setSearchOpen(true); }}
+              onKeyDown={(event) => { if (event.key === 'Escape') { setSearchOpen(false); event.currentTarget.blur(); } }}
+              placeholder="Search artifacts"
+            />
+            {searchTerm && <button aria-label="Clear search" onMouseDown={(event) => event.preventDefault()} onClick={() => setSearchTerm('')}><X size={12} /></button>}
+            {searchOpen && (
+              <div className="header-search-results">
+                {searchResults.length ? searchResults.map((item) => <button key={item.id} onClick={() => { chooseNode(item.id); setMode('graph'); setSearchOpen(false); }}><span style={{ background: CATEGORY_META[item.category].color }} /><div><b>{item.label}</b><small>{item.code} · {item.meta}</small></div><ChevronRight size={13} /></button>) : <p>No matching artifacts</p>}
+              </div>
+            )}
+          </div>
+          <button className="how-button" onClick={() => setHowOpen(true)}><Info size={14} /> <span>How it works</span></button>
           <button className="demo-top" onClick={runDemo} disabled={demoRunning}><Play size={14} /> {demoRunning ? 'Running…' : 'Run Demo'}</button>
           <button className="accent" onClick={() => { setMode('builder'); setBuilderError(''); }}><Sparkles size={15} /> Builder</button>
         </div>
@@ -343,7 +364,7 @@ export default function Home() {
           <GuidedRail state={engineering} onConstraint={setConstraint} />
         ) : (
           <>
-        <div className="side-heading"><div className="eyebrow">PRODUCT GRAPH</div><span>34 nodes</span></div>
+        <div className="side-heading"><div className="eyebrow">PRODUCT GRAPH</div><span>34 artifacts</span></div>
         <div className="filter-group">
           {(Object.keys(CATEGORY_META) as Category[]).map((category) => {
             const meta = CATEGORY_META[category];
@@ -371,7 +392,6 @@ export default function Home() {
             );
           })}
         </div>
-        <div className="sidebar-note"><CircleDot size={14} /><span><strong>Graph health 96%</strong>2 unresolved links</span></div>
           </>
         )}
       </aside>
@@ -379,9 +399,9 @@ export default function Home() {
       <section className="graph-stage">
         <div className="graph-meta">
           <span>Autonomous Inspection Rover</span>
-          <small>{revision.toUpperCase()} · {revision === engineering.currentRevision ? 'CURRENT MACHINE STATE' : 'HISTORICAL VIEW'} · 34 ARTIFACTS · 40 RELATIONSHIPS</small>
+          <small>{revision.toUpperCase()} · {revision === engineering.currentRevision ? 'CURRENT REVISION' : 'HISTORICAL REVISION'} · 34 ARTIFACTS · 40 RELATIONSHIPS</small>
         </div>
-        <div className="blast-legend"><span className="pulse-dot" /> {highlighted.size} objective-relevant artifacts in focus</div>
+        <div className="blast-legend"><span className="pulse-dot" /> {highlighted.size} related artifacts highlighted</div>
         <ReactFlow
           nodes={visibleNodes}
           edges={visibleEdges}
@@ -400,17 +420,24 @@ export default function Home() {
           <MiniMap pannable zoomable position="bottom-right" nodeColor={(node) => CATEGORY_META[(node.data as ArtifactData).category].color} maskColor="rgba(6, 9, 16, .84)" />
         </ReactFlow>
 
-        <div className="graph-hint"><Focus size={13} /> Scroll to zoom · drag canvas to pan · select to trace impact</div>
+        <div className="graph-hint"><Focus size={13} /> Scroll to zoom · drag to pan · click an artifact to inspect it</div>
 
         <>
+          {mode === 'graph' && codeArtifactId && DEMO_CODE_PREVIEWS[codeArtifactId] && (
+            <DemoCodePanel
+              artifactLabel={artifactLabel(codeArtifactId)}
+              preview={DEMO_CODE_PREVIEWS[codeArtifactId]}
+              onClose={() => setCodeArtifactId(null)}
+            />
+          )}
           {mode === 'builder' && (
             <section className="mode-panel builder-panel panel-enter" key="builder">
-              <div className="mode-panel-head"><div><span className="mode-icon"><Sparkles size={15} /></span><div><div className="eyebrow">OBJECTIVE MODE</div><h3>Builder</h3></div></div><button onClick={() => setMode('graph')}><X size={15} /></button></div>
-              <p>Describe the outcome. Builder mutates the shared machine state only after propagation and validation.</p>
+              <div className="mode-panel-head"><div><span className="mode-icon"><Sparkles size={15} /></span><div><div className="eyebrow">CHANGE REQUEST</div><h3>Builder</h3></div></div><button onClick={() => setMode('graph')}><X size={15} /></button></div>
+              <p>Describe the desired result. Builder checks dependencies and validation rules before proposing edits.</p>
               {engineering.experienceMode === 'pro' && <ProConstraintEditor state={engineering} selectedArtifact={selectedArtifact} onConstraint={setConstraint} onToggleFixed={(artifactId) => dispatch({ type: 'TOGGLE_FIXED_ARTIFACT', artifactId })} />}
               <label className="builder-input"><input value={builderQuery} onChange={(e) => setBuilderQuery(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void runBuilder(); } }} placeholder="What are you trying to build or change?" /><button disabled={builderLoading} onClick={() => void runBuilder()} aria-label="Ask Builder"><Send size={14} /></button></label>
               <div className="suggestions">{BUILDER_SUGGESTIONS.map((suggestion) => <button key={suggestion} disabled={builderLoading} onClick={() => void runBuilder(suggestion)}>{suggestion}</button>)}</div>
-              {builderLoading && <div className="backend-loading"><span className="pulse-dot" /> Reading the rover corpus and tracing dependencies...</div>}
+              {builderLoading && <div className="backend-loading"><span className="pulse-dot" /> Checking project files and dependencies...</div>}
               {builderError && <div className="backend-error">{builderError}</div>}
               {proposal && <ProposalCard proposal={proposal} experience={engineering.experienceMode} onAccept={() => dispatch({ type: 'ACCEPT_PROPOSAL' })} onShowGraph={() => setMode('graph')} onShowPro={() => switchExperience('pro')} />}
             </section>
@@ -487,20 +514,9 @@ export default function Home() {
           <div className="modal-backdrop overlay-enter" onMouseDown={(e) => { if (e.target === e.currentTarget) setImpactOpen(false); }}>
             <section className="impact-modal modal-enter">
               <header><div><div className="eyebrow">CHANGE IMPACT · {engineering.currentRevision}</div><h2>{proposal?.title ?? 'Replace J12 Connector'}</h2></div><button onClick={() => setImpactOpen(false)}><X size={17} /></button></header>
-              <div className="impact-summary"><div><span>{proposal?.affectedArtifactIds.length ?? 6}</span><p><b>artifacts affected</b><small>minimal coherent mutation</small></p></div><span className="risk-badge">VALIDATED · WARN</span></div>
+              <div className="impact-summary"><div><span>{proposal?.affectedArtifactIds.length ?? 6}</span><p><b>artifacts affected</b><small>only required edits are listed</small></p></div><span className="risk-badge">REVIEW VALIDATION</span></div>
               <div className="impact-items">{proposal?.changed.length ? proposal.changed.map((change, index) => <div key={change.artifactId}><span className="impact-index">0{index + 1}</span><div><b>{change.before} → {change.after}</b><p>{change.reason}</p></div><Check size={14} /></div>) : IMPACT_ITEMS.map(([label, copy], index) => <div key={label}><span className="impact-index">0{index + 1}</span><div><b>{label}</b><p>{copy}</p></div><Check size={14} /></div>)}</div>
-              <footer><span><Activity size={14} /> Unrelated objects remain <b>preserved</b></span><div><button onClick={() => { setImpactOpen(false); switchExperience('guided'); }}>Show Guided <ChevronRight size={13} /></button><button onClick={() => setImpactOpen(false)}>Keep exploring</button></div></footer>
-            </section>
-          </div>
-        )}
-      </>
-
-      <>
-        {searchOpen && (
-          <div className="search-overlay overlay-enter" onMouseDown={(e) => { if (e.target === e.currentTarget) setSearchOpen(false); }}>
-            <section className="search-enter">
-              <label><Search size={17} /><input autoFocus value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search parts, boards, files, suppliers…" /><kbd>ESC</kbd></label>
-              <div>{searchResults.map((item) => <button key={item.id} onClick={() => { chooseNode(item.id); setMode('graph'); setSearchOpen(false); }}><span style={{ background: CATEGORY_META[item.category].color }} /><div><b>{item.label}</b><small>{item.code} · {item.meta}</small></div><ChevronRight size={13} /></button>)}</div>
+              <footer><span><Activity size={14} /> Objects not listed above are unchanged.</span><div><button onClick={() => { setImpactOpen(false); switchExperience('guided'); }}>Open Beginner <ChevronRight size={13} /></button><button onClick={() => setImpactOpen(false)}>Close</button></div></footer>
             </section>
           </div>
         )}
@@ -509,13 +525,13 @@ export default function Home() {
       {howOpen && (
         <div className="modal-backdrop overlay-enter" onMouseDown={(event) => { if (event.target === event.currentTarget) setHowOpen(false); }}>
           <section className="how-modal modal-enter">
-            <header><div><div className="eyebrow">ONE MACHINE · TWO INFORMATION WIDTHS</div><h2>How Forma works</h2></div><button onClick={() => setHowOpen(false)}><X size={17} /></button></header>
-            <p>Forma maintains one evolving engineering state. Guided exposes decisions; Pro exposes the evidence behind the same decision.</p>
+            <header><div><div className="eyebrow">CHANGE WORKFLOW</div><h2>How Forma Labs works</h2></div><button onClick={() => setHowOpen(false)}><X size={17} /></button></header>
+            <p>Beginner and Pro use the same project data. Beginner summarizes a proposed change; Pro shows its edits, checks, and source files.</p>
             <div className="forma-flow">
-              {['Human intent', 'Engineering state', 'Constraint propagation', 'Engineering tools', 'Validation', 'Revision', 'Product graph'].map((label, index) => <div key={label}><span>{String(index + 1).padStart(2, '0')}</span><b>{label}</b>{index < 6 && <ChevronRight size={13} />}</div>)}
+              {['Change request', 'Project data', 'Dependencies', 'Proposed edits', 'Validation checks', 'New revision', 'Updated graph'].map((label, index) => <div key={label}><span>{String(index + 1).padStart(2, '0')}</span><b>{label}</b>{index < 6 && <ChevronRight size={13} />}</div>)}
             </div>
-            <div className="view-branches"><div><Sparkles size={16} /><b>Guided</b><span>Decisions · choices · next action</span></div><div><SlidersHorizontal size={16} /><b>Pro</b><span>Evidence · calculations · dependencies</span></div></div>
-            <div className="opencad-principle"><Wrench size={15} /><p><b>Forma narrows what the machine is.</b><span>OpenCAD narrows what it physically becomes through a separate realization adapter.</span></p></div>
+            <div className="view-branches"><div><Sparkles size={16} /><b>Beginner</b><span>Summary, choices, and next step</span></div><div><SlidersHorizontal size={16} /><b>Pro</b><span>Edits, calculations, dependencies, and sources</span></div></div>
+            <div className="opencad-principle"><Wrench size={15} /><p><b>CAD export is not connected.</b><span>Forma Labs prepares an OpenCAD handoff, but it does not modify CAD files.</span></p></div>
           </section>
         </div>
       )}
@@ -529,17 +545,30 @@ function artifactLabel(id: string) {
   return ARTIFACTS.find((artifact) => artifact.id === id)?.label ?? id;
 }
 
+function DemoCodePanel({ artifactLabel: label, preview, onClose }: { artifactLabel: string; preview: DemoCodePreview; onClose: () => void }) {
+  return (
+    <section className="mode-panel code-panel panel-enter">
+      <div className="mode-panel-head"><div><span className="mode-icon"><Code2 size={16} /></span><div><div className="eyebrow">DEMO CODE · HYPOTHETICAL</div><h3>{label}</h3></div></div><button aria-label="Close code preview" onClick={onClose}><X size={15} /></button></div>
+      <p>{preview.description}</p>
+      <div className="code-file-meta"><span>{preview.filename}</span><span>{preview.language}</span><span>Example only</span></div>
+      <div className="demo-code-lines" aria-label={`Hypothetical code for ${label}`}>
+        {preview.code.split('\n').map((line, index) => <div key={`${index}-${line}`}><span>{String(index + 1).padStart(2, '0')}</span><code>{line || ' '}</code></div>)}
+      </div>
+    </section>
+  );
+}
+
 function GuidedRail({ state, onConstraint }: { state: EngineeringState; onConstraint: (constraint: EngineeringConstraint) => void }) {
   const priority = state.constraints.find((constraint) => constraint.key === 'priority')?.value;
   return (
     <div className="guided-rail">
-      <div className="side-heading"><div className="eyebrow">GUIDED BUILD</div><span>{state.currentRevision}</span></div>
+      <div className="side-heading"><div className="eyebrow">BEGINNER BUILD</div><span>{state.currentRevision}</span></div>
       <div className="guided-progress"><i className="done" /><i className={state.proposal ? 'done' : 'active'} /><i className={state.proposal?.status === 'accepted' ? 'done' : ''} /></div>
-      <div className="guided-step-copy"><b>{state.proposal?.status === 'accepted' ? 'Revision created' : state.proposal ? 'Decision ready' : 'Define your goal'}</b><span>{state.proposal?.status === 'accepted' ? `${state.currentRevision} is now the current machine.` : state.proposal ? 'Review the smallest validated change.' : 'Forma will narrow the relevant product objects.'}</span></div>
+      <div className="guided-step-copy"><b>{state.proposal?.status === 'accepted' ? 'Revision created' : state.proposal ? 'Proposal ready' : 'Define your goal'}</b><span>{state.proposal?.status === 'accepted' ? `${state.currentRevision} is now the current revision.` : state.proposal ? 'Review the required edits and validation checks.' : 'Forma Labs will check affected parts, files, and constraints.'}</span></div>
       <div className="guided-choice-group"><div className="eyebrow">WHAT MATTERS MOST?</div>{['Balanced', 'Longer runtime', 'Lower cost'].map((value) => <button key={value} className={priority === value ? 'active' : ''} onClick={() => onConstraint({ key: 'priority', label: 'Design priority', value, source: 'guided' })}>{value}<ChevronRight size={12} /></button>)}</div>
       {state.constraints.length > 0 && <div className="constraint-summary"><div className="eyebrow">ACTIVE CONSTRAINTS</div>{state.constraints.map((constraint) => <span key={constraint.key}><Lock size={9} /> {constraint.label}: <b>{constraint.value}{constraint.unit ? ` ${constraint.unit}` : ''}</b></span>)}</div>}
       {state.scannerObservation && <div className="physical-observation"><Camera size={14} /><div><b>Physical observation</b><span>{state.scannerObservation.label} linked to graph</span></div></div>}
-      <div className="sidebar-note"><CircleDot size={14} /><span><strong>One shared machine</strong>Guided and Pro use the same state</span></div>
+      <div className="sidebar-note"><CircleDot size={14} /><span><strong>Shared project state</strong>Beginner and Pro stay in sync</span></div>
     </div>
   );
 }
@@ -565,11 +594,11 @@ function GuidedPanel({ state, query, loading, error, onQuery, onRun, onAccept, o
 
   return (
     <div className="guided-panel">
-      <div className="mode-panel-head"><div><span className="mode-icon"><Sparkles size={16} /></span><div><div className="eyebrow">AI-ASSISTED BUILDING</div><h3>Guided</h3></div></div><button onClick={onShowPro} aria-label="Open Pro workspace"><SlidersHorizontal size={15} /></button></div>
+      <div className="mode-panel-head"><div><span className="mode-icon"><Sparkles size={16} /></span><div><div className="eyebrow">STEP-BY-STEP WORKFLOW</div><h3>Beginner</h3></div></div><button onClick={onShowPro} aria-label="Open Pro workspace"><SlidersHorizontal size={15} /></button></div>
       {!proposal ? (
         <>
-          <div className="guided-hero"><span>01 · INTENT</span><h2>What do you want the rover to achieve?</h2><p>Start with the outcome. Forma will ask only for constraints that change the engineering decision.</p></div>
-          <label className="guided-objective"><textarea value={query} onChange={(event) => onQuery(event.target.value)} placeholder="For example: Increase payload by 30%" /><button disabled={loading} onClick={() => onRun(query || 'Increase payload capacity')}><Sparkles size={14} /> {loading ? 'Reasoning over product…' : 'Find the smallest valid change'}</button></label>
+          <div className="guided-hero"><span>STEP 1 · REQUEST</span><h2>What do you want the rover to achieve?</h2><p>Describe the result. Forma Labs checks which parts, files, and constraints are affected.</p></div>
+          <label className="guided-objective"><textarea value={query} onChange={(event) => onQuery(event.target.value)} placeholder="For example: Increase payload by 30%" /><button disabled={loading} onClick={() => onRun(query || 'Increase payload capacity')}><Sparkles size={14} /> {loading ? 'Checking project data…' : 'Generate change proposal'}</button></label>
           <div className="guided-examples"><button onClick={() => { onQuery('Increase payload capacity'); onRun('Increase payload capacity'); }}>Increase payload 30% <ChevronRight size={12} /></button><button onClick={() => { onQuery('Increase runtime to 4 hours without changing mission duty cycle.'); onRun('Increase runtime to 4 hours without changing mission duty cycle.'); }}>Reach four-hour runtime <ChevronRight size={12} /></button><button onClick={onAnalyzeJ12}>Replace unavailable J12 <ChevronRight size={12} /></button></div>
           {error && <div className="backend-error">{error}</div>}
           <button className="scanner-entry" onClick={onOpenScanner}><Camera size={15} /><span><b>Start from a physical part</b><small>Take a photo or upload an image</small></span><ChevronRight size={13} /></button>
@@ -577,25 +606,25 @@ function GuidedPanel({ state, query, loading, error, onQuery, onRun, onAccept, o
       ) : (
         <>
           <div className={`guided-decision ${accepted ? 'accepted' : ''} ${rejected ? 'rejected' : ''}`}>
-            <div className="guided-decision-status">{rejected ? <CircleX size={15} /> : <ShieldCheck size={15} />}<span>{rejected ? 'CONSTRAINT CONFLICT' : accepted ? `${proposal.targetRevision.toUpperCase()} CREATED` : 'VALIDATED RECOMMENDATION'}</span></div>
+            <div className="guided-decision-status">{rejected ? <CircleX size={15} /> : <ShieldCheck size={15} />}<span>{rejected ? 'CONSTRAINT CONFLICT' : accepted ? `${proposal.targetRevision.toUpperCase()} CREATED` : 'PROPOSAL READY'}</span></div>
             <h2>{proposal.title}</h2>
             <p>{proposal.summary}</p>
             {!rejected && <div className="guided-tradeoff"><b>Tradeoff</b><span>{proposal.tradeoff}</span></div>}
             {rejected && <div className="guided-tradeoff danger"><b>Why it stopped</b><span>{proposal.why}</span></div>}
           </div>
-          <div className="guided-section"><div className="eyebrow">WHAT CHANGES</div><div className="guided-object-list">{changedLabels.length ? changedLabels.map((label) => <span key={label}><Check size={11} />{label}</span>) : <span><CircleX size={11} />No mutation applied</span>}</div></div>
-          <div className="guided-section preserved"><div className="eyebrow">WHAT STAYS THE SAME</div><p>{preservedLabels.slice(0, 5).join(', ') || 'Unrelated product state remains untouched.'}</p></div>
+          <div className="guided-section"><div className="eyebrow">WHAT CHANGES</div><div className="guided-object-list">{changedLabels.length ? changedLabels.map((label) => <span key={label}><Check size={11} />{label}</span>) : <span><CircleX size={11} />No changes proposed</span>}</div></div>
+          <div className="guided-section preserved"><div className="eyebrow">WHAT STAYS THE SAME</div><p>{preservedLabels.slice(0, 5).join(', ') || 'No other artifacts change.'}</p></div>
           {showWhy && <div className="guided-why panel-enter"><b>Why this change?</b><p>{proposal.why}</p><b>Next action</b><p>{proposal.nextAction}</p></div>}
           <div className="guided-actions">
-            {proposal.status === 'validated' && <button className="primary" onClick={onAccept}><Check size={13} /> Use this · create {proposal.targetRevision}</button>}
+            {proposal.status === 'validated' && <button className="primary" onClick={onAccept}><Check size={13} /> Accept and create {proposal.targetRevision}</button>}
             {accepted && <button className="primary" onClick={onShowPro}><Eye size={13} /> Inspect {state.currentRevision} in Pro</button>}
             {rejected && <button className="primary" onClick={onShowPro}><SlidersHorizontal size={13} /> Resolve fixed constraint in Pro</button>}
-            <button onClick={() => onRun('Increase runtime to 4 hours without changing mission duty cycle.')}><Activity size={13} /> See another option</button>
+            <button onClick={() => onRun('Increase runtime to 4 hours without changing mission duty cycle.')}><Activity size={13} /> Check runtime alternative</button>
             <button onClick={() => setShowWhy((value) => !value)}><Info size={13} /> {showWhy ? 'Hide explanation' : 'Why?'}</button>
             <button onClick={onShowPro}><SlidersHorizontal size={13} /> Technical details</button>
           </div>
-          <label className="guided-feedback"><span>REFINE THE SAME MACHINE</span><div><input value={query} onChange={(event) => onQuery(event.target.value)} placeholder="Make it lighter, too expensive, keep this motor…" /><button disabled={loading} onClick={() => onRun(query)}><Send size={12} /></button></div></label>
-          <button className="scanner-entry" onClick={onOpenScanner}><Camera size={15} /><span><b>Add a physical constraint</b><small>Observe and fix a product object</small></span><ChevronRight size={13} /></button>
+          <label className="guided-feedback"><span>REFINE THIS CHANGE</span><div><input value={query} onChange={(event) => onQuery(event.target.value)} placeholder="Add another requirement…" /><button disabled={loading} onClick={() => onRun(query)}><Send size={12} /></button></div></label>
+          <button className="scanner-entry" onClick={onOpenScanner}><Camera size={15} /><span><b>Add a physical constraint</b><small>Choose a confirmed part to keep unchanged</small></span><ChevronRight size={13} /></button>
         </>
       )}
     </div>
@@ -648,10 +677,10 @@ function ProposalCard({ proposal, experience, onAccept, onShowGraph, onShowPro }
       <p>{proposal.summary}</p>
       {experience === 'pro' ? (
         <>
-          <div className="mutation-list"><div className="eyebrow">MINIMAL MUTATION</div>{proposal.changed.map((change) => <div key={change.artifactId}><span>{change.artifactId}</span><p><b>{change.before}</b><ChevronRight size={10} /><b>{change.after}</b><small>{change.reason}</small></p></div>)}</div>
+          <div className="mutation-list"><div className="eyebrow">REQUIRED CHANGES</div>{proposal.changed.map((change) => <div key={change.artifactId}><span>{change.artifactId}</span><p><b>{change.before}</b><ChevronRight size={10} /><b>{change.after}</b><small>{change.reason}</small></p></div>)}</div>
           <div className="validation-list"><div className="eyebrow">VALIDATION</div>{proposal.validation.map((check) => <div className={check.status} key={check.domain}><ValidationIcon status={check.status} /><span><b>{check.domain}</b><small>{check.message}</small></span></div>)}</div>
-          <div className="preserved-line"><b>Preserved</b><span>{proposal.preservedArtifactIds.map(artifactLabel).join(', ') || 'No unrelated mutation.'}</span></div>
-          <div className="opencad-handoff"><Wrench size={14} /><div><b>OpenCAD handoff · interface ready</b><span>{proposal.openCad.connected ? 'Connected' : 'Not connected'} — {proposal.openCad.operations[0]}</span></div></div>
+          <div className="preserved-line"><b>Unchanged</b><span>{proposal.preservedArtifactIds.map(artifactLabel).join(', ') || 'No other artifacts change.'}</span></div>
+          <div className="opencad-handoff"><Wrench size={14} /><div><b>CAD handoff</b><span>{proposal.openCad.connected ? 'Connected' : 'Not connected; no CAD files were modified'} · {proposal.openCad.operations[0]}</span></div></div>
           <EvidenceList evidence={proposal.evidence} limit={3} />
         </>
       ) : <div className="guided-card-copy"><b>Why</b><span>{proposal.why}</span><b>Next</b><span>{proposal.nextAction}</span></div>}
@@ -689,14 +718,21 @@ function ScannerPanel({ revision, observation, fixedArtifactIds, onClose, onObse
     setError('');
   };
 
-  const loadDemo = async () => {
+  const runSampleScan = async () => {
     setError('');
+    setAnalyzing(true);
     try {
       const response = await fetch('/api/scanner/demo/j12');
       if (!response.ok) throw new Error('Synthetic scanner asset is unavailable.');
-      acquire(new File([await response.blob()], 'j12-connector-closeup.png', { type: 'image/png' }));
+      const demoFile = new File([await response.blob()], 'j12-connector-closeup.png', { type: 'image/png' });
+      acquire(demoFile);
+      const result = await localScannerAdapter.analyze(demoFile);
+      setAnalysis(result);
+      if (result.status === 'matched') onObservation(result);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not load the demo image.');
+    } finally {
+      setAnalyzing(false);
     }
   };
 
@@ -724,8 +760,8 @@ function ScannerPanel({ revision, observation, fixedArtifactIds, onClose, onObse
 
   return (
     <section className="mode-panel scanner-panel panel-enter" key="scanner">
-      <div className="mode-panel-head"><div><span className="mode-icon"><Camera size={15} /></span><div><div className="eyebrow">PHYSICAL INPUT</div><h3>Scanner</h3></div></div><button onClick={onClose}><X size={15} /></button></div>
-      <p>Acquire a real image locally, then connect the observed physical object to the same engineering state.</p>
+      <div className="mode-panel-head"><div><span className="mode-icon"><Camera size={15} /></span><div><div className="eyebrow">PHOTO OR UPLOAD</div><h3>Scanner</h3></div></div><button onClick={onClose}><X size={15} /></button></div>
+      <p>Take or upload a photo, then link the confirmed part to the project graph.</p>
       <input ref={cameraInput} hidden type="file" accept="image/*" capture="environment" onChange={(event) => acquire(event.target.files?.[0] ?? null)} />
       <input ref={uploadInput} hidden type="file" accept="image/*" onChange={(event) => acquire(event.target.files?.[0] ?? null)} />
       <div className={`scanner-view ${activeMatch ? 'matched' : ''} ${previewUrl ? 'has-image' : ''}`}>
@@ -736,11 +772,12 @@ function ScannerPanel({ revision, observation, fixedArtifactIds, onClose, onObse
         <div className="scan-readout"><span>{file ? file.name : 'NO IMAGE ACQUIRED'}</span><span>{activeMatch?.mode === 'manual-observation' ? 'USER CONFIRMED' : activeMatch ? 'DEMO LABEL MATCH' : 'LOCAL INPUT'}</span></div>
       </div>
       <div className="scanner-input-actions"><button onClick={() => cameraInput.current?.click()}><Camera size={13} /> Take Photo</button><button onClick={() => uploadInput.current?.click()}><Upload size={13} /> Upload Image</button></div>
-      <button className="demo-asset-button" onClick={() => void loadDemo()}>Use synthetic J12 demo image</button>
+      <button className="demo-asset-button" disabled={analyzing} onClick={() => void runSampleScan()}><Play size={13} /> {analyzing ? 'Running sample scan…' : 'Run sample scan'}</button>
+      <div className="demo-mode-note"><b>Demo simulation</b><span>Uses the bundled J12 image and a preset filename match. No vision AI is connected.</span></div>
       {file && !analysis && <button className="scan-button" disabled={analyzing} onClick={() => void analyze()}><ScanLine size={15} /> {analyzing ? 'Checking local label corpus…' : 'Run demo label matcher'}</button>}
       {analysis?.status === 'needs-confirmation' && <div className="manual-match"><div className="scanner-disclosure"><AlertTriangle size={13} /><span>{analysis.explanation}</span></div><div>{[['j12', 'J12 Connector'], ['motor-bom', '24V Motor M2'], ['battery', 'Li-ion Battery'], ['main-board', 'Main Control Board']].map(([id, label]) => <button key={id} onClick={() => confirm(id, label)}>{label}<ChevronRight size={11} /></button>)}</div></div>}
-      {activeMatch && <div className="scanner-status"><span className="scanner-status-icon"><Check size={15} /></span><div><strong>{activeMatch.label} linked</strong><small>Matched to product graph · {revision} · {activeMatch.confidence ? `${Math.round(activeMatch.confidence * 100)}% demo confidence` : 'manual observation'}</small></div></div>}
-      {activeMatch && <><div className="scanner-disclosure"><Info size={13} /><span>{activeMatch.explanation}</span></div><button className={`fixed-part-button ${isFixed ? 'fixed' : ''}`} onClick={() => onToggleFixed(activeMatch.artifactId)}><Lock size={13} /> {isFixed ? 'Fixed constraint added' : 'Keep this part in Builder'}</button></>}
+      {activeMatch && <div className="scanner-status"><span className="scanner-status-icon"><Check size={15} /></span><div><strong>{activeMatch.label} linked</strong><small>Product graph · {revision} · {activeMatch.confidence ? `${Math.round(activeMatch.confidence * 100)}% demo match` : 'confirmed manually'}</small></div></div>}
+      {activeMatch && <><div className="scanner-disclosure"><Info size={13} /><span>{activeMatch.explanation}</span></div><button className={`fixed-part-button ${isFixed ? 'fixed' : ''}`} onClick={() => onToggleFixed(activeMatch.artifactId)}><Lock size={13} /> {isFixed ? 'Fixed constraint added' : 'Use as a fixed constraint'}</button></>}
       {!localScannerAdapter.inferenceConnected && <div className="runtime-note"><Cable size={15} /><div><b>Vision adapter not connected</b><span>Photo/upload is real; automatic detection is explicitly simulated.</span></div></div>}
       {error && <div className="backend-error">{error}</div>}
     </section>
@@ -779,6 +816,7 @@ function AgentPanel({ onClose, onArtifacts }: { onClose: () => void; onArtifacts
   const [health, setHealth] = useState<CorpusHealth | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [demoAnswer, setDemoAnswer] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -793,16 +831,20 @@ function AgentPanel({ onClose, onArtifacts }: { onClose: () => void; onArtifacts
     setActiveAgent(agent);
     setQuestion(AGENT_PROMPTS[agent]);
     setAnswer(null);
+    setDemoAnswer(false);
     setError('');
     onArtifacts([]);
   };
 
-  const submit = async () => {
-    if (!question.trim() || loading) return;
+  const submit = async (questionOverride?: string, demo = false) => {
+    const submittedQuestion = (questionOverride ?? question).trim();
+    if (!submittedQuestion || loading) return;
+    setQuestion(submittedQuestion);
     setLoading(true);
     setError('');
+    setDemoAnswer(demo);
     try {
-      const result = await askAgent(activeAgent, question.trim());
+      const result = await askAgent(activeAgent, submittedQuestion);
       setAnswer(result);
       onArtifacts(result.artifactIds);
     } catch (cause) {
@@ -814,29 +856,31 @@ function AgentPanel({ onClose, onArtifacts }: { onClose: () => void; onArtifacts
 
   return (
     <div className="agent-panel">
-      <div className="mode-panel-head"><div><span className="mode-icon"><Bot size={16} /></span><div><div className="eyebrow">CORPUS RUNTIME</div><h3>Engineering Agents</h3></div></div><button onClick={onClose}><X size={15} /></button></div>
+      <div className="mode-panel-head"><div><span className="mode-icon"><Bot size={16} /></span><div><div className="eyebrow">LOCAL DATASET</div><h3>Engineering Agents</h3></div></div><button onClick={onClose}><X size={15} /></button></div>
       <p>Each agent uses the committed rover dataset and returns the files and graph artifacts behind its answer.</p>
-      <div className={`backend-state ${health ? 'online' : ''}`}><span /><div><b>{health ? 'Corpus backend online' : 'Connecting to corpus...'}</b><small>{health ? `${health.indexedDocuments} indexed documents · ${health.artifacts} artifacts · ${health.scenarios} scenarios` : 'Initializing the local dataset index'}</small></div></div>
+      <div className={`backend-state ${health ? 'online' : ''}`}><span /><div><b>{health ? 'Dataset ready' : 'Loading dataset...'}</b><small>{health ? `${health.indexedDocuments} indexed documents · ${health.artifacts} artifacts · ${health.scenarios} scenarios` : 'Building the local search index'}</small></div></div>
       <div className="agent-list">
         {agents.map(({ kind, name, copy, Icon }) => (
           <button className={`agent-card ${activeAgent === kind ? 'active' : ''}`} key={kind} onClick={() => selectAgent(kind)}>
             <span className="agent-icon"><Icon size={16} /></span>
-            <span><strong>{name}<b>LIVE</b></strong><small>{copy}</small></span>
+            <span><strong>{name}</strong><small>{copy}</small></span>
             <ChevronRight size={14} />
           </button>
         ))}
       </div>
-      <label className="agent-query"><span>ASK {activeAgent.toUpperCase()}</span><textarea value={question} onChange={(event) => setQuestion(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void submit(); } }} /><button disabled={loading} onClick={() => void submit()}><Send size={13} /> {loading ? 'Reading corpus...' : 'Run agent'}</button></label>
+      <button className="agent-demo-button" disabled={loading} onClick={() => void submit(AGENT_PROMPTS[activeAgent], true)}><Play size={13} /> {loading && demoAnswer ? 'Running sample…' : `Run sample ${activeAgent} answer`}</button>
+      <div className="demo-mode-note"><b>Demo simulation</b><span>Answers come from bundled example scenarios and local project files, not a general AI chat service.</span></div>
+      <label className="agent-query"><span>ASK {activeAgent.toUpperCase()}</span><textarea value={question} onChange={(event) => { setQuestion(event.target.value); setDemoAnswer(false); }} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void submit(); } }} /><button disabled={loading} onClick={() => void submit()}><Send size={13} /> {loading && !demoAnswer ? 'Reading project files...' : 'Search project data'}</button></label>
       {error && <div className="backend-error">{error}</div>}
       {answer && (
         <div className="agent-response panel-enter">
-          <div className="agent-response-head"><span>{answer.mode === 'ground-truth' ? 'VALIDATED ANSWER' : 'CORPUS RETRIEVAL'}</span><b>{Math.round(answer.confidence * 100)}% · {answer.latencyMs}ms</b></div>
+          <div className="agent-response-head"><span>{demoAnswer ? 'SAMPLE ANSWER' : answer.mode === 'ground-truth' ? 'MATCHED DATASET ANSWER' : 'SEARCH RESULT'}</span><b>{Math.round(answer.confidence * 100)}% · {answer.latencyMs}ms</b></div>
           <p>{answer.answer}</p>
           <div className="agent-artifacts">{answer.artifactIds.slice(0, 8).map((id) => <span key={id}>{id}</span>)}</div>
           <EvidenceList evidence={answer.evidence} limit={3} />
         </div>
       )}
-      <div className="runtime-note"><Cable size={15} /><div><b>Local-first backend</b><span>No database or cloud model required.</span></div></div>
+      <div className="runtime-note"><Cable size={15} /><div><b>Runs locally</b><span>No database or cloud model is required.</span></div></div>
     </div>
   );
 }

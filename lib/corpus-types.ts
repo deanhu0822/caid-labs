@@ -26,7 +26,7 @@ export type AgentResponse = {
 
 export type CorpusHealth = {
   status: 'ok';
-  backend: 'forma-corpus-local';
+  backend: 'forma-labs-corpus-local';
   productId: string;
   revision: string;
   artifacts: number;

@@ -39,7 +39,7 @@ export const localScannerAdapter: ScannerAnalysisAdapter = {
       return {
         status: 'needs-confirmation',
         mode: 'no-inference',
-        explanation: 'Image acquired locally. No vision model is connected, so Forma will not claim an automatic detection. Confirm the observed product object below.',
+        explanation: 'The image was loaded locally. No vision model is connected, so Forma Labs cannot identify the part automatically. Select the part shown in the image.',
       };
     }
     return {

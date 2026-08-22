@@ -278,7 +278,7 @@ export async function getCorpusHealth(): Promise<CorpusHealth> {
   const index = await getCorpusIndex();
   return {
     status: 'ok',
-    backend: 'forma-corpus-local',
+    backend: 'forma-labs-corpus-local',
     productId: index.product.product_id,
     revision: index.product.revision,
     artifacts: index.product.artifacts.length,

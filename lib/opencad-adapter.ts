@@ -33,7 +33,7 @@ export const openCadAdapter: OpenCadAdapter = {
       connected: false,
       status: 'interface-ready',
       operations: operations.length ? operations : ['No geometry mutation is required for this proposal.'],
-      note: 'OpenCAD is not connected. Forma has prepared a physical-realization handoff without claiming that CAD was rebuilt.',
+      note: 'OpenCAD is not connected. Forma Labs prepared a list of requested CAD edits, but no CAD files were changed.',
     };
   },
 };

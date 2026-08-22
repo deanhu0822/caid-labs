@@ -20,7 +20,7 @@ export async function GET(_request: Request, context: RouteContext<'/api/scanner
     headers: {
       'Content-Type': asset.contentType,
       'Cache-Control': 'public, max-age=3600',
-      'X-Forma-Scanner-Mode': 'synthetic-demo-asset',
+      'X-Forma-Labs-Scanner-Mode': 'synthetic-demo-asset',
     },
   });
 }
