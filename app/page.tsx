@@ -72,6 +72,7 @@ import {
   engineeringReducer,
   initialEngineeringState,
   j12ChangeProposal,
+  cameraMountGeometryProposal,
   proposalFromAgent,
   type EngineeringConstraint,
   type EngineeringProposal,
@@ -82,9 +83,11 @@ import {
 import { localScannerAdapter, type ScannerAnalysis, type ScannerMatch } from '@/lib/scanner-analysis';
 import { DEMO_CODE_PREVIEWS, type DemoCodePreview } from './demo-code';
 import { DemoWalkthrough, type DemoRuntime } from './demo-walkthrough';
+import { OpenCadWorkspace } from './opencad-workspace';
 import { StartFromScratch } from './start-from-scratch';
 import type { PrototypeBuildDefinition } from '@/lib/new-build-adapter';
 import { DEMO_FEATURES, DEMO_IMPACT_IDS, DEMO_OBJECTIVE, DEMO_STAGES, demoAgentResponse } from '@/lib/demo-walkthrough';
+import type { OpenCadRealizationRecord } from '@/lib/opencad-adapter';
 
 type ArtifactData = Artifact & { activeRevision: string };
 type ArtifactNode = Node<ArtifactData, 'artifact'>;
@@ -152,6 +155,9 @@ export default function Home() {
   const [codeArtifactId, setCodeArtifactId] = useState<string | null>(null);
   const [demoRuntime, setDemoRuntime] = useState<DemoRuntime>({ active: false, paused: false, step: 0, runId: 0 });
   const [scratchOpen, setScratchOpen] = useState(false);
+  const [demoMenuOpen, setDemoMenuOpen] = useState(false);
+  const [openCadOpen, setOpenCadOpen] = useState(false);
+  const [openCadAutoRebuild, setOpenCadAutoRebuild] = useState(false);
   const engineeringRef = useRef(engineering);
   const demoRunning = demoRuntime.active;
 
@@ -162,6 +168,7 @@ export default function Home() {
   const selectedId = engineering.selectedArtifactId;
   const revision = engineering.viewingRevision;
   const proposal = engineering.proposal;
+  const physicalRealization = engineering.physicalRealizations[engineering.physicalRealizations.length - 1] ?? null;
   const scannerMatched = engineering.scannerObservation?.status === 'matched';
   const revisionRecord = engineering.revisions.find((item) => item.id === revision);
 
@@ -338,8 +345,35 @@ export default function Home() {
     setImpactOpen(false);
     setHowOpen(false);
     setScratchOpen(false);
+    setDemoMenuOpen(false);
     applyDemoStage(0);
     setDemoRuntime((current) => ({ active: true, paused: false, step: 0, runId: current.runId + 1 }));
+  };
+
+  const startGeometryDemo = () => {
+    const nextProposal = cameraMountGeometryProposal({ ...initialEngineeringState, experienceMode: 'guided' }, 105);
+    dispatch({ type: 'RESET_TO_EXISTING' });
+    dispatch({ type: 'SET_EXPERIENCE', mode: 'guided' });
+    dispatch({ type: 'SET_PROPOSAL', proposal: nextProposal });
+    dispatch({ type: 'SELECT_ARTIFACT', artifactId: 'camera-mount' });
+    setBuilderQuery(nextProposal.objective);
+    setMode('builder');
+    setCodeArtifactId(null);
+    setDemoMenuOpen(false);
+    setOpenCadAutoRebuild(true);
+    setOpenCadOpen(true);
+  };
+
+  const openPhysicalDesign = (autoRebuild = false) => {
+    setOpenCadAutoRebuild(autoRebuild);
+    setOpenCadOpen(true);
+  };
+
+  const applyPhysicalDesign = (result: OpenCadRealizationRecord) => {
+    dispatch({ type: 'APPLY_GEOMETRY_RESULT', result });
+    setOpenCadOpen(false);
+    setOpenCadAutoRebuild(false);
+    setMode('builder');
   };
 
   const skipDemoStage = () => {
@@ -452,7 +486,7 @@ export default function Home() {
             ? <button aria-label="Start from Scratch" className="new-build-button" onClick={() => setScratchOpen(true)}><Plus size={14} /> <span>Start from Scratch</span></button>
             : <button aria-label="Open existing rover-alpha build" className="new-build-button existing" onClick={openExistingBuild}><GitBranch size={14} /> <span>Open rover-alpha</span></button>}
           <button className="how-button" onClick={() => setHowOpen(true)}><Info size={14} /> <span>How it works</span></button>
-          <button className="demo-top" onClick={startDemo} disabled={demoRunning || engineering.project.kind === 'generated'}><Play size={14} /> {demoRunning ? 'Running…' : 'Run Demo'}</button>
+          <button className="demo-top" onClick={() => setDemoMenuOpen(true)} disabled={demoRunning || engineering.project.kind === 'generated'}><Play size={14} /> {demoRunning ? 'Running…' : 'Run Demo'}</button>
           <button className="accent" onClick={() => { setMode('builder'); setBuilderError(''); }}><Sparkles size={15} /> Builder</button>
         </div>
       </header>
@@ -537,7 +571,7 @@ export default function Home() {
               <div className="suggestions">{BUILDER_SUGGESTIONS.map((suggestion) => <button key={suggestion} disabled={builderLoading} onClick={() => void runBuilder(suggestion)}>{suggestion}</button>)}</div>
               {builderLoading && <div className="backend-loading"><span className="pulse-dot" /> Checking project files and dependencies...</div>}
               {builderError && <div className="backend-error">{builderError}</div>}
-              {proposal && <ProposalCard proposal={proposal} experience={engineering.experienceMode} onAccept={() => dispatch({ type: 'ACCEPT_PROPOSAL' })} onShowGraph={() => setMode('graph')} onShowPro={() => switchExperience('pro')} />}
+              {proposal && <ProposalCard proposal={proposal} realization={physicalRealization} experience={engineering.experienceMode} onAccept={() => dispatch({ type: 'ACCEPT_PROPOSAL' })} onOpenCad={() => openPhysicalDesign(false)} onShowGraph={() => setMode('graph')} onShowPro={() => switchExperience('pro')} />}
             </section>
           )}
 
@@ -566,6 +600,7 @@ export default function Home() {
             onQuery={setBuilderQuery}
             onRun={(query) => { setMode('builder'); void runBuilder(query); }}
             onAccept={() => dispatch({ type: 'ACCEPT_PROPOSAL' })}
+            onOpenCad={() => openPhysicalDesign(false)}
             onShowPro={() => switchExperience('pro')}
             onOpenScanner={() => setMode('scanner')}
             onAnalyzeJ12={analyzeJ12Change}
@@ -606,11 +641,11 @@ export default function Home() {
       </aside>
 
       <footer className="timeline">
-        <div className="timeline-view"><button className="play-button" onClick={startDemo} disabled={demoRunning || engineering.project.kind === 'generated'} aria-label="Run demo"><Play size={16} /></button><div><div className="eyebrow">VIEWING {revision === engineering.currentRevision ? 'CURRENT' : 'HISTORY'}</div><strong>{revision} · {revisionRecord?.date ?? 'Now'}</strong></div></div>
+        <div className="timeline-view"><button className="play-button" onClick={() => setDemoMenuOpen(true)} disabled={demoRunning || engineering.project.kind === 'generated'} aria-label="Run demo"><Play size={16} /></button><div><div className="eyebrow">VIEWING {revision === engineering.currentRevision ? 'CURRENT' : 'HISTORY'}</div><strong>{revision} · {revisionRecord?.date ?? 'Now'}</strong></div></div>
         <div className="timeline-track" aria-label="Product revisions">
           {engineering.revisions.map((item) => <button key={item.id} className={revision === item.id ? 'current' : ''} onClick={() => dispatch({ type: 'SET_VIEWING_REVISION', revision: item.id })}><i /><span>{item.id}<small>{item.date}</small></span></button>)}
         </div>
-        <div className="timeline-actions"><span>{revisionChanges.length} changed · {engineering.currentRevision} current</span><button onClick={startDemo} disabled={demoRunning || engineering.project.kind === 'generated'}><Play size={12} /> {demoRunning ? 'Demo running' : 'Run Demo'}</button></div>
+        <div className="timeline-actions"><span>{revisionChanges.length} changed · {engineering.currentRevision} current</span><button onClick={() => setDemoMenuOpen(true)} disabled={demoRunning || engineering.project.kind === 'generated'}><Play size={12} /> {demoRunning ? 'Demo running' : 'Run Demo'}</button></div>
       </footer>
 
       <>
@@ -635,12 +670,35 @@ export default function Home() {
               {['Change request', 'Project data', 'Dependencies', 'Proposed edits', 'Validation checks', 'New revision', 'Updated graph'].map((label, index) => <div key={label}><span>{String(index + 1).padStart(2, '0')}</span><b>{label}</b>{index < 6 && <ChevronRight size={13} />}</div>)}
             </div>
             <div className="view-branches"><div><Sparkles size={16} /><b>Beginner</b><span>Summary, choices, and next step</span></div><div><SlidersHorizontal size={16} /><b>Pro</b><span>Edits, calculations, dependencies, and sources</span></div></div>
-            <div className="opencad-principle"><Wrench size={15} /><p><b>CAD export is not connected.</b><span>Forma Labs prepares an OpenCAD handoff, but it does not modify CAD files.</span></p></div>
+            <div className="opencad-principle"><Wrench size={15} /><p><b>OpenCAD runs locally when geometry is required.</b><span>Forma decides what must change; OpenCAD rebuilds and validates the physical result. If the local OCCT service is absent, Forma reports it instead of claiming a CAD operation.</span></p></div>
           </section>
         </div>
       )}
 
       {scratchOpen && <StartFromScratch onClose={() => setScratchOpen(false)} onCreate={createNewBuild} />}
+      {demoMenuOpen && (
+        <div className="modal-backdrop overlay-enter" onMouseDown={(event) => { if (event.target === event.currentTarget) setDemoMenuOpen(false); }}>
+          <section className="demo-picker modal-enter">
+            <header><div><div className="eyebrow">CHOOSE A WALKTHROUGH</div><h2>Run a Forma demo</h2></div><button onClick={() => setDemoMenuOpen(false)}><X size={16} /></button></header>
+            <p>Both paths update the same product graph and revision state. OpenCAD appears only when physical geometry must change.</p>
+            <div>
+              <button onClick={startDemo}><span><Activity size={17} /></span><div><small>ENGINEERING CHANGE</small><b>Increase payload by 30%</b><p>Motor, controller, firmware, BOM, validation, and Rev D. No geometry change required.</p></div><ChevronRight size={15} /></button>
+              <button onClick={startGeometryDemo}><span><Box size={17} /></span><div><small>PHYSICAL REALIZATION</small><b>Raise the camera mount 25 mm</b><p>Forma isolates the change, then opens the focused OpenCAD workspace for rebuild and validation.</p></div><ChevronRight size={15} /></button>
+            </div>
+          </section>
+        </div>
+      )}
+      {openCadOpen && proposal?.openCad.required && (
+        <OpenCadWorkspace
+          experience={engineering.experienceMode}
+          fromRevision={proposal.baseRevision}
+          toRevision={proposal.targetRevision}
+          initialHeightMm={Number(proposal.changed.find((change) => change.artifactId === 'camera-mount')?.after.match(/\d+/)?.[0] ?? 105)}
+          autoRebuild={openCadAutoRebuild}
+          onApply={applyPhysicalDesign}
+          onClose={() => { setOpenCadOpen(false); setOpenCadAutoRebuild(false); }}
+        />
+      )}
       <DemoWalkthrough
         runtime={demoRuntime}
         revision={engineering.currentRevision}
@@ -700,7 +758,7 @@ function GuidedRail({ state, onConstraint }: { state: EngineeringState; onConstr
   );
 }
 
-function GuidedPanel({ state, query, loading, error, onQuery, onRun, onAccept, onShowPro, onOpenScanner, onAnalyzeJ12, onConstraint }: {
+function GuidedPanel({ state, query, loading, error, onQuery, onRun, onAccept, onOpenCad, onShowPro, onOpenScanner, onAnalyzeJ12, onConstraint }: {
   state: EngineeringState;
   query: string;
   loading: boolean;
@@ -708,6 +766,7 @@ function GuidedPanel({ state, query, loading, error, onQuery, onRun, onAccept, o
   onQuery: (query: string) => void;
   onRun: (query: string) => void;
   onAccept: () => void;
+  onOpenCad: () => void;
   onShowPro: () => void;
   onOpenScanner: () => void;
   onAnalyzeJ12: () => void;
@@ -738,6 +797,7 @@ function GuidedPanel({ state, query, loading, error, onQuery, onRun, onAccept, o
   const preservedLabels = proposal?.preservedArtifactIds.map(artifactLabel) ?? [];
   const accepted = proposal?.status === 'accepted';
   const rejected = proposal?.status === 'rejected';
+  const realization = state.physicalRealizations[state.physicalRealizations.length - 1] ?? null;
 
   return (
     <div className="guided-panel">
@@ -746,7 +806,7 @@ function GuidedPanel({ state, query, loading, error, onQuery, onRun, onAccept, o
         <>
           <div className="guided-hero"><span>STEP 1 · REQUEST</span><h2>What do you want the rover to achieve?</h2><p>Describe the result. Forma Labs checks which parts, files, and constraints are affected.</p></div>
           <label className="guided-objective"><textarea value={query} onChange={(event) => onQuery(event.target.value)} placeholder="For example: Increase payload by 30%" /><button disabled={loading} onClick={() => onRun(query || 'Increase payload capacity')}><Sparkles size={14} /> {loading ? 'Checking project data…' : 'Generate change proposal'}</button></label>
-          <div className="guided-examples"><button onClick={() => { onQuery('Increase payload capacity'); onRun('Increase payload capacity'); }}>Increase payload 30% <ChevronRight size={12} /></button><button onClick={() => { onQuery('Increase runtime to 4 hours without changing mission duty cycle.'); onRun('Increase runtime to 4 hours without changing mission duty cycle.'); }}>Reach four-hour runtime <ChevronRight size={12} /></button><button onClick={onAnalyzeJ12}>Replace unavailable J12 <ChevronRight size={12} /></button></div>
+          <div className="guided-examples"><button onClick={() => { onQuery('Increase payload capacity'); onRun('Increase payload capacity'); }}>Increase payload 30% <ChevronRight size={12} /></button><button onClick={() => { onQuery('Increase runtime to 4 hours without changing mission duty cycle.'); onRun('Increase runtime to 4 hours without changing mission duty cycle.'); }}>Reach four-hour runtime <ChevronRight size={12} /></button><button onClick={() => { const objective = 'Make the rover camera mount 25 mm taller so it can see over a 90 mm obstacle.'; onQuery(objective); onRun(objective); }}>Raise camera mount 25 mm <ChevronRight size={12} /></button><button onClick={onAnalyzeJ12}>Replace unavailable J12 <ChevronRight size={12} /></button></div>
           {error && <div className="backend-error">{error}</div>}
           <button className="scanner-entry" onClick={onOpenScanner}><Camera size={15} /><span><b>Start from a physical part</b><small>Take a photo or upload an image</small></span><ChevronRight size={13} /></button>
         </>
@@ -761,9 +821,12 @@ function GuidedPanel({ state, query, loading, error, onQuery, onRun, onAccept, o
           </div>
           <div className="guided-section"><div className="eyebrow">WHAT CHANGES</div><div className="guided-object-list">{changedLabels.length ? changedLabels.map((label) => <span key={label}><Check size={11} />{label}</span>) : <span><CircleX size={11} />No changes proposed</span>}</div></div>
           <div className="guided-section preserved"><div className="eyebrow">WHAT STAYS THE SAME</div><p>{preservedLabels.slice(0, 5).join(', ') || 'No other artifacts change.'}</p></div>
+          {proposal.openCad.required && proposal.status === 'validated' && <div className="guided-physical-change"><div><Wrench size={16} /><span><small>PHYSICAL DESIGN CHANGE REQUIRED</small><b>{proposal.changed[0]?.artifactId === 'camera-mount' ? `Camera Mount · ${proposal.changed[0].before.replace('mount height ', '')} → ${proposal.changed[0].after.replace('mount height ', '')}` : `${proposal.changed.length} physical parameter${proposal.changed.length === 1 ? '' : 's'} to realize`}</b></span></div><p>Forma isolated the required parameter change. OpenCAD must rebuild and validate the geometry before {proposal.targetRevision} can be created.</p><button onClick={onOpenCad}><Box size={13} /> Adjust Physical Design <ChevronRight size={12} /></button></div>}
+          {accepted && realization && <div className={`guided-realization-result ${realization.toolMode}`}><div>{realization.toolMode === 'local' ? <CheckCircle2 size={17} /> : <AlertTriangle size={17} />}<span><small>{realization.toolMode === 'local' ? 'OPENCAD RESULT' : 'SIMULATED DEMO RESULT'}</small><b>Camera Mount Updated</b></span></div><p>Height increased to {realization.requestedChange.heightMm.to} mm. Chassis and camera clearance checks passed.</p><small>{realization.toolMode === 'local' ? 'Real OCCT geometry rebuilt locally.' : 'No OpenCAD operation or CAD file was generated.'}</small></div>}
           {showWhy && <div className="guided-why panel-enter"><b>Why this change?</b><p>{proposal.why}</p><b>Next action</b><p>{proposal.nextAction}</p></div>}
           <div className="guided-actions">
-            {proposal.status === 'validated' && <button className="primary" onClick={onAccept}><Check size={13} /> Accept and create {proposal.targetRevision}</button>}
+            {proposal.status === 'validated' && !proposal.openCad.required && <button className="primary" onClick={onAccept}><Check size={13} /> Accept and create {proposal.targetRevision}</button>}
+            {proposal.status === 'validated' && proposal.openCad.required && <button className="primary" onClick={onOpenCad}><Wrench size={13} /> Adjust Physical Design</button>}
             {accepted && <button className="primary" onClick={onShowPro}><Eye size={13} /> Inspect {state.currentRevision} in Pro</button>}
             {rejected && <button className="primary" onClick={onShowPro}><SlidersHorizontal size={13} /> Resolve fixed constraint in Pro</button>}
             <button onClick={() => onRun('Increase runtime to 4 hours without changing mission duty cycle.')}><Activity size={13} /> Check runtime alternative</button>
@@ -825,10 +888,12 @@ function ValidationIcon({ status }: { status: ValidationStatus }) {
   return <AlertTriangle size={12} />;
 }
 
-function ProposalCard({ proposal, experience, onAccept, onShowGraph, onShowPro }: {
+function ProposalCard({ proposal, realization, experience, onAccept, onOpenCad, onShowGraph, onShowPro }: {
   proposal: EngineeringProposal;
+  realization: OpenCadRealizationRecord | null;
   experience: ExperienceMode;
   onAccept: () => void;
+  onOpenCad: () => void;
   onShowGraph: () => void;
   onShowPro: () => void;
 }) {
@@ -844,11 +909,12 @@ function ProposalCard({ proposal, experience, onAccept, onShowGraph, onShowPro }
           <div className="mutation-list"><div className="eyebrow">REQUIRED CHANGES</div>{proposal.changed.map((change) => <div key={change.artifactId}><span>{change.artifactId}</span><p><b>{change.before}</b><ChevronRight size={10} /><b>{change.after}</b><small>{change.reason}</small></p></div>)}</div>
           <div className="validation-list"><div className="eyebrow">VALIDATION</div>{proposal.validation.map((check) => <div className={check.status} key={check.domain}><ValidationIcon status={check.status} /><span><b>{check.domain}</b><small>{check.message}</small></span></div>)}</div>
           <div className="preserved-line"><b>Unchanged</b><span>{proposal.preservedArtifactIds.map(artifactLabel).join(', ') || 'No other artifacts change.'}</span></div>
-          <div className="opencad-handoff"><Wrench size={14} /><div><b>CAD handoff</b><span>{proposal.openCad.connected ? 'Connected' : 'Not connected; no CAD files were modified'} · {proposal.openCad.operations[0]}</span></div></div>
+          <div className={`opencad-handoff ${proposal.openCad.status}`}><Wrench size={14} /><div><b>{proposal.openCad.required ? 'OpenCAD physical realization' : 'Geometry decision'}</b><span>{proposal.openCad.status === 'realized' ? 'Real OCCT geometry rebuilt locally' : proposal.openCad.status === 'simulated' ? 'Simulated preview only; no CAD files generated' : proposal.openCad.required ? 'Local rebuild required before revision creation' : proposal.openCad.operations[0] === 'No geometry mutation is required for this proposal.' ? 'No physical geometry mutation required' : 'CAD follow-up recorded; focused realization is not mapped for this artifact'} · {proposal.openCad.operations[0]}</span></div>{proposal.openCad.required && proposal.status === 'validated' && <button onClick={onOpenCad}>Open <ChevronRight size={11} /></button>}</div>
+          {realization && proposal.openCad.realizationId === realization.featureId && <div className="opencad-result-detail"><div className="eyebrow">PHYSICAL REALIZATION</div><dl><dt>Artifact ID</dt><dd>{realization.artifactId}</dd><dt>Parameter</dt><dd>{realization.requestedChange.heightMm.from} → {realization.requestedChange.heightMm.to} mm</dd><dt>Operation</dt><dd>{realization.operation.name}</dd><dt>Backend</dt><dd>{realization.operation.backend}</dd><dt>Feature tree</dt><dd>{realization.operation.treeId ?? 'simulation only'}</dd><dt>Validation</dt><dd>{realization.validation.status}</dd></dl>{realization.toolMode === 'local' && <div>{realization.outputs.step && <a href={realization.outputs.step}>Download STEP</a>}{realization.outputs.stl && <a href={realization.outputs.stl}>Download STL</a>}</div>}</div>}
           <EvidenceList evidence={proposal.evidence} limit={3} />
         </>
       ) : <div className="guided-card-copy"><b>Why</b><span>{proposal.why}</span><b>Next</b><span>{proposal.nextAction}</span></div>}
-      <div className="affected-line"><span>{proposal.affectedArtifactIds.length} affected · {proposal.changed.length} changed</span><div>{proposal.status === 'validated' && <button className="commit-button" onClick={onAccept}><Check size={11} /> Create {proposal.targetRevision}</button>}{experience === 'guided' && <button onClick={onShowPro}>Details</button>}<button onClick={onShowGraph}>Graph <ChevronRight size={12} /></button></div></div>
+      <div className="affected-line"><span>{proposal.affectedArtifactIds.length} affected · {proposal.changed.length} changed</span><div>{proposal.status === 'validated' && !proposal.openCad.required && <button className="commit-button" onClick={onAccept}><Check size={11} /> Create {proposal.targetRevision}</button>}{proposal.status === 'validated' && proposal.openCad.required && <button className="commit-button" onClick={onOpenCad}><Wrench size={11} /> Open in OpenCAD</button>}{experience === 'guided' && <button onClick={onShowPro}>Details</button>}<button onClick={onShowGraph}>Graph <ChevronRight size={12} /></button></div></div>
     </div>
   );
 }

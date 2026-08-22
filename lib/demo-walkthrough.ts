@@ -4,6 +4,7 @@ import impactAnalysis from '@/synthetic-assets/rover-alpha/features/impact_analy
 import partSubstitution from '@/synthetic-assets/rover-alpha/features/part_substitution.json';
 import validation from '@/synthetic-assets/rover-alpha/features/validation.json';
 import revisionUpdate from '@/synthetic-assets/rover-alpha/features/revision_update.json';
+import physicalRealization from '@/synthetic-assets/rover-alpha/features/physical_realization.json';
 import type { AgentResponse } from './corpus-types';
 
 export type DemoFeatureId =
@@ -12,7 +13,8 @@ export type DemoFeatureId =
   | 'impact_analysis'
   | 'part_substitution'
   | 'validation'
-  | 'revision_update';
+  | 'revision_update'
+  | 'physical_realization';
 
 export type DemoStage = {
   id: string;
@@ -29,6 +31,7 @@ export const DEMO_FEATURES = {
   part_substitution: partSubstitution,
   validation,
   revision_update: revisionUpdate,
+  physical_realization: physicalRealization,
 } as const;
 
 export const DEMO_STAGES: DemoStage[] = [

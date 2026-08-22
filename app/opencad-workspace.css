@@ -1,0 +1,179 @@
+.opencad-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: grid;
+  place-items: center;
+  padding: 22px;
+  background: rgba(2, 7, 14, .82);
+  backdrop-filter: blur(7px) saturate(.7);
+  color: #e8eef8;
+}
+
+.opencad-workspace {
+  width: min(1180px, calc(100vw - 38px));
+  height: min(820px, calc(100vh - 38px));
+  display: grid;
+  grid-template-rows: 68px 38px minmax(0, 1fr) auto 64px;
+  overflow: hidden;
+  border: 1px solid #33435a;
+  border-radius: 18px;
+  background: linear-gradient(145deg, #0c1421, #070d16 58%);
+  box-shadow: 0 35px 120px rgba(0, 0, 0, .7), inset 0 1px rgba(255, 255, 255, .025);
+  animation: opencad-enter .24s ease both;
+}
+
+@keyframes opencad-enter { from { opacity: 0; transform: translateY(12px) scale(.99); } }
+
+.demo-picker { width: min(590px, calc(100vw - 28px)); overflow: hidden; color: #e6edf7; border: 1px solid #33435a; border-radius: 15px; background: linear-gradient(145deg, #0e1724, #080f19); box-shadow: 0 30px 90px rgba(0,0,0,.62); }
+.demo-picker > header { height: 66px; display: flex; justify-content: space-between; align-items: center; padding: 0 17px; border-bottom: 1px solid #273449; }
+.demo-picker > header h2 { margin: 3px 0 0; font-size: 17px; }
+.demo-picker > header button { width: 31px; height: 31px; display: grid; place-items: center; color: #8493a8; border: 1px solid #304057; border-radius: 8px; background: #121b29; }
+.demo-picker > p { margin: 0; padding: 13px 17px; color: #7d8da2; border-bottom: 1px solid #202c3e; font-size: 10px; line-height: 1.5; }
+.demo-picker > div { display: grid; gap: 8px; padding: 13px; }
+.demo-picker > div > button { display: grid; grid-template-columns: 38px 1fr auto; align-items: center; gap: 11px; padding: 13px; text-align: left; color: #dce5f1; border: 1px solid #2c3a4e; border-radius: 10px; background: #0b1420; cursor: pointer; }
+.demo-picker > div > button:hover { border-color: #54713b; background: #101b16; }
+.demo-picker > div > button > span { width: 36px; height: 36px; display: grid; place-items: center; color: #91dfd4; border: 1px solid #2e5357; border-radius: 9px; background: #0d272a; }
+.demo-picker > div > button:last-child > span { color: #b8fa67; border-color: #45662e; background: #14220f; }
+.demo-picker > div > button > div { display: grid; gap: 3px; }
+.demo-picker > div > button small { color: #718198; font: 650 8px var(--font-geist-mono), monospace; letter-spacing: .12em; }
+.demo-picker > div > button b { font-size: 12px; }
+.demo-picker > div > button p { margin: 1px 0 0; color: #78889d; font-size: 9px; line-height: 1.45; }
+
+.guided-physical-change, .guided-realization-result { margin: 12px 0; padding: 12px; border: 1px solid #45652f; border-radius: 10px; background: linear-gradient(145deg, #14210f, #0c1714); }
+.guided-physical-change > div, .guided-realization-result > div { display: flex; align-items: center; gap: 9px; color: #b8fa67; }
+.guided-physical-change > div span, .guided-realization-result > div span { display: grid; gap: 3px; }
+.guided-physical-change small, .guided-realization-result small { color: #82a267; font: 650 8px var(--font-geist-mono), monospace; letter-spacing: .09em; }
+.guided-physical-change b, .guided-realization-result b { color: #e0e9dc; font-size: 11px; }
+.guided-physical-change > p, .guided-realization-result > p { color: #92a48e; font-size: 9px; line-height: 1.5; }
+.guided-physical-change > button { width: 100%; height: 34px; display: flex; align-items: center; justify-content: center; gap: 7px; color: #b8fa67; border: 1px solid #45682e; border-radius: 7px; background: #192811; cursor: pointer; }
+.guided-realization-result.simulated { border-color: #634b29; background: #21180d; }
+.guided-realization-result.simulated > div { color: #e2ae5b; }
+.guided-realization-result.simulated small { color: #ae9066; }
+.opencad-handoff.required { border-color: #4b642f; }
+.opencad-handoff > button { margin-left: auto; display: flex; align-items: center; gap: 4px; padding: 6px 8px; color: #b8fa67; border: 1px solid #45662e; border-radius: 6px; background: #152310; cursor: pointer; }
+.opencad-result-detail { margin-top: 8px; padding: 10px; border: 1px solid #2b394d; border-radius: 8px; background: #0b1420; }
+.opencad-result-detail dl { display: grid; grid-template-columns: 86px 1fr; gap: 5px 8px; margin: 7px 0; font: 8px/1.35 var(--font-geist-mono), monospace; }
+.opencad-result-detail dt { color: #69798f; }
+.opencad-result-detail dd { min-width: 0; margin: 0; overflow: hidden; color: #abb8c8; text-overflow: ellipsis; white-space: nowrap; }
+.opencad-result-detail > div:last-child { display: flex; gap: 6px; }
+.opencad-result-detail a { padding: 5px 7px; color: #b8fa67; border: 1px solid #43642d; border-radius: 5px; text-decoration: none; font-size: 8px; }
+
+.opencad-workspace > header {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  align-items: center;
+  gap: 14px;
+  padding: 0 18px;
+  border-bottom: 1px solid #233044;
+  background: rgba(8, 14, 24, .9);
+}
+
+.opencad-heading { display: flex; align-items: center; gap: 11px; }
+.opencad-heading > span { width: 34px; height: 34px; display: grid; place-items: center; color: #b9ff67; border: 1px solid #43632c; border-radius: 9px; background: #14220f; }
+.opencad-heading > div { display: grid; gap: 3px; }
+.opencad-heading small, .opencad-demo-flow, .opencad-view-toolbar span, .opencad-connection, .opencad-change-summary > small { color: #75859a; font: 650 9px/1.2 var(--font-geist-mono), monospace; letter-spacing: .12em; text-transform: uppercase; }
+.opencad-heading h2 { margin: 0; font-size: 17px; }
+.opencad-workspace > header > button { width: 32px; height: 32px; display: grid; place-items: center; color: #8290a4; border: 1px solid #2d3b50; border-radius: 8px; background: #111b29; cursor: pointer; }
+.opencad-workspace > header > button:hover { color: #fff; border-color: #53677f; }
+.opencad-workspace > header > a { display: flex; gap: 6px; align-items: center; color: #8fa0b5; text-decoration: none; font-size: 10px; }
+
+.opencad-connection { display: flex; align-items: center; gap: 7px; padding: 7px 9px; border: 1px solid #334158; border-radius: 7px; background: #0e1724; }
+.opencad-connection i { width: 7px; height: 7px; border-radius: 50%; background: #dc6d5d; box-shadow: 0 0 9px #dc6d5d; }
+.opencad-connection.online { color: #a5e75e; border-color: #405c2c; background: #111d0e; }
+.opencad-connection.online i { background: #9ee852; box-shadow: 0 0 9px #9ee852; }
+
+.opencad-demo-flow { display: flex; align-items: center; justify-content: center; gap: 8px; border-bottom: 1px solid #1d293a; background: #09111c; }
+.opencad-demo-flow span { color: #526176; }
+.opencad-demo-flow span.done { color: #76cfc2; }
+.opencad-demo-flow span.active { color: #b9ff67; }
+.opencad-demo-flow svg { color: #3f4f65; }
+
+.opencad-main { min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 320px; }
+.opencad-visual { position: relative; min-height: 0; border-right: 1px solid #233044; background: #08101b; }
+.opencad-view-toolbar { position: absolute; z-index: 3; top: 12px; left: 12px; right: 12px; display: flex; justify-content: space-between; align-items: center; pointer-events: none; }
+.opencad-view-toolbar > div { display: flex; border: 1px solid #334258; border-radius: 8px; overflow: hidden; pointer-events: auto; box-shadow: 0 8px 22px rgba(0,0,0,.24); }
+.opencad-view-toolbar button { height: 31px; padding: 0 11px; color: #77879c; border: 0; border-right: 1px solid #2a374a; background: rgba(11,18,29,.94); font-size: 9px; cursor: pointer; }
+.opencad-view-toolbar button:last-child { border: 0; }
+.opencad-view-toolbar button.active { color: #c8f697; background: #162210; }
+.opencad-three-host { position: absolute; inset: 0; overflow: hidden; }
+.opencad-three-host canvas { display: block; width: 100%; height: 100%; }
+.opencad-no-geometry { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 7px; text-align: center; }
+.opencad-no-geometry i { width: 52px; height: 52px; border: 1px solid #304058; border-radius: 12px; background: linear-gradient(145deg, #182638, #0c1521); transform: rotate(30deg) skew(-5deg); box-shadow: inset 0 0 18px rgba(105,218,218,.06); }
+.opencad-no-geometry b { margin-top: 12px; color: #aab6c7; font-size: 12px; }
+.opencad-no-geometry span { max-width: 310px; color: #64748a; font-size: 10px; line-height: 1.5; }
+.opencad-simulated-badge, .opencad-real-badge { position: absolute; left: 13px; bottom: 13px; z-index: 3; display: flex; align-items: center; gap: 7px; padding: 7px 9px; border: 1px solid #6b522d; border-radius: 7px; color: #e9b662; background: rgba(40,28,12,.92); font: 650 8px var(--font-geist-mono), monospace; letter-spacing: .08em; }
+.opencad-real-badge { color: #aef35f; border-color: #42622b; background: rgba(18,32,13,.94); }
+
+.opencad-controls { min-height: 0; overflow: auto; padding: 14px; background: #0b131f; }
+.opencad-change-summary { padding: 13px; border: 1px solid #34445a; border-radius: 10px; background: linear-gradient(135deg, #101b29, #0d1622); }
+.opencad-change-summary > b { display: block; margin: 6px 0 11px; font-size: 14px; }
+.opencad-change-summary > div { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center; padding: 10px; border: 1px solid #2c3c50; border-radius: 8px; background: #09121d; }
+.opencad-change-summary > div span { color: #718197; text-decoration: line-through; }
+.opencad-change-summary > div strong { justify-self: end; color: #b6fa67; font: 700 17px var(--font-geist-mono), monospace; }
+.opencad-change-summary > div svg { color: #65dac7; }
+.opencad-change-summary p { margin: 10px 0 0; color: #748499; font-size: 9px; line-height: 1.5; }
+.opencad-parameters { margin-top: 14px; }
+.opencad-parameters > .eyebrow { margin-bottom: 7px; }
+.opencad-parameters label { display: grid; gap: 7px; padding: 10px 0; border-top: 1px solid #202d3e; }
+.opencad-parameters label > span { display: flex; align-items: center; gap: 6px; color: #afbac9; font-size: 10px; }
+.opencad-parameters label > span small { margin-left: auto; color: #607086; font: 8px var(--font-geist-mono), monospace; }
+.opencad-parameters label > div { height: 35px; display: grid; grid-template-columns: 1fr 40px; border: 1px solid #33435a; border-radius: 8px; overflow: hidden; background: #08111c; }
+.opencad-parameters input { min-width: 0; padding: 0 10px; color: #e7edf6; border: 0; outline: 0; background: transparent; font: 650 13px var(--font-geist-mono), monospace; }
+.opencad-parameters label > div b { display: grid; place-items: center; color: #78889c; border-left: 1px solid #2d3a4e; font: 9px var(--font-geist-mono), monospace; }
+.opencad-rebuild, .opencad-simulate { width: 100%; height: 38px; margin-top: 10px; display: flex; justify-content: center; align-items: center; gap: 7px; color: #b9ff67; border: 1px solid #45672d; border-radius: 8px; background: #14220f; font-size: 10px; cursor: pointer; }
+.opencad-rebuild:disabled { color: #556276; border-color: #29364a; background: #101722; cursor: not-allowed; }
+.opencad-simulate { color: #e2ae59; border-color: #5b4425; background: #241a0d; }
+.opencad-unavailable { display: flex; gap: 9px; margin-top: 10px; padding: 10px; color: #e1aa57; border: 1px solid #594425; border-radius: 8px; background: #21180d; }
+.opencad-unavailable > div { display: grid; gap: 3px; }
+.opencad-unavailable b { font-size: 10px; }
+.opencad-unavailable span { color: #ab9170; font-size: 9px; line-height: 1.4; }
+
+.opencad-lower { display: grid; grid-template-columns: 1.2fr .8fr; max-height: 210px; overflow: auto; border-top: 1px solid #233044; background: #09111c; }
+.opencad-workspace.guided .opencad-lower { grid-template-columns: 1fr; }
+.opencad-validation, .opencad-technical { padding: 12px 16px; }
+.opencad-technical { border-left: 1px solid #233044; }
+.opencad-validation > .eyebrow, .opencad-technical > .eyebrow { margin-bottom: 7px; }
+.opencad-validation > div:not(.eyebrow) { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; min-height: 30px; padding: 4px 0; color: #77dda5; border-top: 1px solid #1b2737; }
+.opencad-validation > div.warn { color: #e0ad5a; }
+.opencad-validation > div.fail { color: #e06f64; }
+.opencad-validation span { display: grid; gap: 1px; }
+.opencad-validation b { color: #c5cfdd; font-size: 9px; }
+.opencad-validation small { color: #6f7f93; font-size: 8px; }
+.opencad-validation em { color: #617188; font: 8px var(--font-geist-mono), monospace; font-style: normal; text-transform: uppercase; }
+.opencad-validation > p, .opencad-technical > p { color: #6e7e93; font-size: 9px; }
+.opencad-technical dl { display: grid; grid-template-columns: 86px 1fr; gap: 5px 8px; margin: 0; font: 8px/1.35 var(--font-geist-mono), monospace; }
+.opencad-technical dt { color: #64758b; }
+.opencad-technical dd { min-width: 0; margin: 0; overflow: hidden; color: #aeb9c8; text-overflow: ellipsis; white-space: nowrap; }
+.opencad-downloads { display: flex; gap: 6px; margin-top: 9px; }
+.opencad-downloads a { display: flex; align-items: center; gap: 5px; padding: 6px 8px; color: #b8f667; border: 1px solid #3e5d2a; border-radius: 6px; background: #121e0f; text-decoration: none; font-size: 8px; }
+
+.opencad-workspace > footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 0 16px; border-top: 1px solid #233044; background: #080f19; }
+.opencad-principle-line { display: flex; align-items: center; gap: 8px; color: #7f8fa4; font-size: 9px; }
+.opencad-principle-line svg { color: #66d9ca; }
+.opencad-principle-line b { color: #bbc5d3; }
+.opencad-workspace > footer > div:last-child { display: flex; gap: 7px; }
+.opencad-workspace > footer button { height: 34px; padding: 0 13px; color: #8e9eb3; border: 1px solid #2d3b50; border-radius: 8px; background: #111a27; font-size: 9px; cursor: pointer; }
+.opencad-workspace > footer .opencad-apply { display: flex; align-items: center; gap: 7px; color: #b9ff67; border-color: #45672d; background: #14220f; }
+.opencad-workspace > footer .opencad-apply:disabled { color: #526075; border-color: #2a374a; background: #101722; cursor: not-allowed; }
+.spin { animation: opencad-spin .8s linear infinite; }
+@keyframes opencad-spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 900px) {
+  .opencad-overlay { padding: 8px; }
+  .opencad-workspace { width: calc(100vw - 16px); height: calc(100vh - 16px); grid-template-rows: 62px 34px minmax(0,1fr) auto 58px; }
+  .opencad-main { grid-template-columns: 1fr; grid-template-rows: minmax(280px, 1fr) auto; overflow: auto; }
+  .opencad-visual { min-height: 320px; border-right: 0; border-bottom: 1px solid #233044; }
+  .opencad-controls { overflow: visible; }
+  .opencad-lower { max-height: 180px; }
+  .opencad-workspace > header > a, .opencad-view-toolbar > span { display: none; }
+}
+
+@media (max-width: 560px) {
+  .opencad-workspace > header { grid-template-columns: 1fr auto; }
+  .opencad-connection { display: none; }
+  .opencad-demo-flow { gap: 4px; font-size: 7px; }
+  .opencad-workspace > footer { justify-content: flex-end; }
+  .opencad-principle-line { display: none; }
+  .opencad-lower { max-height: 150px; }
+}

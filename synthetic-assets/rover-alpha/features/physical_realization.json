@@ -1,0 +1,25 @@
+{
+  "feature_id": "geometry_001",
+  "feature_type": "physical_realization",
+  "status": "pending_opencad",
+  "artifact_id": "camera-mount",
+  "tool": "opencad",
+  "objective": "Make the rover camera mount taller so it can see over a 90 mm obstacle.",
+  "requested_change": {
+    "height_mm": {
+      "from": 80,
+      "to": 105
+    },
+    "minimum_cable_clearance_mm": 8
+  },
+  "affected_artifact_ids": ["camera-mount", "camera-module", "camera-service", "cable-routing", "chassis"],
+  "preserved_artifact_ids": ["chassis", "camera-module", "camera-service", "main-board", "battery-enclosure"],
+  "validation": {
+    "status": "pending",
+    "required": ["geometry", "chassis_clearance", "camera_clearance", "cable_clearance", "wall_thickness"]
+  },
+  "outputs": {
+    "step": null,
+    "stl": null
+  }
+}

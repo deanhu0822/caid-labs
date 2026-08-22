@@ -1,5 +1,5 @@
 import type { AgentResponse, CorpusEvidence } from './corpus-types';
-import { openCadAdapter, type OpenCadRealizationPlan } from './opencad-adapter';
+import { openCadAdapter, type OpenCadRealizationPlan, type OpenCadRealizationRecord } from './opencad-adapter';
 import type { ScannerMatch } from './scanner-analysis';
 import type { PrototypeBuildDefinition } from './new-build-adapter';
 
@@ -16,7 +16,7 @@ export type EngineeringConstraint = {
 };
 
 export type ValidationCheck = {
-  domain: 'Constraint' | 'Dependency' | 'Electrical' | 'Mechanical' | 'Manufacturing';
+  domain: 'Constraint' | 'Dependency' | 'Electrical' | 'Mechanical' | 'Manufacturing' | 'Geometry';
   status: ValidationStatus;
   message: string;
 };
@@ -86,6 +86,7 @@ export type EngineeringState = {
   scannerObservation: ScannerMatch | null;
   artifactOverrides: Record<string, { label?: string; meta?: string }>;
   revisions: RevisionRecord[];
+  physicalRealizations: OpenCadRealizationRecord[];
 };
 
 export type EngineeringAction =
@@ -97,6 +98,7 @@ export type EngineeringAction =
   | { type: 'SET_FOCUS'; artifactIds: string[] }
   | { type: 'SET_PROPOSAL'; proposal: EngineeringProposal }
   | { type: 'ACCEPT_PROPOSAL' }
+  | { type: 'APPLY_GEOMETRY_RESULT'; result: OpenCadRealizationRecord }
   | { type: 'SET_VIEWING_REVISION'; revision: string }
   | { type: 'SET_SCANNER_OBSERVATION'; observation: ScannerMatch }
   | { type: 'TOGGLE_FIXED_ARTIFACT'; artifactId: string }
@@ -123,6 +125,7 @@ export const initialEngineeringState: EngineeringState = {
   scannerObservation: null,
   artifactOverrides: {},
   revisions: INITIAL_REVISIONS,
+  physicalRealizations: [],
 };
 
 function nextRevision(revision: string) {
@@ -264,7 +267,57 @@ function runtimeProposal(response: AgentResponse, state: EngineeringState): Engi
   }, state);
 }
 
+export function cameraMountGeometryProposal(state: EngineeringState, heightMm = 105): EngineeringProposal {
+  const nextHeight = Math.max(85, Math.min(120, Math.round(heightMm)));
+  return createProposal({
+    objective: `Make the rover camera mount ${nextHeight - 80} mm taller so it can see over a 90 mm obstacle.`,
+    title: `Raise Camera Mount to ${nextHeight} mm`,
+    summary: `Forma isolated the physical change to the camera mount. The chassis and camera module stay released while OpenCAD rebuilds the mount from 80 mm to ${nextHeight} mm.`,
+    why: `A ${nextHeight} mm mount places the optical center above the 90 mm obstruction while retaining the current CHS-240 interface.`,
+    tradeoff: 'The cable service loop must retain at least 8 mm clearance after the height increase.',
+    nextAction: 'Adjust and validate the physical design in the local OpenCAD workspace.',
+    status: 'validated',
+    sourceTaskId: 'GEOMETRY-001',
+    affectedArtifactIds: ['camera-mount', 'camera-module', 'camera-service', 'cable-routing', 'chassis'],
+    changed: [
+      { artifactId: 'camera-mount', before: '80 mm mount height', after: `${nextHeight} mm mount height`, reason: 'Raise the optical center above a 90 mm obstruction.' },
+    ],
+    preservedArtifactIds: ['chassis', 'camera-module', 'camera-service', 'main-board', 'battery-enclosure'],
+    artifactOverrides: {
+      'camera-mount': { label: 'Camera Mount · Tall', meta: `CAM-MNT-D · ${nextHeight}MM` },
+    },
+    metrics: [
+      { label: 'Height', value: `${nextHeight} mm`, tone: 'positive' },
+      { label: 'Delta', value: `+${nextHeight - 80} mm`, tone: 'neutral' },
+      { label: 'Obstacle', value: '90 mm', tone: 'neutral' },
+      { label: 'Min clearance', value: '8 mm', tone: 'neutral' },
+    ],
+    validation: [
+      { domain: 'Constraint', status: 'pass', message: 'The current chassis interface is fixed and preserved.' },
+      { domain: 'Dependency', status: 'pass', message: 'Camera mount, camera service, cable routing, and chassis clearance were traced.' },
+      { domain: 'Geometry', status: 'warn', message: 'OpenCAD rebuild and mesh validation are required before revision creation.' },
+      { domain: 'Mechanical', status: 'warn', message: 'Confirm sight-line, wall thickness, and chassis envelope in OpenCAD.' },
+      { domain: 'Manufacturing', status: 'warn', message: 'Release the rebuilt STEP/STL only if the local OCCT export succeeds.' },
+    ],
+    evidence: [{
+      sourceFile: 'features/physical_realization.json',
+      title: 'Camera mount physical realization contract',
+      excerpt: 'The camera mount height changes from 80 mm to 105 mm only after an OpenCAD rebuild and physical validation.',
+      artifactIds: ['camera-mount', 'camera-module', 'cable-routing', 'chassis'],
+      score: 99,
+    }],
+    confidence: 0.96,
+    latencyMs: 0,
+  }, state);
+}
+
 export function proposalFromAgent(response: AgentResponse, state: EngineeringState): EngineeringProposal {
+  if (/camera mount|mount.*taller|see over|obstacle/i.test(response.question)) {
+    const requestedDelta =
+      response.question.match(/(?:increase|raise)[^\d]{0,20}(\d+)\s*mm/i)?.[1] ??
+      response.question.match(/(\d+)\s*mm[^\d]{0,20}taller/i)?.[1];
+    return cameraMountGeometryProposal(state, 80 + (requestedDelta ? Number(requestedDelta) : 25));
+  }
   if (response.matchedTask?.id === 'BLD-001' || /payload/i.test(response.question)) return payloadProposal(response, state);
   if (response.matchedTask?.id === 'BLD-002' || /runtime|battery life/i.test(response.question)) return runtimeProposal(response, state);
   if (response.matchedTask?.id === 'BLD-003' || /j12|connector/i.test(response.question)) return j12ChangeProposal(state, response);
@@ -428,6 +481,81 @@ export function engineeringReducer(state: EngineeringState, action: EngineeringA
         artifactOverrides: { ...state.artifactOverrides, ...accepted.artifactOverrides },
         focusArtifactIds: revision.changedArtifactIds,
         revisions: [...state.revisions.filter((item) => item.id !== revision.id), revision],
+      };
+    }
+    case 'APPLY_GEOMETRY_RESULT': {
+      if (!state.proposal || state.proposal.status !== 'validated' || !state.proposal.openCad.required) return state;
+      if (action.result.validation.status !== 'valid') return state;
+      const appliedHeight = action.result.requestedChange.heightMm.to;
+      const appliedDelta = appliedHeight - action.result.requestedChange.heightMm.from;
+      const isCameraMount = action.result.artifactId === 'camera-mount';
+      const mechanicalChecksPass = action.result.validation.checks
+        .filter((check) => check.key !== 'geometry')
+        .every((check) => check.status === 'pass');
+      const realExportsReady = action.result.toolMode === 'local' && Boolean(action.result.outputs.step && action.result.outputs.stl);
+      const accepted = {
+        ...state.proposal,
+        title: isCameraMount ? `Raise Camera Mount to ${appliedHeight} mm` : state.proposal.title,
+        summary: isCameraMount
+          ? `OpenCAD rebuilt the camera mount from ${action.result.requestedChange.heightMm.from} mm to ${appliedHeight} mm. The validated physical result is now part of the shared engineering state.`
+          : state.proposal.summary,
+        why: isCameraMount
+          ? `The ${appliedHeight} mm result places the optical center ${appliedHeight - 90} mm above the obstruction while retaining the current CHS-240 interface.`
+          : state.proposal.why,
+        changed: isCameraMount
+          ? state.proposal.changed.map((change) => change.artifactId === 'camera-mount'
+            ? { ...change, before: `${action.result.requestedChange.heightMm.from} mm mount height`, after: `${appliedHeight} mm mount height` }
+            : change)
+          : state.proposal.changed,
+        artifactOverrides: isCameraMount
+          ? { ...state.proposal.artifactOverrides, 'camera-mount': { label: 'Camera Mount · Tall', meta: `CAM-MNT-D · ${appliedHeight}MM` } }
+          : state.proposal.artifactOverrides,
+        metrics: isCameraMount
+          ? state.proposal.metrics.map((metric) => metric.label === 'Height'
+            ? { ...metric, value: `${appliedHeight} mm` }
+            : metric.label === 'Delta' ? { ...metric, value: `${appliedDelta >= 0 ? '+' : ''}${appliedDelta} mm` } : metric)
+          : state.proposal.metrics,
+        status: 'accepted' as const,
+        validation: state.proposal.validation.map((check) => {
+          if (check.domain === 'Geometry') return { ...check, status: 'pass' as const, message: action.result.toolMode === 'local' ? 'OpenCAD rebuilt and validated the physical geometry.' : 'A simulated preview was applied to demo state; no real CAD output was claimed.' };
+          if (check.domain === 'Mechanical') return { ...check, status: mechanicalChecksPass ? 'pass' as const : 'warn' as const, message: mechanicalChecksPass ? 'Chassis, sight-line, cable, and wall-thickness checks passed.' : 'One or more physical envelope checks still need review.' };
+          if (check.domain === 'Manufacturing') return { ...check, status: realExportsReady ? 'pass' as const : 'warn' as const, message: realExportsReady ? 'OpenCAD generated real STEP and STL export paths for release.' : 'No real CAD file was generated; the result remains a clearly labeled demo preview.' };
+          return check;
+        }),
+        evidence: isCameraMount
+          ? state.proposal.evidence.map((item) => item.sourceFile === 'features/physical_realization.json'
+            ? { ...item, excerpt: `OpenCAD realized the camera mount change from ${action.result.requestedChange.heightMm.from} mm to ${appliedHeight} mm and returned ${action.result.validation.status} physical validation.` }
+            : item)
+          : state.proposal.evidence,
+        openCad: {
+          ...state.proposal.openCad,
+          connected: action.result.toolMode === 'local',
+          status: action.result.toolMode === 'local' ? 'realized' as const : 'simulated' as const,
+          realizationId: action.result.featureId,
+          note: action.result.toolMode === 'local'
+            ? 'OpenCAD rebuilt the local feature tree and returned validated OCCT geometry.'
+            : 'Simulated geometry preview applied. No OpenCAD operation or CAD file generation was claimed.',
+        },
+      };
+      const revision: RevisionRecord = {
+        id: accepted.targetRevision,
+        date: 'Now',
+        title: accepted.title,
+        changedArtifactIds: accepted.changed.map((change) => change.artifactId),
+        preservedArtifactIds: accepted.preservedArtifactIds,
+        mutations: accepted.changed,
+        artifactOverrides: { ...state.artifactOverrides, ...accepted.artifactOverrides },
+      };
+      return {
+        ...state,
+        currentRevision: accepted.targetRevision,
+        viewingRevision: accepted.targetRevision,
+        proposal: accepted,
+        artifactOverrides: { ...state.artifactOverrides, ...accepted.artifactOverrides },
+        focusArtifactIds: revision.changedArtifactIds,
+        selectedArtifactId: action.result.artifactId,
+        revisions: [...state.revisions.filter((item) => item.id !== revision.id), revision],
+        physicalRealizations: [...state.physicalRealizations.filter((item) => item.featureId !== action.result.featureId), action.result],
       };
     }
     case 'SET_VIEWING_REVISION':
