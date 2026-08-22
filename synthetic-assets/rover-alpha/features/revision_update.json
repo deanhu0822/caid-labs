@@ -1,0 +1,24 @@
+{
+  "feature": "revision_update",
+  "state_id": "revision-c-to-d",
+  "title": "Revision update",
+  "from_revision": "Rev C",
+  "to_revision": "Rev D",
+  "principle": "Change as little as possible, but as much as necessary.",
+  "changed_artifact_ids": ["motor-bom", "motor-controller", "motor-driver", "power-board", "motor-control"],
+  "preserved_artifact_ids": ["chassis", "camera-module", "camera-mount", "battery-enclosure", "navigation"],
+  "guided_result": {
+    "headline": "Payload increased by 30%",
+    "changed": ["Upgraded drive motor", "Updated controller setting"],
+    "tradeoff": "Slightly lower battery runtime",
+    "next_action": "Apply Rev D build configuration"
+  },
+  "pro_evidence": [
+    { "label": "Motor", "value": "M2 → M4" },
+    { "label": "Torque", "value": "+32%" },
+    { "label": "Peak current", "value": "+18%" },
+    { "label": "Mass", "value": "+120 g" },
+    { "label": "BOM", "value": "+$31.40" },
+    { "label": "Runtime", "value": "-11%" }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "feature": "clarify_constraints",
+  "state_id": "constraints-payload-30-resolved",
+  "title": "Constraint interpretation",
+  "fixed": ["Chassis geometry", "Current form factor"],
+  "mutable": ["Drive motor", "Motor controller", "Battery", "Firmware", "BOM"],
+  "resolved_constraints": [
+    { "key": "payload", "value": 10.4, "unit": "kg" },
+    { "key": "chassis", "value": "CHS-240", "fixed": true },
+    { "key": "form_factor", "value": "Rev C envelope", "fixed": true }
+  ]
+}

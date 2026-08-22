@@ -1,0 +1,13 @@
+{
+  "feature": "validation",
+  "state_id": "validation-payload-rev-d",
+  "title": "Validation",
+  "checks": [
+    { "label": "Payload target achieved", "status": "pass" },
+    { "label": "Chassis remains unchanged", "status": "pass" },
+    { "label": "Controller stays under current limit", "status": "pass" },
+    { "label": "BOM increase within budget", "status": "pass" },
+    { "label": "Battery runtime decreases 11%", "status": "warn" }
+  ],
+  "result": "validated_with_tradeoff"
+}

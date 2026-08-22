@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import {
   Background,
   BackgroundVariant,
@@ -81,8 +81,10 @@ import {
 } from '@/lib/engineering-state';
 import { localScannerAdapter, type ScannerAnalysis, type ScannerMatch } from '@/lib/scanner-analysis';
 import { DEMO_CODE_PREVIEWS, type DemoCodePreview } from './demo-code';
+import { DemoWalkthrough, type DemoRuntime } from './demo-walkthrough';
 import { StartFromScratch } from './start-from-scratch';
 import type { PrototypeBuildDefinition } from '@/lib/new-build-adapter';
+import { DEMO_FEATURES, DEMO_IMPACT_IDS, DEMO_OBJECTIVE, DEMO_STAGES, demoAgentResponse } from '@/lib/demo-walkthrough';
 
 type ArtifactData = Artifact & { activeRevision: string };
 type ArtifactNode = Node<ArtifactData, 'artifact'>;
@@ -148,10 +150,14 @@ export default function Home() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [codeArtifactId, setCodeArtifactId] = useState<string | null>(null);
-  const [demoRunning, setDemoRunning] = useState(false);
-  const [demoLabel, setDemoLabel] = useState('');
+  const [demoRuntime, setDemoRuntime] = useState<DemoRuntime>({ active: false, paused: false, step: 0, runId: 0 });
   const [scratchOpen, setScratchOpen] = useState(false);
-  const demoToken = useRef(0);
+  const engineeringRef = useRef(engineering);
+  const demoRunning = demoRuntime.active;
+
+  useEffect(() => {
+    engineeringRef.current = engineering;
+  }, [engineering]);
 
   const selectedId = engineering.selectedArtifactId;
   const revision = engineering.viewingRevision;
@@ -273,44 +279,86 @@ export default function Home() {
     }
   };
 
-  const runDemo = async () => {
-    if (demoRunning || engineering.project.kind === 'generated') return;
-    const token = ++demoToken.current;
-    setDemoRunning(true);
+  const applyDemoStage = useCallback((step: number) => {
+    const stage = DEMO_STAGES[step];
+    if (!stage) return;
+
+    if (stage.phase === 'intent') {
+      dispatch({ type: 'RESET_TO_EXISTING' });
+      dispatch({ type: 'SET_EXPERIENCE', mode: 'guided' });
+      dispatch({ type: 'SET_OBJECTIVE', objective: DEMO_OBJECTIVE });
+      dispatch({ type: 'SET_FOCUS', artifactIds: [] });
+      dispatch({ type: 'SELECT_ARTIFACT', artifactId: 'rover' });
+      setBuilderQuery(DEMO_OBJECTIVE);
+      setMode('builder');
+    } else if (stage.phase === 'constraints') {
+      DEMO_FEATURES.clarify_constraints.resolved_constraints.forEach((constraint) => {
+        dispatch({
+          type: 'SET_CONSTRAINT',
+          constraint: {
+            key: constraint.key === 'chassis' ? 'fixed:chassis' : constraint.key,
+            label: constraint.key === 'payload' ? 'Payload target' : constraint.key === 'chassis' ? 'Keep component' : 'Form factor',
+            value: constraint.value,
+            unit: 'unit' in constraint ? constraint.unit : undefined,
+            source: 'guided',
+          },
+        });
+      });
+      dispatch({ type: 'SET_FOCUS', artifactIds: ['chassis'] });
+      dispatch({ type: 'SELECT_ARTIFACT', artifactId: 'chassis' });
+      setMode('builder');
+    } else if (stage.phase === 'graph') {
+      dispatch({ type: 'SET_EXPERIENCE', mode: 'pro' });
+      dispatch({ type: 'SET_FOCUS', artifactIds: [...DEMO_IMPACT_IDS] });
+      dispatch({ type: 'SELECT_ARTIFACT', artifactId: 'motor-bom' });
+      setMode('graph');
+    } else if (stage.phase === 'candidate') {
+      const nextProposal = proposalFromAgent(demoAgentResponse(), engineeringRef.current);
+      dispatch({ type: 'SET_PROPOSAL', proposal: nextProposal });
+      dispatch({ type: 'SELECT_ARTIFACT', artifactId: 'motor-bom' });
+      setMode('graph');
+    } else if (stage.phase === 'validation') {
+      setMode('builder');
+      dispatch({ type: 'SET_EXPERIENCE', mode: 'pro' });
+    } else if (stage.phase === 'revision') {
+      dispatch({ type: 'ACCEPT_PROPOSAL' });
+      setMode('graph');
+    } else if (stage.phase === 'guided') {
+      dispatch({ type: 'SET_EXPERIENCE', mode: 'guided' });
+      setMode('builder');
+    } else if (stage.phase === 'pro') {
+      dispatch({ type: 'SET_EXPERIENCE', mode: 'pro' });
+      setMode('builder');
+    }
+  }, []);
+
+  const startDemo = () => {
     setCodeArtifactId(null);
     setBuilderError('');
-    dispatch({ type: 'SET_FOCUS', artifactIds: [] });
     setImpactOpen(false);
-    dispatch({ type: 'SET_EXPERIENCE', mode: 'guided' });
-    setMode('builder');
-    dispatch({ type: 'SELECT_ARTIFACT', artifactId: 'j12' });
-    setDemoLabel('1 / 6 · Beginner request: increase payload by 30%');
-    await sleep(1600);
-    if (token !== demoToken.current) return;
-    setBuilderQuery('Increase payload capacity');
-    setDemoLabel('2 / 6 · Checking constraints and affected artifacts');
-    await sleep(600);
-    await runBuilder('Increase payload capacity');
-    await sleep(2200);
-    dispatch({ type: 'ACCEPT_PROPOSAL' });
-    setDemoLabel('3 / 6 · Change accepted as the next revision');
-    await sleep(1800);
-    dispatch({ type: 'SET_EXPERIENCE', mode: 'pro' });
-    setMode('builder');
-    setDemoLabel('4 / 6 · Pro shows calculations, source files, and checks');
-    await sleep(2200);
-    setMode('scanner');
-    setDemoLabel('5 / 6 · Scanner is ready for a photo or upload');
-    await sleep(1800);
-    const observation = localScannerAdapter.confirmArtifact('j12', 'J12 Connector');
-    dispatch({ type: 'SET_SCANNER_OBSERVATION', observation });
-    setDemoLabel('6 / 6 · Demo image linked to J12');
-    await sleep(2000);
-    setDemoRunning(false);
-    setDemoLabel('Demo complete');
-    await sleep(2200);
-    setDemoLabel('');
+    setHowOpen(false);
+    setScratchOpen(false);
+    applyDemoStage(0);
+    setDemoRuntime((current) => ({ active: true, paused: false, step: 0, runId: current.runId + 1 }));
   };
+
+  const skipDemoStage = () => {
+    const nextStep = Math.min(demoRuntime.step + 1, DEMO_STAGES.length - 1);
+    applyDemoStage(nextStep);
+    setDemoRuntime((current) => ({ ...current, paused: false, step: nextStep }));
+  };
+
+  useEffect(() => {
+    if (!demoRuntime.active || demoRuntime.paused) return;
+    const stage = DEMO_STAGES[demoRuntime.step];
+    if (!stage || stage.durationMs <= 0) return;
+    const timeout = window.setTimeout(() => {
+      const nextStep = Math.min(demoRuntime.step + 1, DEMO_STAGES.length - 1);
+      applyDemoStage(nextStep);
+      setDemoRuntime((current) => current.active && current.step === demoRuntime.step ? { ...current, step: nextStep } : current);
+    }, stage.durationMs);
+    return () => window.clearTimeout(timeout);
+  }, [applyDemoStage, demoRuntime.active, demoRuntime.paused, demoRuntime.runId, demoRuntime.step]);
 
   const baseDetails = DETAIL_OVERRIDES[selectedId] ?? {
     Type: CATEGORY_META[selectedArtifact.category].label,
@@ -404,7 +452,7 @@ export default function Home() {
             ? <button aria-label="Start from Scratch" className="new-build-button" onClick={() => setScratchOpen(true)}><Plus size={14} /> <span>Start from Scratch</span></button>
             : <button aria-label="Open existing rover-alpha build" className="new-build-button existing" onClick={openExistingBuild}><GitBranch size={14} /> <span>Open rover-alpha</span></button>}
           <button className="how-button" onClick={() => setHowOpen(true)}><Info size={14} /> <span>How it works</span></button>
-          <button className="demo-top" onClick={runDemo} disabled={demoRunning || engineering.project.kind === 'generated'}><Play size={14} /> {demoRunning ? 'Running…' : 'Run Demo'}</button>
+          <button className="demo-top" onClick={startDemo} disabled={demoRunning || engineering.project.kind === 'generated'}><Play size={14} /> {demoRunning ? 'Running…' : 'Run Demo'}</button>
           <button className="accent" onClick={() => { setMode('builder'); setBuilderError(''); }}><Sparkles size={15} /> Builder</button>
         </div>
       </header>
@@ -558,11 +606,11 @@ export default function Home() {
       </aside>
 
       <footer className="timeline">
-        <div className="timeline-view"><button className="play-button" onClick={runDemo} aria-label="Run demo"><Play size={16} /></button><div><div className="eyebrow">VIEWING {revision === engineering.currentRevision ? 'CURRENT' : 'HISTORY'}</div><strong>{revision} · {revisionRecord?.date ?? 'Now'}</strong></div></div>
+        <div className="timeline-view"><button className="play-button" onClick={startDemo} disabled={demoRunning || engineering.project.kind === 'generated'} aria-label="Run demo"><Play size={16} /></button><div><div className="eyebrow">VIEWING {revision === engineering.currentRevision ? 'CURRENT' : 'HISTORY'}</div><strong>{revision} · {revisionRecord?.date ?? 'Now'}</strong></div></div>
         <div className="timeline-track" aria-label="Product revisions">
           {engineering.revisions.map((item) => <button key={item.id} className={revision === item.id ? 'current' : ''} onClick={() => dispatch({ type: 'SET_VIEWING_REVISION', revision: item.id })}><i /><span>{item.id}<small>{item.date}</small></span></button>)}
         </div>
-        <div className="timeline-actions"><span>{revisionChanges.length} changed · {engineering.currentRevision} current</span><button onClick={runDemo} disabled={demoRunning}><Play size={12} /> {demoRunning ? 'Demo running' : 'Run Demo'}</button></div>
+        <div className="timeline-actions"><span>{revisionChanges.length} changed · {engineering.currentRevision} current</span><button onClick={startDemo} disabled={demoRunning || engineering.project.kind === 'generated'}><Play size={12} /> {demoRunning ? 'Demo running' : 'Run Demo'}</button></div>
       </footer>
 
       <>
@@ -593,7 +641,14 @@ export default function Home() {
       )}
 
       {scratchOpen && <StartFromScratch onClose={() => setScratchOpen(false)} onCreate={createNewBuild} />}
-      {demoLabel && <div className="demo-toast toast-enter"><span className={demoRunning ? 'pulse-dot' : 'done-dot'} />{demoLabel}</div>}
+      <DemoWalkthrough
+        runtime={demoRuntime}
+        revision={engineering.currentRevision}
+        onPause={() => setDemoRuntime((current) => ({ ...current, paused: !current.paused }))}
+        onRestart={startDemo}
+        onSkip={skipDemoStage}
+        onExit={() => setDemoRuntime((current) => ({ ...current, active: false, paused: false }))}
+      />
     </main>
   );
 }

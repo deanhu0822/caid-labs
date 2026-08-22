@@ -1,0 +1,14 @@
+{
+  "feature": "impact_analysis",
+  "state_id": "impact-payload-30",
+  "title": "Impact analysis",
+  "summary": "Five product systems define the feasible payload upgrade.",
+  "affected_systems": [
+    { "label": "Drive motor", "artifact_ids": ["motor-bom"] },
+    { "label": "Motor controller", "artifact_ids": ["motor-controller"] },
+    { "label": "Battery", "artifact_ids": ["battery"] },
+    { "label": "Firmware", "artifact_ids": ["motor-control"] },
+    { "label": "BOM", "artifact_ids": ["motor-driver"] }
+  ],
+  "focus_artifact_ids": ["motor-bom", "motor-controller", "battery", "motor-control", "motor-driver"]
+}

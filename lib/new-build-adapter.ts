@@ -1,3 +1,5 @@
+import { mockFormaInferenceProvider } from './forma-inference';
+
 export type PrototypeSourceKind = 'image' | 'video';
 
 export type PrototypeInputSource = {
@@ -304,21 +306,37 @@ export const newBuildPrototypeAdapter: NewBuildPrototypeAdapter = {
   openCadConnected: false,
   async analyzeImage(source) {
     await wait(120);
-    return { sourceId: source.id, kind: 'image', summary: `${source.name} is attached as visual context. Its pixels were not analyzed in this prototype.`, inferenceConnected: false };
+    const observation = await mockFormaInferenceProvider.observeMedia({ sourceId: source.id, kind: 'image', name: source.name, mimeType: source.mimeType });
+    return { sourceId: source.id, kind: 'image', summary: observation.summary, inferenceConnected: false };
   },
   async analyzeVideo(source) {
     await wait(120);
-    return { sourceId: source.id, kind: 'video', summary: `${source.name} is attached as motion context. Its frames and audio were not analyzed in this prototype.`, inferenceConnected: false };
+    const observation = await mockFormaInferenceProvider.observeMedia({ sourceId: source.id, kind: 'video', name: source.name, mimeType: source.mimeType });
+    return { sourceId: source.id, kind: 'video', summary: observation.summary, inferenceConnected: false };
   },
   async analyzeIntent({ text, sources }) {
     const mediaObservations = await Promise.all(sources.map((source) => source.kind === 'image' ? this.analyzeImage(source) : this.analyzeVideo(source)));
     await wait(240);
     const scenario = detectScenario(text);
-    return scenario === 'inspection-rover' ? roverIntent(text, mediaObservations) : scenarioIntent(scenario, mediaObservations);
+    const deterministicIntent = scenario === 'inspection-rover' ? roverIntent(text, mediaObservations) : scenarioIntent(scenario, mediaObservations);
+    const routed = await mockFormaInferenceProvider.reason({
+      objective: text,
+      engineeringState: { sources: sources.map(({ id, kind, name, mimeType }) => ({ id, kind, name, mimeType })) },
+      featureContract: { output: 'PrototypeIntent', prototype: true },
+      mockResult: deterministicIntent,
+    });
+    return routed.structured;
   },
   async synthesizeArchitecture(intent, clarifications) {
     await wait(320);
-    const architecture = intent.scenario === 'inspection-rover' ? roverArchitecture(intent, clarifications) : compactArchitecture(intent, clarifications);
+    const deterministicArchitecture = intent.scenario === 'inspection-rover' ? roverArchitecture(intent, clarifications) : compactArchitecture(intent, clarifications);
+    const routed = await mockFormaInferenceProvider.reason({
+      objective: intent.goalSummary,
+      engineeringState: { intent, clarifications },
+      featureContract: { output: 'PrototypeArchitecture', prototype: true },
+      mockResult: deterministicArchitecture,
+    });
+    const architecture = routed.structured;
     architecture.prototypeChecks = await this.validateDesign(architecture);
     architecture.openCad = await this.realizeWithOpenCAD(architecture);
     return architecture;

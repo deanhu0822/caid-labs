@@ -1,3 +1,5 @@
+import { mockFormaInferenceProvider } from './forma-inference';
+
 export type ScannerMatch = {
   status: 'matched';
   mode: 'simulated-label-match' | 'manual-observation';
@@ -33,13 +35,20 @@ export const localScannerAdapter: ScannerAnalysisAdapter = {
   inferenceConnected: false,
   async analyze(file) {
     await new Promise((resolve) => window.setTimeout(resolve, 650));
+    const observation = await mockFormaInferenceProvider.observeMedia({
+      sourceId: `scanner-${file.name}`,
+      kind: file.type.startsWith('video/') ? 'video' : 'image',
+      name: file.name,
+      mimeType: file.type,
+      context: 'Match a physical rover component to the committed product graph.',
+    });
     const normalizedName = file.name.toLowerCase();
     const match = FILE_LABEL_RULES.find((rule) => rule.terms.some((term) => normalizedName.includes(term)));
     if (!match) {
       return {
         status: 'needs-confirmation',
         mode: 'no-inference',
-        explanation: 'The image was loaded locally. No vision model is connected, so Forma Labs cannot identify the part automatically. Select the part shown in the image.',
+        explanation: `${observation.summary} Select the part shown in the media to create a user-confirmed graph observation.`,
       };
     }
     return {
@@ -48,7 +57,7 @@ export const localScannerAdapter: ScannerAnalysisAdapter = {
       artifactId: match.artifactId,
       label: match.label,
       confidence: match.confidence,
-      explanation: 'Demo match based on the synthetic asset filename and label corpus—not computer-vision inference.',
+      explanation: 'Mock-provider match based on the synthetic asset filename and label corpus—not computer-vision inference.',
       bounds: { x: 48, y: 35, width: 28, height: 24 },
     };
   },

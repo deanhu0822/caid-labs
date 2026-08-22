@@ -1,0 +1,14 @@
+{
+  "feature": "part_substitution",
+  "state_id": "substitution-m2-to-m4",
+  "title": "Candidate change",
+  "current_part": "Motor M2",
+  "selected_part": "Motor M4",
+  "selected_part_number": "MTR-24-290",
+  "reasons": ["+32% torque", "Fits current chassis", "Available in stock", "Within BOM budget"],
+  "candidates": [
+    { "id": "M3", "label": "Motor M3", "status": "rejected", "reason": "Torque margin below payload target" },
+    { "id": "M5", "label": "Motor M5", "status": "rejected", "reason": "Exceeds current chassis envelope" },
+    { "id": "M4", "label": "Motor M4", "status": "selected", "reason": "Smallest compatible change" }
+  ]
+}

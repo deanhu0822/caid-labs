@@ -1,5 +1,6 @@
 import { getEvaluationTasks, getEvidenceForFiles, searchCorpus, tokenize } from './corpus';
 import type { AgentKind, AgentResponse, CorpusEvidence } from './corpus-types';
+import { formaInferenceProvider } from './forma-inference.server';
 
 const AGENT_LABELS: Record<AgentKind, string> = {
   builder: 'Builder Agent',
@@ -33,6 +34,31 @@ function sentences(value: string) {
     .slice(0, 6);
 }
 
+async function routeReasoningThroughProvider(response: AgentResponse): Promise<AgentResponse> {
+  const assisted = await formaInferenceProvider.reason({
+    objective: response.question,
+    engineeringState: {
+      agent: response.agent,
+      artifactIds: response.artifactIds,
+      evidence: response.evidence,
+      matchedTask: response.matchedTask,
+    },
+    featureContract: {
+      output: 'AgentResponse',
+      protectedFields: ['agent', 'question', 'artifactIds', 'evidence', 'matchedTask', 'mode'],
+    },
+    mockResult: response,
+  });
+
+  if (assisted.mode !== 'local' || !assisted.inferencePerformed) return response;
+  const candidate = assisted.structured;
+  return {
+    ...response,
+    answer: typeof candidate.answer === 'string' ? candidate.answer : response.answer,
+    reasoning: Array.isArray(candidate.reasoning) && candidate.reasoning.every((item) => typeof item === 'string') ? candidate.reasoning : response.reasoning,
+  };
+}
+
 export async function queryAgent(agent: AgentKind, question: string): Promise<AgentResponse> {
   const started = performance.now();
   const tasks = await getEvaluationTasks(agent);
@@ -46,7 +72,7 @@ export async function queryAgent(agent: AgentKind, question: string): Promise<Ag
   if (useGroundTruth) {
     const directEvidence = await getEvidenceForFiles(match.task.evidence_files, question);
     const evidence = mergeEvidence(directEvidence, retrieved);
-    return {
+    return routeReasoningThroughProvider({
       agent,
       question,
       answer: match.task.expected_answer,
@@ -57,7 +83,7 @@ export async function queryAgent(agent: AgentKind, question: string): Promise<Ag
       confidence: Math.round(Math.min(0.98, 0.66 + match.score * 0.3) * 100) / 100,
       latencyMs: Math.max(1, Math.round(performance.now() - started)),
       mode: 'ground-truth',
-    };
+    });
   }
 
   const artifactIds = [...new Set(retrieved.flatMap((item) => item.artifactIds))].slice(0, 10);
@@ -66,7 +92,7 @@ export async function queryAgent(agent: AgentKind, question: string): Promise<Ag
     ? `${AGENT_LABELS[agent]} found relevant corpus evidence in ${evidenceSummary}. This question does not exactly match a validated scenario yet, so review the cited excerpts and affected artifacts before approving an engineering change.`
     : `${AGENT_LABELS[agent]} could not find matching evidence in the rover-alpha corpus. Try including a part number, artifact ID, supplier, test ID, or engineering objective.`;
 
-  return {
+  return routeReasoningThroughProvider({
     agent,
     question,
     answer,
@@ -77,5 +103,5 @@ export async function queryAgent(agent: AgentKind, question: string): Promise<Ag
     confidence: retrieved.length ? 0.48 : 0.12,
     latencyMs: Math.max(1, Math.round(performance.now() - started)),
     mode: 'retrieval',
-  };
+  });
 }
