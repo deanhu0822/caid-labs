@@ -42,6 +42,8 @@ function safeError(message: string) {
 function remoteBridgeUrl() {
   const configured = process.env.FORMA_NVIDIA_BRIDGE_URL?.trim();
   if (configured) return configured;
+  const productionHost = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
+  if (productionHost) return `https://${productionHost}/api/nvidia_bridge`;
   const vercelHost = process.env.VERCEL_URL?.trim();
   return vercelHost ? `https://${vercelHost}/api/nvidia_bridge` : null;
 }
