@@ -1,5 +1,21 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "buildCommand": "npm run build"
+  "buildCommand": "npm run build",
+  "env": {
+    "FORMA_INFERENCE_PROVIDER": "nvidia-build",
+    "NVIDIA_BUILD_BASE_URL": "https://integrate.api.nvidia.com/v1",
+    "NVIDIA_REASONING_MODEL": "nvidia/nemotron-3-ultra-550b-a55b",
+    "NVIDIA_GENERATION_MODEL": "nvidia/nemotron-3-super-120b-a12b",
+    "NVIDIA_VISION_MODEL": "meta/llama-3.2-90b-vision-instruct",
+    "NVIDIA_PARSE_MODEL": "nvidia/nemotron-parse",
+    "NVIDIA_BUILD_ALLOW_MOCK_FALLBACK": "false",
+    "NVIDIA_BUILD_STRUCTURED_MODE": "free"
+  },
+  "functions": {
+    "api/nvidia_bridge.py": {
+      "maxDuration": 300,
+      "excludeFiles": "{tests/**,__tests__/**,public/synthetic-scanner-assets/**}"
+    }
+  }
 }

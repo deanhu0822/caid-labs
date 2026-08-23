@@ -35,7 +35,7 @@ function sentences(value: string) {
     .slice(0, 6);
 }
 
-async function routeReasoningThroughProvider(response: AgentResponse): Promise<AgentResponse> {
+async function routeReasoningThroughProvider(response: AgentResponse, allowDemoFallback: boolean): Promise<AgentResponse> {
   const providerStarted = performance.now();
   const assisted = await formaInferenceProvider.reason({
     objective: response.question,
@@ -53,7 +53,10 @@ async function routeReasoningThroughProvider(response: AgentResponse): Promise<A
   });
   const latencyMs = response.latencyMs + Math.max(1, Math.round(performance.now() - providerStarted));
 
-  if (!assisted.inferencePerformed) return { ...response, latencyMs };
+  if (!assisted.inferencePerformed) {
+    if (allowDemoFallback) return { ...response, latencyMs };
+    throw new Error(assisted.summary || 'Live NVIDIA reasoning is unavailable. Use the sample button only if you want the explicit dataset demonstration.');
+  }
   const candidate = assisted.structured;
   return {
     ...response,
@@ -63,7 +66,7 @@ async function routeReasoningThroughProvider(response: AgentResponse): Promise<A
   };
 }
 
-export async function queryAgent(agent: AgentKind, question: string, candidateId: ProductCandidateId = 'rover-alpha:rev-c'): Promise<AgentResponse> {
+export async function queryAgent(agent: AgentKind, question: string, candidateId: ProductCandidateId = 'rover-alpha:rev-c', allowDemoFallback = false): Promise<AgentResponse> {
   const started = performance.now();
   const structuredState = productAgentStructuredState(candidateId);
   const tasks = await getEvaluationTasks(agent);
@@ -89,7 +92,7 @@ export async function queryAgent(agent: AgentKind, question: string, candidateId
       latencyMs: Math.max(1, Math.round(performance.now() - started)),
       mode: 'ground-truth',
       structuredState,
-    });
+    }, allowDemoFallback);
   }
 
   const artifactIds = [...new Set(retrieved.flatMap((item) => item.artifactIds))].slice(0, 10);
@@ -110,5 +113,5 @@ export async function queryAgent(agent: AgentKind, question: string, candidateId
     latencyMs: Math.max(1, Math.round(performance.now() - started)),
     mode: 'retrieval',
     structuredState,
-  });
+  }, allowDemoFallback);
 }

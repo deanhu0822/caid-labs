@@ -151,18 +151,16 @@ async function reasonThroughServer<T extends object>(input: {
   featureContract: unknown;
   fallback: T;
 }): Promise<T> {
-  try {
-    const response = await fetch('/api/inference/reason', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(input),
-    });
-    if (!response.ok) return input.fallback;
-    const result = await response.json() as { inferencePerformed?: boolean; structured?: T };
-    return result.inferencePerformed && result.structured ? result.structured : input.fallback;
-  } catch {
-    return input.fallback;
-  }
+  const response = await fetch('/api/inference/reason', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) throw new Error(`Engineering inference returned HTTP ${response.status}.`);
+  const result = await response.json() as { mode?: string; inferencePerformed?: boolean; summary?: string; structured?: T };
+  if (result.inferencePerformed && result.structured) return result.structured;
+  if (result.mode === 'mock') return input.fallback;
+  throw new Error(result.summary || 'Live engineering inference is unavailable. Check the server provider configuration and try again.');
 }
 
 async function sourceFile(source: PrototypeInputSource) {

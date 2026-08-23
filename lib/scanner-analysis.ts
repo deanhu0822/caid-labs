@@ -25,6 +25,7 @@ export interface ScannerAnalysisAdapter {
 }
 
 type ConfiguredMediaObservation = {
+  mode?: string;
   inferencePerformed?: boolean;
   summary?: string;
   labels?: Array<{ label?: string; confidence?: number | null }>;
@@ -193,8 +194,17 @@ export async function analyzeWithConfiguredInference(file: File, candidates: rea
         explanation: `${result.summary || 'NVIDIA Build analyzed the media but did not produce a confident graph match.'} Select the correct artifact to confirm it.`,
       };
     }
+    if (result.mode === 'mock') return localScannerAdapter.analyze(file);
+    return {
+      status: 'needs-confirmation',
+      mode: 'no-inference',
+      explanation: `${result.summary || 'Live media inference is unavailable.'} Select the correct artifact to record a user-confirmed observation.`,
+    };
   } catch {
-    // The deterministic adapter below keeps all demo use cases runnable.
+    return {
+      status: 'needs-confirmation',
+      mode: 'no-inference',
+      explanation: 'Live media inference could not be reached. Select the correct artifact to record a user-confirmed observation.',
+    };
   }
-  return localScannerAdapter.analyze(file);
 }

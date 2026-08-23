@@ -131,8 +131,8 @@ export function StartFromScratch({ onClose, onCreate }: { onClose: () => void; o
   const addFiles = async (files: File[], kind: PrototypeSourceKind, replaceId?: string | null) => {
     const validFiles = files.filter((file) => kind === 'document' ? isDocumentFile(file) : file.type.startsWith(`${kind}/`));
     if (!validFiles.length) { setError(`Choose a valid ${kind} file.`); return; }
-    const maxBytes = kind === 'image' ? 15 * 1024 * 1024 : kind === 'video' ? 120 * 1024 * 1024 : 25 * 1024 * 1024;
-    if (validFiles.some((file) => file.size > maxBytes)) { setError(`${kind === 'image' ? 'Images' : kind === 'video' ? 'Videos' : 'Documents'} must be smaller than ${kind === 'image' ? '15' : kind === 'video' ? '120' : '25'} MB.`); return; }
+    const maxBytes = kind === 'image' ? 15 * 1024 * 1024 : kind === 'video' ? 60 * 1024 * 1024 : 25 * 1024 * 1024;
+    if (validFiles.some((file) => file.size > maxBytes)) { setError(`${kind === 'image' ? 'Images' : kind === 'video' ? 'Videos' : 'Documents'} must be smaller than ${kind === 'image' ? '15' : kind === 'video' ? '60' : '25'} MB.`); return; }
 
     const selectedFiles = replaceId || kind === 'video' ? validFiles.slice(0, 1) : validFiles.slice(0, kind === 'document' ? 4 : 3);
     const nextSources: PrototypeInputSource[] = [];
@@ -200,23 +200,34 @@ export function StartFromScratch({ onClose, onCreate }: { onClose: () => void; o
     setError('');
     setPhase('analyzing');
     setAnalysisIndex(0);
-    const analysisPromise = analyzeIntent({ text: prompt.trim(), sources, additionalNotes: additionalNotes.trim() });
-    for (let index = 0; index < ANALYSIS_STAGES.length; index += 1) {
-      setAnalysisIndex(index);
-      await new Promise((resolve) => window.setTimeout(resolve, 360));
+    try {
+      const analysisPromise = analyzeIntent({ text: prompt.trim(), sources, additionalNotes: additionalNotes.trim() });
+      for (let index = 0; index < ANALYSIS_STAGES.length; index += 1) {
+        setAnalysisIndex(index);
+        await new Promise((resolve) => window.setTimeout(resolve, 360));
+      }
+      const result = await analysisPromise;
+      setIntent(result);
+      setPhase('review');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Live engineering analysis failed.');
+      setPhase('input');
     }
-    const result = await analysisPromise;
-    setIntent(result);
-    setPhase('review');
   };
 
   const generateArchitecture = async () => {
     if (!intent || !answers.terrain || !answers.priority || !answers.budget) return;
-    setPhase('analyzing');
-    setAnalysisIndex(ANALYSIS_STAGES.length - 1);
-    const result = await synthesizeArchitecture(intent, answers as ClarificationAnswers);
-    setArchitecture(result);
-    setPhase('architecture');
+    try {
+      setError('');
+      setPhase('analyzing');
+      setAnalysisIndex(ANALYSIS_STAGES.length - 1);
+      const result = await synthesizeArchitecture(intent, answers as ClarificationAnswers);
+      setArchitecture(result);
+      setPhase('architecture');
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Live architecture generation failed.');
+      setPhase('review');
+    }
   };
 
   const createBuild = () => {
@@ -256,7 +267,7 @@ export function StartFromScratch({ onClose, onCreate }: { onClose: () => void; o
       <section className="scratch-shell modal-enter">
         <header className="scratch-header">
           <div><span className="scratch-logo"><Plus size={17} /></span><div><div className="eyebrow">START FROM SCRATCH</div><h1>Create the first engineering state</h1></div></div>
-          <div className="scratch-header-actions"><span><Info size={12} /> Prototype analysis</span><button aria-label="Close new build" onClick={onClose}><X size={17} /></button></div>
+          <div className="scratch-header-actions"><span><Info size={12} /> {liveReasoning ? 'Live product analysis' : inferenceStatus ? 'Inference unavailable' : 'Checking inference'}</span><button aria-label="Close new build" onClick={onClose}><X size={17} /></button></div>
         </header>
 
         <div className="scratch-progress" aria-label={`Step ${currentStep} of 4`}>

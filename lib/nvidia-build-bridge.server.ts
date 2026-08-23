@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { spawn } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 
 type BridgeRequest = {
@@ -38,7 +39,40 @@ function safeError(message: string) {
   return (key ? message.replaceAll(key, '[redacted]') : message).slice(0, 600);
 }
 
+function remoteBridgeUrl() {
+  const configured = process.env.FORMA_NVIDIA_BRIDGE_URL?.trim();
+  if (configured) return configured;
+  const vercelHost = process.env.VERCEL_URL?.trim();
+  return vercelHost ? `https://${vercelHost}/api/nvidia_bridge` : null;
+}
+
+async function runRemoteBridge(endpoint: string, request: BridgeRequest): Promise<NvidiaBuildBridgeResult> {
+  try {
+    const parsed = new URL(endpoint);
+    if (!['http:', 'https:'].includes(parsed.protocol)) return { ok: false, error: 'FORMA_NVIDIA_BRIDGE_URL must use HTTP(S).' };
+    const key = process.env.NVIDIA_API_KEY || '';
+    const bridgeToken = createHash('sha256').update(`forma-nvidia-bridge:${key}`).digest('hex');
+    const response = await fetch(parsed, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Forma-Bridge-Token': bridgeToken,
+      },
+      body: JSON.stringify(request),
+      cache: 'no-store',
+      signal: AbortSignal.timeout(120_000),
+    });
+    const body = await response.text();
+    if (!response.ok) return { ok: false, error: safeError(body || `Hosted NVIDIA bridge returned HTTP ${response.status}.`) };
+    return JSON.parse(body) as NvidiaBuildBridgeResult;
+  } catch (error) {
+    return { ok: false, error: safeError(error instanceof Error ? error.message : 'Hosted NVIDIA bridge request failed.') };
+  }
+}
+
 export function runNvidiaBuildBridge(request: BridgeRequest): Promise<NvidiaBuildBridgeResult> {
+  const remote = remoteBridgeUrl();
+  if (remote) return runRemoteBridge(remote, request);
   return new Promise((resolve) => {
     const python = process.env.FORMA_PYTHON_BIN || 'python';
     const pipelineDirectory = path.join(process.cwd(), 'product_pipeline');

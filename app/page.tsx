@@ -135,11 +135,11 @@ function graphAnimationDuration() {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 320;
 }
 
-async function askAgent(agent: AgentKind, question: string, productCandidateId?: ProductCandidateId): Promise<AgentResponse> {
+async function askAgent(agent: AgentKind, question: string, productCandidateId?: ProductCandidateId, demo = false): Promise<AgentResponse> {
   const response = await fetch('/api/agents/query', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ agent, question, productCandidateId }),
+    body: JSON.stringify({ agent, question, productCandidateId, demo }),
   });
   const payload = await response.json() as AgentResponse & { error?: string };
   if (!response.ok) throw new Error(payload.error || 'The corpus agent could not answer that question.');
@@ -1228,8 +1228,8 @@ function ScannerPanel({ revision, observation, fixedArtifactIds, artifacts, gene
     const isImage = nextFile.type.startsWith('image/');
     const isVideo = nextFile.type.startsWith('video/');
     if (!isImage && !isVideo) { setError('Choose a photo or video file.'); return; }
-    const maxBytes = isVideo ? 120 * 1024 * 1024 : 15 * 1024 * 1024;
-    if (nextFile.size > maxBytes) { setError(`Choose a ${isVideo ? 'video smaller than 120 MB' : 'photo smaller than 15 MB'}.`); return; }
+    const maxBytes = isVideo ? 60 * 1024 * 1024 : 15 * 1024 * 1024;
+    if (nextFile.size > maxBytes) { setError(`Choose a ${isVideo ? 'video smaller than 60 MB' : 'photo smaller than 15 MB'}.`); return; }
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setFile(nextFile);
     setPreviewUrl(URL.createObjectURL(nextFile));
@@ -1246,9 +1246,9 @@ function ScannerPanel({ revision, observation, fixedArtifactIds, artifacts, gene
       const demoFile = new File([await response.blob()], generated ? 'inspection-rover-reference.png' : 'j12-connector-closeup.png', { type: 'image/png' });
       acquire(demoFile);
       const analyzed = await analyzeWithConfiguredInference(demoFile, matchOptions);
-      const result = analyzed.status === 'matched' || !generated || !demoTarget
+      const result = analyzed.status === 'matched' || !demoTarget
         ? analyzed
-        : { ...localScannerAdapter.confirmArtifact(demoTarget.id, demoTarget.label), explanation: 'Validated demo fallback used after the live vision adapter did not produce a graph match.' };
+        : { ...localScannerAdapter.confirmArtifact(demoTarget.id, demoTarget.label), explanation: 'Explicit sample-scan fallback used after the live vision adapter did not produce a graph match.' };
       setAnalysis(result);
       if (result.status === 'matched') onObservation(result);
     } catch (cause) {
@@ -1283,7 +1283,7 @@ function ScannerPanel({ revision, observation, fixedArtifactIds, artifacts, gene
   return (
     <section className="mode-panel scanner-panel panel-enter" key="scanner">
       <div className="mode-panel-head"><div><span className="mode-icon"><Camera size={15} /></span><div><div className="eyebrow">PHOTO · VIDEO · CAMERA</div><h3>Scanner</h3></div></div><button onClick={onClose}><X size={15} /></button></div>
-      <p>Take a photo, upload a photo, or upload a video, then link the demo result to the project graph.</p>
+      <p>Take a photo, upload a photo, or upload a video, then link the observed hardware to the product graph.</p>
       <input ref={cameraInput} hidden type="file" accept="image/*" capture="environment" onChange={(event) => acquire(event.target.files?.[0] ?? null)} />
       <input ref={photoInput} hidden type="file" accept="image/*" onChange={(event) => acquire(event.target.files?.[0] ?? null)} />
       <input ref={videoInput} hidden type="file" accept="video/*" onChange={(event) => acquire(event.target.files?.[0] ?? null)} />
@@ -1295,8 +1295,8 @@ function ScannerPanel({ revision, observation, fixedArtifactIds, artifacts, gene
       </div>
       <div className="scanner-input-actions"><button onClick={() => cameraInput.current?.click()}><Camera size={13} /> Take Photo</button><button onClick={() => photoInput.current?.click()}><Upload size={13} /> Upload Photo</button><button onClick={() => videoInput.current?.click()}><Film size={13} /> Upload Video</button></div>
       <button className="demo-asset-button" disabled={analyzing} onClick={() => void runSampleScan()}><Play size={13} /> {analyzing ? 'Running sample scan…' : 'Run sample scan'}</button>
-      <div className="demo-mode-note"><b>Live input with demo fallback</b><span>Uploaded media is sent through the server-side NVIDIA vision adapter. If it is unavailable or uncertain, the same use case continues with an explicit filename fixture or user confirmation.</span></div>
-      {file && !analysis && <button className="scan-button" disabled={analyzing} onClick={() => void analyze()}><ScanLine size={15} /> {analyzing ? 'Running prototype sequence…' : `Run ${mediaKind === 'video' ? 'demo video scan' : 'demo photo matcher'}`}</button>}
+      <div className="demo-mode-note"><b>Live analysis by default</b><span>Uploaded media uses the server-side NVIDIA vision adapter. “Run sample scan” is the only path that may use the labeled demo fixture.</span></div>
+      {file && !analysis && <button className="scan-button" disabled={analyzing} onClick={() => void analyze()}><ScanLine size={15} /> {analyzing ? 'Analyzing input…' : `Analyze ${mediaKind === 'video' ? 'video' : 'photo'}`}</button>}
       {analysis?.status === 'needs-confirmation' && <div className="manual-match"><div className="scanner-disclosure"><AlertTriangle size={13} /><span>{analysis.explanation}</span></div><div>{matchOptions.map(([id, label]) => <button key={id} onClick={() => confirm(id, label)}>{label}<ChevronRight size={11} /></button>)}</div></div>}
       {activeMatch && <div className="scanner-status"><span className="scanner-status-icon"><Check size={15} /></span><div><strong>{activeMatch.label} linked</strong><small>Product graph · {revision} · {activeMatch.confidence ? `${Math.round(activeMatch.confidence * 100)}% ${activeMatch.mode === 'nvidia-build-vision' ? 'live vision' : 'demo'} match` : 'confirmed manually'}</small></div></div>}
       {activeMatch && <><div className="scanner-disclosure"><Info size={13} /><span>{activeMatch.explanation}</span></div><button className={`fixed-part-button ${isFixed ? 'fixed' : ''}`} onClick={() => onToggleFixed(activeMatch.artifactId)}><Lock size={13} /> {isFixed ? 'Fixed constraint added' : 'Use as a fixed constraint'}</button></>}
@@ -1371,7 +1371,7 @@ function AgentPanel({ productCandidateId, onClose, onArtifacts }: { productCandi
     setError('');
     setDemoAnswer(demo);
     try {
-      const result = await askAgent(activeAgent, submittedQuestion, productCandidateId);
+      const result = await askAgent(activeAgent, submittedQuestion, productCandidateId, demo);
       setAnswer(result);
       onArtifacts(result.artifactIds);
     } catch (cause) {
@@ -1396,7 +1396,7 @@ function AgentPanel({ productCandidateId, onClose, onArtifacts }: { productCandi
         ))}
       </div>
       <button className="agent-demo-button" disabled={loading} onClick={() => void submit(AGENT_PROMPTS[activeAgent], true)}><Play size={13} /> {loading && demoAnswer ? 'Running sample…' : `Run sample ${activeAgent} answer`}</button>
-      <div className="demo-mode-note"><b>{inferenceStatus?.connected ? 'Live NVIDIA reasoning' : 'Validated demo fallback'}</b><span>{inferenceStatus?.connected ? 'The selected NVIDIA model reasons over bundled project evidence; artifact IDs and validated engineering state remain protected.' : 'Bundled scenarios keep every use case available when hosted inference is not connected.'}</span></div>
+      <div className="demo-mode-note"><b>{inferenceStatus?.connected ? 'Live NVIDIA reasoning' : 'Live inference unavailable'}</b><span>{inferenceStatus?.connected ? 'The selected NVIDIA model reasons over bundled project evidence; artifact IDs and validated engineering state remain protected.' : 'Normal questions require the hosted model. The sample button remains available as an explicitly labeled dataset demonstration.'}</span></div>
       <label className="agent-query"><span>ASK {activeAgent.toUpperCase()}</span><textarea value={question} onChange={(event) => { setQuestion(event.target.value); setDemoAnswer(false); }} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void submit(); } }} /><button disabled={loading} onClick={() => void submit()}><Send size={13} /> {loading && !demoAnswer ? 'Reading project files...' : 'Search project data'}</button></label>
       {error && <div className="backend-error">{error}</div>}
       {answer && (

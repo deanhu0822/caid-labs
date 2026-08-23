@@ -17,14 +17,14 @@ export async function POST(request: Request) {
   }
 
   if (!payload || typeof payload !== 'object') return Response.json({ error: 'Request body is required.' }, { status: 400 });
-  const { agent, question, productCandidateId } = payload as { agent?: AgentKind; question?: string; productCandidateId?: ProductCandidateId };
+  const { agent, question, productCandidateId, demo } = payload as { agent?: AgentKind; question?: string; productCandidateId?: ProductCandidateId; demo?: boolean };
   if (!agent || !AGENTS.has(agent)) return Response.json({ error: 'agent must be builder, product, or supply.' }, { status: 400 });
   if (typeof question !== 'string' || !question.trim()) return Response.json({ error: 'question is required.' }, { status: 400 });
   if (question.length > 1000) return Response.json({ error: 'question must be 1000 characters or fewer.' }, { status: 400 });
   if (productCandidateId && !PRODUCT_CANDIDATES.has(productCandidateId)) return Response.json({ error: 'productCandidateId is not a validated Product record.' }, { status: 400 });
 
   try {
-    return Response.json(await queryAgent(agent, question.trim(), productCandidateId), { headers: { 'Cache-Control': 'no-store' } });
+    return Response.json(await queryAgent(agent, question.trim(), productCandidateId, demo === true), { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     return Response.json({ error: error instanceof Error ? error.message : 'Agent query failed.' }, { status: 500 });
   }
