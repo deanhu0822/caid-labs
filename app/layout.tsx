@@ -15,8 +15,10 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 });
 
+const deploymentHost = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
+
 export const metadata: Metadata = {
-  metadataBase: new URL('http://localhost:3000'),
+  metadataBase: new URL(deploymentHost ? `https://${deploymentHost}` : 'http://localhost:3000'),
   title: 'Forma Labs — Rover Engineering Workspace',
   description: 'Review rover parts, dependencies, engineering changes, revisions, and validation results.',
   icons: { icon: '/favicon.svg' },

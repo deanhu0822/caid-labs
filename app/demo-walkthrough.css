@@ -155,6 +155,11 @@
 .demo-revision-counts div { display: grid; text-align: center; padding: 10px; border: 1px solid #2a394d; border-radius: 8px; }
 .demo-revision-counts b { color: #aef45e; font: 700 20px var(--font-geist-mono), monospace; }
 .demo-revision-counts span { color: #7f8da1; font-size: 9px; text-transform: uppercase; }
+.demo-approval-gate { margin-top: 11px; padding: 10px; display: flex; gap: 9px; align-items: center; color: #e5ae56; border: 1px solid #594627; border-radius: 8px; background: #1c160d; }
+.demo-approval-gate span { display: grid; gap: 3px; }
+.demo-approval-gate b { font-size: 10px; }
+.demo-approval-gate small { color: #a39378; font-size: 8px; line-height: 1.4; }
+.demo-receipt-error { margin: 10px 18px 0; padding: 8px 10px; color: #e8b8af; border: 1px solid #5a302b; border-radius: 7px; background: #21100f; font-size: 8px; line-height: 1.4; }
 
 .demo-guided-result { border: 1px solid #496e2e; background: linear-gradient(145deg, #14220f, #0c1714); border-radius: 11px; padding: 14px; }
 .demo-guided-result > div { display: flex; gap: 11px; align-items: center; padding-bottom: 13px; border-bottom: 1px solid #2a4121; color: #aaf25b; }
@@ -179,7 +184,11 @@
 .demo-controls { display: flex; gap: 5px; }
 .demo-controls button { height: 31px; display: flex; align-items: center; gap: 6px; padding: 0 9px; border: 1px solid #2c3a4e; border-radius: 7px; background: #111b29; color: #94a3b8; font-size: 9px; cursor: pointer; }
 .demo-controls button:hover { color: #fff; border-color: #55677f; }
+.demo-controls .demo-approve { color: #0b1505; border-color: #adff5b; background: #adff5b; font-weight: 700; }
+.demo-controls .demo-approve:disabled { color: #718063; border-color: #36422e; background: #192017; }
 .demo-controls .demo-done { color: #b9ff67; border-color: #43652c; background: #14210f; }
+.demo-spinner { color: #9dea50; animation: demo-spin .8s linear infinite; }
+@keyframes demo-spin { to { transform: rotate(360deg); } }
 
 @media (max-width: 760px) {
   .demo-walkthrough,

@@ -10,7 +10,9 @@ The teammate-provided `schema.py`, `structured_gen.py`, and `validate.py` remain
 
 ## Inference abstraction
 
-One server-configured `FormaInferenceProvider` interface covers assisted reasoning, physical-media observation, and document parsing. `FORMA_INFERENCE_PROVIDER` selects `mock`, `nvidia-build`, or `local`; the UI has no provider URL, model ID, or credential. Model output is advisory until it has been normalized into a Product candidate and accepted by the Python validation boundary.
+One server-configured `FormaInferenceProvider` interface covers assisted reasoning, physical-media observation, and document parsing. `FORMA_INFERENCE_PROVIDER` selects `mock`, `huggingface`, `nvidia-build`, or `local`; the UI has no provider URL, model ID, or credential. Model output is advisory until it has been normalized into a Product candidate and accepted by the Python validation boundary.
+
+The Vercel configuration defaults to Hugging Face Inference Providers because its OpenAI-compatible router supports both chat models and vision-language models without bundling model weights into the serverless function. `HF_TOKEN` must be configured in Vercel with the **Make calls to Inference Providers** permission. Without it, the app stays usable through the explicitly labeled deterministic demo; no live-model claim is shown.
 
 | Capability | Intended model | Environment variable |
 | --- | --- | --- |
@@ -18,6 +20,8 @@ One server-configured `FormaInferenceProvider` interface covers assisted reasoni
 | Schema-constrained intent, architecture, and extraction | Nemotron 3 Super (or another verified account model) | `NVIDIA_GENERATION_MODEL` |
 | Hardware image and physical-state observation | Llama 3.2 90B Vision, selected only after a successful account request | `NVIDIA_VISION_MODEL` or `FORMA_VISION_URL` |
 | Engineering documents, drawings, datasheets, BOMs, and manuals | Nemotron Parse | `NVIDIA_PARSE_MODEL` or `FORMA_PARSE_URL` |
+
+For the Hugging Face provider, `HF_REASONING_MODEL` defaults to `openai/gpt-oss-120b:fastest` and `HF_VISION_MODEL` defaults to `Qwen/Qwen2.5-VL-3B-Instruct:fastest`. Both are deployment configuration, not trusted engineering authorities. The provider can improve advisory prose and match uploaded media to candidate labels; it cannot set protected artifact IDs, pass semantic gates, approve a change, or commit a revision.
 
 NVIDIA Build defaults to `https://integrate.api.nvidia.com/v1`, but every model ID is discovered and checked against the account instead of being hard-coded into UI code. `GET /api/inference/status` performs a server-side model-list check; `?probe=1` also requests and validates a tiny response. It reports provider, resolved model, connection state, and sanitized errors, never the key. Missing or invalid credentials use the deterministic fallback only when `NVIDIA_BUILD_ALLOW_MOCK_FALLBACK=true`, and every result retains `inferencePerformed: false`.
 
@@ -43,3 +47,9 @@ Integration paths:
 ## Revision rule
 
 `EngineeringState` stores the accepted `ValidatedProductState`. The reducer does not advance a revision for a rejected, unvalidated, or missing Product candidate. The payload, camera-mount, J12, and runtime demo candidates all come from the same canonical Rev C Product and are present in the validation manifest before the UI can commit them.
+
+## Concrete demo workflow
+
+`POST /api/workflow/demo` builds a server-side execution receipt for the payload scenario. It verifies revision lineage, the canonical validation manifest, the minimal-change boundary, visible tradeoffs, and evidence links. Hugging Face or NVIDIA may narrate the result, but the receipt's proof, candidate hashes, approval state, and artifact lists are protected deterministic fields.
+
+The walkthrough now follows **observe → understand → trace → propose → validate → approve → commit → learn**. It pauses at approval. A second request with the same run ID re-runs the deterministic checks and returns a committed receipt only when the candidate remains eligible; the browser then advances the shared engineering state to Rev D.

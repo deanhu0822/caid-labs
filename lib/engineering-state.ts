@@ -42,7 +42,7 @@ export type EngineeringDocumentRecord = {
   title: string;
   artifactType: string;
   component: string | null;
-  mode: 'nvidia-build' | 'local' | 'mock' | 'unavailable';
+  mode: 'nvidia-build' | 'huggingface' | 'local' | 'mock' | 'unavailable';
   inferencePerformed: boolean;
   parserRole: string;
   summary: string;

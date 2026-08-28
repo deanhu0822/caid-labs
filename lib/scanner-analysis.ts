@@ -2,7 +2,7 @@ import { mockFormaInferenceProvider } from './forma-inference';
 
 export type ScannerMatch = {
   status: 'matched';
-  mode: 'nvidia-build-vision' | 'simulated-label-match' | 'manual-observation';
+  mode: 'nvidia-build-vision' | 'huggingface-vision' | 'simulated-label-match' | 'manual-observation';
   artifactId: string;
   label: string;
   confidence: number | null;
@@ -180,7 +180,7 @@ export async function analyzeWithConfiguredInference(file: File, candidates: rea
       if (top?.candidate) {
         return {
           status: 'matched',
-          mode: 'nvidia-build-vision',
+          mode: result.mode === 'huggingface' ? 'huggingface-vision' : 'nvidia-build-vision',
           artifactId: top.candidate[0],
           label: top.candidate[1],
           confidence: typeof top.confidence === 'number' ? top.confidence : null,

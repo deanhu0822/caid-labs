@@ -96,6 +96,7 @@ import { DEMO_FEATURES, DEMO_IMPACT_IDS, DEMO_OBJECTIVE, DEMO_STAGES, demoAgentR
 import type { OpenCadRealizationRecord } from '@/lib/opencad-adapter';
 import { mapProductToGraph, type ProductCandidateId } from '@/lib/product-state';
 import type { FormaInferenceStatus } from '@/lib/forma-inference';
+import type { DemoWorkflowReceipt } from '@/lib/demo-workflow';
 
 type ArtifactData = Artifact & { activeRevision: string };
 type ArtifactNode = Node<ArtifactData, 'artifact'>;
@@ -146,6 +147,17 @@ async function askAgent(agent: AgentKind, question: string, productCandidateId?:
   return payload;
 }
 
+async function requestDemoWorkflow(input: { objective: string; approved?: boolean; runId?: string; createdAt?: string }): Promise<DemoWorkflowReceipt> {
+  const response = await fetch('/api/workflow/demo', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+  const payload = await response.json() as DemoWorkflowReceipt & { error?: string };
+  if (!response.ok) throw new Error(payload.error || 'The workflow receipt could not be created.');
+  return payload;
+}
+
 export default function Home() {
   const [engineering, dispatch] = useReducer(engineeringReducer, initialEngineeringState);
   const existingGraph = useMemo(() => engineering.productState
@@ -170,6 +182,9 @@ export default function Home() {
   const [searchTerm, setSearchTerm] = useState('');
   const [openedArtifactId, setOpenedArtifactId] = useState<string | null>(null);
   const [demoRuntime, setDemoRuntime] = useState<DemoRuntime>({ active: false, paused: false, step: 0, runId: 0 });
+  const [demoReceipt, setDemoReceipt] = useState<DemoWorkflowReceipt | null>(null);
+  const [demoReceiptLoading, setDemoReceiptLoading] = useState(false);
+  const [demoReceiptError, setDemoReceiptError] = useState('');
   const [scratchOpen, setScratchOpen] = useState(false);
   const [testAssetsOpen, setTestAssetsOpen] = useState(false);
   const [demoMenuOpen, setDemoMenuOpen] = useState(false);
@@ -182,6 +197,7 @@ export default function Home() {
   const reactFlowRef = useRef<ReactFlowInstance<ArtifactNode> | null>(null);
   const savedViewportRef = useRef<Viewport | null>(null);
   const engineeringRef = useRef(engineering);
+  const demoReceiptRequestRef = useRef(0);
   const demoRunning = demoRuntime.active;
 
   useEffect(() => {
@@ -415,8 +431,8 @@ export default function Home() {
       setMode('builder');
       dispatch({ type: 'SET_EXPERIENCE', mode: 'pro' });
     } else if (stage.phase === 'revision') {
-      dispatch({ type: 'ACCEPT_PROPOSAL' });
-      setMode('graph');
+      dispatch({ type: 'SET_EXPERIENCE', mode: 'pro' });
+      setMode('builder');
     } else if (stage.phase === 'guided') {
       dispatch({ type: 'SET_EXPERIENCE', mode: 'guided' });
       setMode('builder');
@@ -427,6 +443,8 @@ export default function Home() {
   }, []);
 
   const startDemo = () => {
+    const receiptRequest = demoReceiptRequestRef.current + 1;
+    demoReceiptRequestRef.current = receiptRequest;
     setFocusedNodeId(null);
     savedViewportRef.current = null;
     setOpenedArtifactId(null);
@@ -436,8 +454,49 @@ export default function Home() {
     setScratchOpen(false);
     setTestAssetsOpen(false);
     setDemoMenuOpen(false);
+    setDemoReceipt(null);
+    setDemoReceiptError('');
+    setDemoReceiptLoading(true);
     applyDemoStage(0);
     setDemoRuntime((current) => ({ active: true, paused: false, step: 0, runId: current.runId + 1 }));
+    void requestDemoWorkflow({ objective: DEMO_OBJECTIVE })
+      .then((receipt) => {
+        if (demoReceiptRequestRef.current !== receiptRequest) return;
+        setDemoReceipt(receipt);
+      })
+      .catch((error) => {
+        if (demoReceiptRequestRef.current !== receiptRequest) return;
+        setDemoReceiptError(error instanceof Error ? error.message : 'The workflow receipt could not be created.');
+      })
+      .finally(() => {
+        if (demoReceiptRequestRef.current === receiptRequest) setDemoReceiptLoading(false);
+      });
+  };
+
+  const approveDemoRevision = () => {
+    if (!demoReceipt?.approval.commitEligible || demoReceiptLoading) return;
+    const receiptRequest = demoReceiptRequestRef.current + 1;
+    demoReceiptRequestRef.current = receiptRequest;
+    setDemoReceiptError('');
+    setDemoReceiptLoading(true);
+    void requestDemoWorkflow({
+      objective: demoReceipt.objective,
+      approved: true,
+      runId: demoReceipt.runId,
+      createdAt: demoReceipt.createdAt,
+    }).then((receipt) => {
+      if (demoReceiptRequestRef.current !== receiptRequest) return;
+      if (!receipt.approval.approved || receipt.state !== 'committed') throw new Error(receipt.approval.message);
+      dispatch({ type: 'ACCEPT_PROPOSAL' });
+      setDemoReceipt(receipt);
+      applyDemoStage(6);
+      setDemoRuntime((current) => ({ ...current, paused: false, step: 6 }));
+    }).catch((error) => {
+      if (demoReceiptRequestRef.current !== receiptRequest) return;
+      setDemoReceiptError(error instanceof Error ? error.message : 'Revision approval failed.');
+    }).finally(() => {
+      if (demoReceiptRequestRef.current === receiptRequest) setDemoReceiptLoading(false);
+    });
   };
 
   const startGeometryDemo = () => {
@@ -834,9 +893,13 @@ export default function Home() {
       <DemoWalkthrough
         runtime={demoRuntime}
         revision={engineering.currentRevision}
+        receipt={demoReceipt}
+        receiptLoading={demoReceiptLoading}
+        receiptError={demoReceiptError}
         onPause={() => setDemoRuntime((current) => ({ ...current, paused: !current.paused }))}
         onRestart={startDemo}
         onSkip={skipDemoStage}
+        onApprove={approveDemoRevision}
         onExit={() => setDemoRuntime((current) => ({ ...current, active: false, paused: false }))}
       />
     </main>
@@ -1291,14 +1354,14 @@ function ScannerPanel({ revision, observation, fixedArtifactIds, artifacts, gene
         {previewUrl ? (mediaKind === 'video' ? <video src={previewUrl} controls playsInline preload="metadata" /> : <img src={previewUrl} alt="Locally acquired scanner input" />) : <div className="rover-silhouette"><div className="rover-body" /><div className="rover-camera" /><i className="wheel one" /><i className="wheel two" /><i className="connector-target" /></div>}
         {(analyzing || (previewUrl && !analysis)) && <div className="scan-line" />}
         {activeMatch && <div className="detected-bounds" style={{ left: `${activeMatch.bounds.x}%`, top: `${activeMatch.bounds.y}%`, width: `${activeMatch.bounds.width}%`, height: `${activeMatch.bounds.height}%` }}><span>{activeMatch.label}</span></div>}
-        <div className="scan-readout"><span>{file ? file.name : 'NO MEDIA ACQUIRED'}</span><span>{activeMatch?.mode === 'nvidia-build-vision' ? 'LIVE NVIDIA VISION' : activeMatch?.mode === 'manual-observation' ? 'DEMO / USER LINK' : activeMatch ? 'VALIDATED FALLBACK' : mediaKind === 'video' ? 'VIDEO INPUT' : 'PHOTO INPUT'}</span></div>
+        <div className="scan-readout"><span>{file ? file.name : 'NO MEDIA ACQUIRED'}</span><span>{activeMatch?.mode === 'nvidia-build-vision' ? 'LIVE NVIDIA VISION' : activeMatch?.mode === 'huggingface-vision' ? 'LIVE HUGGING FACE VISION' : activeMatch?.mode === 'manual-observation' ? 'DEMO / USER LINK' : activeMatch ? 'VALIDATED FALLBACK' : mediaKind === 'video' ? 'VIDEO INPUT' : 'PHOTO INPUT'}</span></div>
       </div>
       <div className="scanner-input-actions"><button onClick={() => cameraInput.current?.click()}><Camera size={13} /> Take Photo</button><button onClick={() => photoInput.current?.click()}><Upload size={13} /> Upload Photo</button><button onClick={() => videoInput.current?.click()}><Film size={13} /> Upload Video</button></div>
       <button className="demo-asset-button" disabled={analyzing} onClick={() => void runSampleScan()}><Play size={13} /> {analyzing ? 'Running sample scan…' : 'Run sample scan'}</button>
-      <div className="demo-mode-note"><b>Live analysis by default</b><span>Uploaded media uses the server-side NVIDIA vision adapter. “Run sample scan” is the only path that may use the labeled demo fixture.</span></div>
+      <div className="demo-mode-note"><b>Live analysis by default</b><span>Uploaded media uses the configured server-side vision adapter. “Run sample scan” is the only path that may use the labeled demo fixture.</span></div>
       {file && !analysis && <button className="scan-button" disabled={analyzing} onClick={() => void analyze()}><ScanLine size={15} /> {analyzing ? 'Analyzing input…' : `Analyze ${mediaKind === 'video' ? 'video' : 'photo'}`}</button>}
       {analysis?.status === 'needs-confirmation' && <div className="manual-match"><div className="scanner-disclosure"><AlertTriangle size={13} /><span>{analysis.explanation}</span></div><div>{matchOptions.map(([id, label]) => <button key={id} onClick={() => confirm(id, label)}>{label}<ChevronRight size={11} /></button>)}</div></div>}
-      {activeMatch && <div className="scanner-status"><span className="scanner-status-icon"><Check size={15} /></span><div><strong>{activeMatch.label} linked</strong><small>Product graph · {revision} · {activeMatch.confidence ? `${Math.round(activeMatch.confidence * 100)}% ${activeMatch.mode === 'nvidia-build-vision' ? 'live vision' : 'demo'} match` : 'confirmed manually'}</small></div></div>}
+      {activeMatch && <div className="scanner-status"><span className="scanner-status-icon"><Check size={15} /></span><div><strong>{activeMatch.label} linked</strong><small>Product graph · {revision} · {activeMatch.confidence ? `${Math.round(activeMatch.confidence * 100)}% ${activeMatch.mode === 'nvidia-build-vision' || activeMatch.mode === 'huggingface-vision' ? 'live vision' : 'demo'} match` : 'confirmed manually'}</small></div></div>}
       {activeMatch && <><div className="scanner-disclosure"><Info size={13} /><span>{activeMatch.explanation}</span></div><button className={`fixed-part-button ${isFixed ? 'fixed' : ''}`} onClick={() => onToggleFixed(activeMatch.artifactId)}><Lock size={13} /> {isFixed ? 'Fixed constraint added' : 'Use as a fixed constraint'}</button></>}
       <div className="runtime-note"><Cable size={15} /><div><b>Server-routed multimodal input</b><span>Photos are analyzed directly; videos are decoded into sampled timeline frames. Graph links still require a known candidate or user confirmation.</span></div></div>
       {error && <div className="backend-error">{error}</div>}

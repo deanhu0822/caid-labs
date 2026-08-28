@@ -36,14 +36,14 @@ export const DEMO_FEATURES = {
 } as const;
 
 export const DEMO_STAGES: DemoStage[] = [
-  { id: 'intent', label: 'User Intent', feature: 'multimodal_intent', durationMs: 4800, phase: 'intent' },
-  { id: 'constraints', label: 'Constraints', feature: 'clarify_constraints', durationMs: 4600, phase: 'constraints' },
-  { id: 'impact', label: 'Impact Analysis', feature: 'impact_analysis', durationMs: 5000, phase: 'graph' },
-  { id: 'candidate', label: 'Candidate Change', feature: 'part_substitution', durationMs: 5200, phase: 'candidate' },
-  { id: 'validation', label: 'Validation', feature: 'validation', durationMs: 5200, phase: 'validation' },
-  { id: 'revision', label: 'Revision Update', feature: 'revision_update', durationMs: 5000, phase: 'revision' },
-  { id: 'guided', label: 'Guided Result', feature: 'revision_update', durationMs: 4800, phase: 'guided' },
-  { id: 'pro', label: 'Pro Evidence', feature: 'revision_update', durationMs: 0, phase: 'pro' }
+  { id: 'intent', label: 'Observe', feature: 'multimodal_intent', durationMs: 4800, phase: 'intent' },
+  { id: 'constraints', label: 'Understand', feature: 'clarify_constraints', durationMs: 4600, phase: 'constraints' },
+  { id: 'impact', label: 'Trace Dependencies', feature: 'impact_analysis', durationMs: 5000, phase: 'graph' },
+  { id: 'candidate', label: 'Propose Change', feature: 'part_substitution', durationMs: 5200, phase: 'candidate' },
+  { id: 'validation', label: 'Validate Candidate', feature: 'validation', durationMs: 5200, phase: 'validation' },
+  { id: 'approval', label: 'Human Approval', feature: 'revision_update', durationMs: 0, phase: 'revision' },
+  { id: 'revision', label: 'Commit Revision', feature: 'revision_update', durationMs: 4200, phase: 'guided' },
+  { id: 'evidence', label: 'Capture Evidence', feature: 'revision_update', durationMs: 0, phase: 'pro' }
 ];
 
 export const DEMO_OBJECTIVE = multimodalIntent.objective;
