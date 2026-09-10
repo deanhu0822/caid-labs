@@ -36,6 +36,7 @@ function sentences(value: string) {
 }
 
 async function routeReasoningThroughProvider(response: AgentResponse, allowDemoFallback: boolean): Promise<AgentResponse> {
+  if (allowDemoFallback) return response;
   const providerStarted = performance.now();
   const assisted = await formaInferenceProvider.reason({
     objective: response.question,
@@ -44,6 +45,8 @@ async function routeReasoningThroughProvider(response: AgentResponse, allowDemoF
       artifactIds: response.artifactIds,
       evidence: response.evidence,
       matchedTask: response.matchedTask,
+      selectedProduct: response.structuredState,
+      evidenceScope: 'Bundled rover reference corpus; may predate the selected revision.',
     },
     featureContract: {
       output: 'AgentResponse',
@@ -55,7 +58,7 @@ async function routeReasoningThroughProvider(response: AgentResponse, allowDemoF
 
   if (!assisted.inferencePerformed) {
     if (allowDemoFallback) return { ...response, latencyMs };
-    throw new Error(assisted.summary || 'Live NVIDIA reasoning is unavailable. Use the sample button only if you want the explicit dataset demonstration.');
+    throw new Error('Live analysis is unavailable. Your request has been kept. Retry after the provider is connected, or run the explicitly labeled sample walkthrough.');
   }
   const candidate = assisted.structured;
   return {

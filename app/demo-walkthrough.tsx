@@ -1,5 +1,9 @@
 'use client';
 
+import { useState } from 'react';
+import { ChangeEvidence } from './change-review';
+import type { EngineeringProposal } from '@/lib/engineering-state';
+
 import {
   ArrowRight,
   Check,
@@ -29,6 +33,7 @@ export type DemoRuntime = {
 
 type Props = {
   runtime: DemoRuntime;
+  proposal: EngineeringProposal | null;
   revision: string;
   onPause: () => void;
   onRestart: () => void;
@@ -136,7 +141,8 @@ function StageContent({ stage, receipt }: { stage: DemoStage; receipt: DemoWorkf
   return <ProStage receipt={receipt} />;
 }
 
-export function DemoWalkthrough({ runtime, revision, onPause, onRestart, onSkip, onApprove, onExit, receipt, receiptLoading, receiptError }: Props) {
+export function DemoWalkthrough({ runtime, proposal, revision, onPause, onRestart, onSkip, onApprove, onExit, receipt, receiptLoading, receiptError }: Props) {
+  const [acknowledgedRun, setAcknowledgedRun] = useState<number | null>(null);
   if (!runtime.active) return null;
   const stage = DEMO_STAGES[runtime.step] ?? DEMO_STAGES[0];
   const complete = runtime.step === DEMO_STAGES.length - 1;
@@ -153,12 +159,12 @@ export function DemoWalkthrough({ runtime, revision, onPause, onRestart, onSkip,
         <div className="demo-progress"><i style={{ width: `${progress}%` }} /></div>
         <div className="demo-feature"><FileJson2 size={12} /><span>{stage.feature}.json</span><b>{receiptLoading ? 'validating…' : receiptError ? 'receipt unavailable' : receipt ? `${receipt.provider.mode} · ${receipt.runId.slice(0, 8)}` : 'execution source'}</b></div>
         {receiptError && <div className="demo-receipt-error">{receiptError}</div>}
-        <div className="demo-stage-body"><StageContent stage={stage} receipt={receipt} /></div>
+        <div className="demo-stage-body">{stage.id === 'approval' && proposal ? <><p className="review-note">Sample session only. This action does not save a team release or approver identity.</p><h2>{proposal.title}</h2><ChangeEvidence proposal={proposal} /><label className="review-acknowledge"><input type="checkbox" checked={acknowledgedRun === runtime.runId} onChange={event => setAcknowledgedRun(event.target.checked ? runtime.runId : null)} /> I reviewed the tradeoff and remaining verification work.</label></> : <StageContent stage={stage} receipt={receipt} />}</div>
         <footer>
           <div className="demo-live-state">{receiptLoading ? <LoaderCircle className="demo-spinner" size={12} /> : <i />}<span>{revision} · {receipt?.state ?? 'validating workflow'}</span></div>
           <div className="demo-controls">
             <button onClick={onRestart} title="Restart demo"><RefreshCcw size={14} /><span>Restart</span></button>
-            {stage.id === 'approval' && <button className="demo-approve" disabled={!receipt?.approval.commitEligible || receiptLoading} onClick={onApprove}><ShieldCheck size={14} /><span>Approve Rev D</span></button>}
+            {stage.id === 'approval' && <button className="demo-approve" disabled={!receipt?.approval.commitEligible || receiptLoading || acknowledgedRun !== runtime.runId || !proposal} onClick={onApprove}><ShieldCheck size={14} /><span>Apply Rev D to sample</span></button>}
             {!complete && stage.id !== 'approval' && <button onClick={onPause} title={runtime.paused ? 'Resume demo' : 'Pause demo'}>{runtime.paused ? <Play size={14} /> : <Pause size={14} />}<span>{runtime.paused ? 'Resume' : 'Pause'}</span></button>}
             {!complete && stage.id !== 'approval' && <button onClick={onSkip} title="Skip step"><SkipForward size={14} /><span>Skip</span></button>}
             {complete && <button className="demo-done" onClick={onExit}><Check size={14} /><span>Keep exploring</span></button>}

@@ -266,12 +266,12 @@ export function StartFromScratch({ onClose, onCreate }: { onClose: () => void; o
     <div className="scratch-overlay overlay-enter">
       <section className="scratch-shell modal-enter">
         <header className="scratch-header">
-          <div><span className="scratch-logo"><Plus size={17} /></span><div><div className="eyebrow">START FROM SCRATCH</div><h1>Create the first engineering state</h1></div></div>
+          <div><span className="scratch-logo"><Plus size={17} /></span><div><div className="eyebrow">START FROM SCRATCH</div><h1>Create a concept draft</h1></div></div>
           <div className="scratch-header-actions"><span><Info size={12} /> {liveReasoning ? 'Live product analysis' : inferenceStatus ? 'Inference unavailable' : 'Checking inference'}</span><button aria-label="Close new build" onClick={onClose}><X size={17} /></button></div>
         </header>
 
         <div className="scratch-progress" aria-label={`Step ${currentStep} of 4`}>
-          {['Describe', 'Analyze', 'Clarify', 'Create Rev A'].map((label, index) => <div className={currentStep > index + 1 ? 'done' : currentStep === index + 1 ? 'active' : ''} key={label}><i>{currentStep > index + 1 ? <Check size={10} /> : index + 1}</i><span>{label}</span></div>)}
+          {['Describe', 'Analyze', 'Clarify', 'Concept draft'].map((label, index) => <div className={currentStep > index + 1 ? 'done' : currentStep === index + 1 ? 'active' : ''} key={label}><i>{currentStep > index + 1 ? <Check size={10} /> : index + 1}</i><span>{label}</span></div>)}
         </div>
 
         <div className="scratch-body">
@@ -352,7 +352,7 @@ export function StartFromScratch({ onClose, onCreate }: { onClose: () => void; o
                 <section><div className="eyebrow">PROTOTYPE COMPLETENESS CHECKS</div>{architecture.prototypeChecks.map((check) => <span key={check}><Check size={11} />{check}</span>)}</section>
               </div>
               <div className="prototype-warning"><Info size={14} /><div><b>{liveReasoning ? 'AI-assisted concept · engineering approval required' : 'Deterministic concept · engineering approval required'}</b><span>{architecture.openCad.note} Part assignments, calculations, and canonical Product validation are still required before release.</span></div></div>
-              <footer className="scratch-footer"><button className="secondary" onClick={() => setPhase('review')}><ArrowLeft size={13} /> Revise answers</button><button className="primary create-build" onClick={createBuild}><Plus size={14} /> Create Build · Rev A</button></footer>
+              <footer className="scratch-footer"><button className="secondary" onClick={() => setPhase('review')}><ArrowLeft size={13} /> Revise answers</button><button className="primary create-build" onClick={createBuild}><Plus size={14} /> Create concept draft</button></footer>
             </div>
           )}
         </div>

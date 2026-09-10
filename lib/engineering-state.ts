@@ -155,7 +155,7 @@ export const initialEngineeringState: EngineeringState = {
   experienceMode: 'pro',
   currentRevision: 'Rev C',
   viewingRevision: 'Rev C',
-  selectedArtifactId: 'j12',
+  selectedArtifactId: null,
   objective: '',
   constraints: [],
   fixedArtifactIds: [],
@@ -537,7 +537,7 @@ export function engineeringReducer(state: EngineeringState, action: EngineeringA
         viewingRevision: state.currentRevision,
       };
     case 'ACCEPT_PROPOSAL': {
-      if (!state.proposal || state.proposal.status !== 'validated') return state;
+      if (!state.proposal || state.proposal.status !== 'validated' || state.proposal.baseRevision !== state.currentRevision || state.proposal.openCad.required || state.proposal.validation.some(check => check.status === 'reject')) return state;
       const productCandidate = acceptedProductCandidate(state.proposal, state);
       if (state.project.kind === 'existing' && !productCandidate) return state;
       const accepted = { ...state.proposal, status: 'accepted' as const };
