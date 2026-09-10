@@ -1,6 +1,7 @@
 'use client';
 /* eslint-disable @next/next/no-img-element -- Browser-local object URLs cannot use the Next image optimizer. */
 
+import { ChangeReview } from './change-review';
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import {
   Background,
@@ -178,6 +179,7 @@ export default function Home() {
   const [builderQuery, setBuilderQuery] = useState('');
   const [builderLoading, setBuilderLoading] = useState(false);
   const [builderError, setBuilderError] = useState('');
+  const [reviewOpen, setReviewOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [openedArtifactId, setOpenedArtifactId] = useState<string | null>(null);
@@ -372,7 +374,7 @@ export default function Home() {
     setBuilderLoading(true);
     if (engineering.project.kind === 'generated') {
       await sleep(350);
-      setBuilderError('New-build change proposals are a front-end prototype. Choose the next architecture decision in Beginner; the shared graph will stay synchronized.');
+      setBuilderError('New-build change proposals are a front-end prototype. Choose the next architecture decision in Guided; the shared graph will stay synchronized.');
       setBuilderLoading(false);
       return;
     }
@@ -625,13 +627,13 @@ export default function Home() {
   };
 
   return (
-    <main className={`app-shell ${engineering.experienceMode}-experience ${engineering.experienceMode === 'pro' && mode === 'graph' && focusedNodeId ? 'artifact-preview-open' : ''}`}>
+    <main className={`app-shell ${engineering.experienceMode}-experience ${mode === 'builder' ? 'change-workspace' : ''} ${engineering.experienceMode === 'pro' && mode === 'graph' && focusedNodeId ? 'artifact-preview-open' : ''}`}>
       <header className="topbar">
         <div className="brand-mark"><GitBranch size={16} /></div>
         <div className="brand">FORMA LABS <span>/</span> {engineering.project.id} <span>/</span> {revision.toLowerCase().replace(' ', '-')}</div>
         <div className="experience-switch" aria-label="Experience mode">
-          <button aria-label="Beginner mode" className={engineering.experienceMode === 'guided' ? 'active' : ''} onClick={() => switchExperience('guided')}><Sparkles size={12} /><span><b>Beginner</b><small>Step-by-step workflow</small></span></button>
-          <button aria-label="Pro mode" className={engineering.experienceMode === 'pro' ? 'active' : ''} onClick={() => switchExperience('pro')}><SlidersHorizontal size={12} /><span><b>Pro</b><small>Engineering workspace</small></span></button>
+          <button aria-label="Guided mode" className={engineering.experienceMode === 'guided' ? 'active' : ''} onClick={() => switchExperience('guided')}><Sparkles size={12} /><span><b>Guided</b><small>Step-by-step workflow</small></span></button>
+          <button aria-label="Workspace mode" className={engineering.experienceMode === 'pro' ? 'active' : ''} onClick={() => switchExperience('pro')}><SlidersHorizontal size={12} /><span><b>Workspace</b><small>Engineering workspace</small></span></button>
         </div>
         <nav aria-label="Workspace modes">
           {(['graph', 'builder', 'scanner'] as AppMode[]).map((item) => (
@@ -748,7 +750,7 @@ export default function Home() {
           {mode === 'graph' && openedArtifact && !DEMO_CODE_PREVIEWS[openedArtifact.id] && (
             <ArtifactAssetPanel artifact={openedArtifact} document={openedDocument} onClose={() => setOpenedArtifactId(null)} />
           )}
-          {mode === 'builder' && (
+          {mode === 'builder' && engineering.experienceMode === 'pro' && !demoRuntime.active && (
             <section className="mode-panel builder-panel panel-enter" key="builder">
               <div className="mode-panel-head"><div><span className="mode-icon"><Sparkles size={15} /></span><div><div className="eyebrow">CHANGE REQUEST</div><h3>Builder</h3></div></div><button onClick={() => setMode('graph')}><X size={15} /></button></div>
               <p>Describe the desired result. Builder checks dependencies and validation rules before proposing edits.</p>
@@ -756,8 +758,8 @@ export default function Home() {
               <label className="builder-input"><input value={builderQuery} onChange={(e) => setBuilderQuery(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void runBuilder(); } }} placeholder="What are you trying to build or change?" /><button disabled={builderLoading} onClick={() => void runBuilder()} aria-label="Ask Builder"><Send size={14} /></button></label>
               <div className="suggestions">{BUILDER_SUGGESTIONS.map((suggestion) => <button key={suggestion} disabled={builderLoading} onClick={() => void runBuilder(suggestion)}>{suggestion}</button>)}</div>
               {builderLoading && <div className="backend-loading"><span className="pulse-dot" /> Checking project files and dependencies...</div>}
-              {builderError && <div className="backend-error">{builderError}</div>}
-              {proposal && <ProposalCard proposal={proposal} realization={physicalRealization} experience={engineering.experienceMode} onAccept={() => dispatch({ type: 'ACCEPT_PROPOSAL' })} onOpenCad={() => openPhysicalDesign(false)} onShowGraph={() => setMode('graph')} onShowPro={() => switchExperience('pro')} />}
+              {builderError && <div className="backend-error" role="alert"><strong>Analysis unavailable</strong><p>{builderError}</p><button disabled={builderLoading} onClick={() => void runBuilder()}>Retry request</button><button onClick={startDemo}>Run sample walkthrough</button></div>}
+              {proposal && <ProposalCard proposal={proposal} realization={physicalRealization} experience={engineering.experienceMode} onAccept={() => setReviewOpen(true)} onOpenCad={() => openPhysicalDesign(false)} onShowGraph={() => setMode('graph')} onShowPro={() => switchExperience('pro')} />}
             </section>
           )}
 
@@ -783,9 +785,10 @@ export default function Home() {
             query={builderQuery}
             loading={builderLoading}
             error={builderError}
+            onSample={startDemo}
             onQuery={setBuilderQuery}
             onRun={(query) => { setMode('builder'); void runBuilder(query); }}
-            onAccept={() => dispatch({ type: 'ACCEPT_PROPOSAL' })}
+            onAccept={() => setReviewOpen(true)}
             onOpenCad={() => openPhysicalDesign(false)}
             onShowPro={() => switchExperience('pro')}
             onOpenScanner={() => setMode('scanner')}
@@ -813,7 +816,7 @@ export default function Home() {
             </div>
             {selectedOpenLabel && <button className="artifact-open-button" onClick={openSelectedArtifact}>{DEMO_CODE_PREVIEWS[selectedArtifact.id] ? <Code2 size={17} /> : selectedArtifact.category === 'documents' ? <FileText size={17} /> : <Box size={17} />}<span><b>{selectedOpenLabel}</b><small>{selectedArtifact.category === 'documents' ? 'View the complete document record' : selectedArtifact.category === 'bom' ? 'Inspect the complete purchasing record' : selectedArtifact.category === 'mechanical' ? 'Inspect the physical design record' : 'Inspect the complete hypothetical demo source'}</small></span><ChevronRight size={16} /></button>}
             {engineering.project.kind === 'existing'
-              ? <button className="analyze-button" onClick={analyzeJ12Change}><Sparkles size={15} /><span><b>Analyze Change</b><small>Replace connector with available alternate</small></span><ChevronRight size={14} /></button>
+              ? <button className="analyze-button" onClick={() => { setMode('builder'); setBuilderQuery(selectedId ? `Review a change to ${selectedArtifact.label}` : ''); }}><Sparkles size={15} /><span><b>Propose a change</b><small>{selectedId ? `Review ${selectedArtifact.label} and its dependencies` : 'Define a goal and fixed constraints'}</small></span><ChevronRight size={14} /></button>
               : <button className="analyze-button" onClick={() => switchExperience('guided')}><Sparkles size={15} /><span><b>Choose next decision</b><small>{engineering.project.build.architecture.nextDecision.title}</small></span><ChevronRight size={14} /></button>}
             {engineering.project.kind === 'generated' && <InputSourcesPanel build={engineering.project.build} />}
             <RelationshipDetails artifact={selectedArtifact} relations={selectedRelationships} artifacts={activeArtifacts} />
@@ -845,7 +848,7 @@ export default function Home() {
               <header><div><div className="eyebrow">CHANGE IMPACT · {engineering.currentRevision}</div><h2>{proposal?.title ?? 'Replace J12 Connector'}</h2></div><button onClick={() => setImpactOpen(false)}><X size={17} /></button></header>
               <div className="impact-summary"><div><span>{proposal?.affectedArtifactIds.length ?? 6}</span><p><b>artifacts affected</b><small>only required edits are listed</small></p></div><span className="risk-badge">REVIEW VALIDATION</span></div>
               <div className="impact-items">{proposal?.changed.length ? proposal.changed.map((change, index) => <div key={change.artifactId}><span className="impact-index">0{index + 1}</span><div><b>{change.before} → {change.after}</b><p>{change.reason}</p></div><Check size={14} /></div>) : IMPACT_ITEMS.map(([label, copy], index) => <div key={label}><span className="impact-index">0{index + 1}</span><div><b>{label}</b><p>{copy}</p></div><Check size={14} /></div>)}</div>
-              <footer><span><Activity size={14} /> Objects not listed above are unchanged.</span><div><button onClick={() => { setImpactOpen(false); switchExperience('guided'); }}>Open Beginner <ChevronRight size={13} /></button><button onClick={() => setImpactOpen(false)}>Close</button></div></footer>
+              <footer><span><Activity size={14} /> Objects not listed above are unchanged.</span><div><button onClick={() => { setImpactOpen(false); switchExperience('guided'); }}>Open Guided <ChevronRight size={13} /></button><button onClick={() => setImpactOpen(false)}>Close</button></div></footer>
             </section>
           </div>
         )}
@@ -855,11 +858,11 @@ export default function Home() {
         <div className="modal-backdrop overlay-enter" onMouseDown={(event) => { if (event.target === event.currentTarget) setHowOpen(false); }}>
           <section className="how-modal modal-enter">
             <header><div><div className="eyebrow">CHANGE WORKFLOW</div><h2>How Forma Labs works</h2></div><button onClick={() => setHowOpen(false)}><X size={17} /></button></header>
-            <p>Beginner and Pro use the same project data. Beginner summarizes a proposed change; Pro shows its edits, checks, and source files.</p>
+            <p>Guided and Workspace use the same project data. Guided summarizes a proposed change; Workspace shows its edits, checks, and source files.</p>
             <div className="forma-flow">
               {['Change request', 'Project data', 'Dependencies', 'Proposed edits', 'Validation checks', 'New revision', 'Updated graph'].map((label, index) => <div key={label}><span>{String(index + 1).padStart(2, '0')}</span><b>{label}</b>{index < 6 && <ChevronRight size={13} />}</div>)}
             </div>
-            <div className="view-branches"><div><Sparkles size={16} /><b>Beginner</b><span>Summary, choices, and next step</span></div><div><SlidersHorizontal size={16} /><b>Pro</b><span>Edits, calculations, dependencies, and sources</span></div></div>
+            <div className="view-branches"><div><Sparkles size={16} /><b>Guided</b><span>Summary, choices, and next step</span></div><div><SlidersHorizontal size={16} /><b>Workspace</b><span>Edits, calculations, dependencies, and sources</span></div></div>
             <div className="opencad-principle"><Wrench size={15} /><p><b>OpenCAD runs locally when geometry is required.</b><span>Forma decides what must change; OpenCAD rebuilds and validates the physical result. If the local OCCT service is absent, Forma reports it instead of claiming a CAD operation.</span></p></div>
           </section>
         </div>
@@ -890,7 +893,9 @@ export default function Home() {
           onClose={() => { setOpenCadOpen(false); setOpenCadAutoRebuild(false); }}
         />
       )}
+      {reviewOpen && proposal && <ChangeReview key={proposal.id} proposal={proposal} currentRevision={engineering.currentRevision} onAccept={() => dispatch({ type: 'ACCEPT_PROPOSAL' })} onClose={() => setReviewOpen(false)} />}
       <DemoWalkthrough
+        proposal={proposal}
         runtime={demoRuntime}
         revision={engineering.currentRevision}
         receipt={demoReceipt}
@@ -975,7 +980,7 @@ function ArtifactPreviewContent({ artifact, revision, document, details }: {
     return (
       <section className="artifact-preview-content bom-artifact-preview">
         <header><div><div className="eyebrow">BOM PREVIEW</div><p>Released purchasing line connected to this product revision.</p></div><span>{revision}</span></header>
-        <div className="preview-table"><span>PART</span><span>STATUS</span><b>{artifact.meta}</b><b>Released demo row</b>{details.Supplier && <><b>{details.Supplier}</b><b>{details['Unit Cost'] ?? 'Cost in Product state'}</b></>}</div>
+        <div className="preview-table"><span>PART</span><span>STATUS</span><b>{artifact.meta}</b><b>Released demo row</b>{details.Supplier && <><b>{details.Supplier}</b><b>{details['Unit Cost'] ?? 'Cost in Workspaceduct state'}</b></>}</div>
         <small>Static demo sourcing data · not live inventory</small>
       </section>
     );
@@ -1076,31 +1081,32 @@ function GuidedRail({ state, onConstraint }: { state: EngineeringState; onConstr
         <div className="guided-choice-group"><div className="eyebrow">DESIGN PRIORITY</div>{['Balanced performance', 'Longer runtime', 'Higher payload'].map((value) => <button key={value} className={priority === value ? 'active' : ''} onClick={() => onConstraint({ key: 'priority', label: 'Design priority', value, source: 'guided' })}>{value}<ChevronRight size={12} /></button>)}</div>
         <div className="source-count"><FileText size={13} /><span><b>{build.sources.length} input source{build.sources.length === 1 ? '' : 's'}</b>Prompt, media, documents, and constraints retained</span></div>
         <ProductValidationSummary state={state} />
-        <div className="sidebar-note"><CircleDot size={14} /><span><strong>Shared project state</strong>Beginner and Pro stay in sync</span></div>
+        <div className="sidebar-note"><CircleDot size={14} /><span><strong>Shared project state</strong>Guided and Workspace stay in sync</span></div>
       </div>
     );
   }
   return (
     <div className="guided-rail">
-      <div className="side-heading"><div className="eyebrow">BEGINNER BUILD</div><span>{state.currentRevision}</span></div>
+      <div className="side-heading"><div className="eyebrow">GUIDED BUILD</div><span>{state.currentRevision}</span></div>
       <div className="guided-progress"><i className="done" /><i className={state.proposal ? 'done' : 'active'} /><i className={state.proposal?.status === 'accepted' ? 'done' : ''} /></div>
       <div className="guided-step-copy"><b>{state.proposal?.status === 'accepted' ? 'Revision created' : state.proposal ? 'Proposal ready' : 'Define your goal'}</b><span>{state.proposal?.status === 'accepted' ? `${state.currentRevision} is now the current revision.` : state.proposal ? 'Review the required edits and validation checks.' : 'Forma Labs will check affected parts, files, and constraints.'}</span></div>
       <div className="guided-choice-group"><div className="eyebrow">WHAT MATTERS MOST?</div>{['Balanced', 'Longer runtime', 'Lower cost'].map((value) => <button key={value} className={priority === value ? 'active' : ''} onClick={() => onConstraint({ key: 'priority', label: 'Design priority', value, source: 'guided' })}>{value}<ChevronRight size={12} /></button>)}</div>
       {state.constraints.length > 0 && <div className="constraint-summary"><div className="eyebrow">ACTIVE CONSTRAINTS</div>{state.constraints.map((constraint) => <span key={constraint.key}><Lock size={9} /> {constraint.label}: <b>{constraint.value}{constraint.unit ? ` ${constraint.unit}` : ''}</b></span>)}</div>}
       {state.scannerObservation && <div className="physical-observation"><Camera size={14} /><div><b>Physical observation</b><span>{state.scannerObservation.label} linked to graph</span></div></div>}
       <ProductValidationSummary state={state} />
-      <div className="sidebar-note"><CircleDot size={14} /><span><strong>Shared project state</strong>Beginner and Pro stay in sync</span></div>
+      <div className="sidebar-note"><CircleDot size={14} /><span><strong>Shared project state</strong>Guided and Workspace stay in sync</span></div>
     </div>
   );
 }
 
-function GuidedPanel({ state, query, loading, error, onQuery, onRun, onAccept, onOpenCad, onShowPro, onOpenScanner, onAnalyzeJ12, onConstraint }: {
+function GuidedPanel({ state, query, loading, error, onQuery, onRun, onSample, onAccept, onOpenCad, onShowPro, onOpenScanner, onAnalyzeJ12, onConstraint }: {
   state: EngineeringState;
   query: string;
   loading: boolean;
   error: string;
   onQuery: (query: string) => void;
   onRun: (query: string) => void;
+  onSample: () => void;
   onAccept: () => void;
   onOpenCad: () => void;
   onShowPro: () => void;
@@ -1115,14 +1121,14 @@ function GuidedPanel({ state, query, loading, error, onQuery, onRun, onAccept, o
     const selectedDecision = state.constraints.find((constraint) => constraint.key === 'architecture-decision')?.value;
     return (
       <div className="guided-panel scratch-guided-panel">
-        <div className="mode-panel-head"><div><span className="mode-icon"><Sparkles size={16} /></span><div><div className="eyebrow">YOUR BUILD · {state.currentRevision.toUpperCase()}</div><h3>Beginner</h3></div></div><button onClick={onShowPro} aria-label="Open Pro workspace"><SlidersHorizontal size={15} /></button></div>
+        <div className="mode-panel-head"><div><span className="mode-icon"><Sparkles size={16} /></span><div><div className="eyebrow">YOUR BUILD · {state.currentRevision.toUpperCase()}</div><h3>Guided</h3></div></div><button onClick={onShowPro} aria-label="Open engineering workspace"><SlidersHorizontal size={15} /></button></div>
         <div className="guided-hero created"><span>ARCHITECTURE CREATED</span><h2>{build.displayName}</h2><p>{build.intent.goalSummary}</p></div>
         <div className="next-decision-card">
           <div><span>NEXT DECISION</span><h3>{decision.title}</h3><p>{decision.description}</p></div>
           <div className="decision-options">{decision.options.map((option) => <button className={selectedDecision === option.label ? 'active' : ''} key={option.id} onClick={() => onConstraint({ key: 'architecture-decision', label: decision.title, value: option.label, source: 'guided' })}><span><b>{option.label}</b><small>{option.description}</small></span>{selectedDecision === option.label ? <Check size={13} /> : <ChevronRight size={13} />}</button>)}</div>
         </div>
         <div className="generated-build-facts"><span><b>{build.architecture.artifacts.length}</b> concept artifacts</span><span><b>{build.architecture.relations.length}</b> relationships</span><span><b>{build.sources.length}</b> input sources</span></div>
-        <div className="guided-actions"><button className="primary" onClick={onShowPro}><Eye size={13} /> Review full graph in Pro</button></div>
+        <div className="guided-actions"><button className="primary" onClick={onShowPro}><Eye size={13} /> Review full graph in Workspace</button></div>
         <button className="scanner-entry" onClick={onOpenScanner}><Camera size={15} /><span><b>Add a physical reference</b><small>Take a photo, upload a photo, or upload a video</small></span><ChevronRight size={13} /></button>
         <div className="demo-mode-note"><b>Prototype state</b><span>This architecture is deterministic demo data. No engineering inference or CAD generation was claimed.</span></div>
       </div>
@@ -1137,13 +1143,13 @@ function GuidedPanel({ state, query, loading, error, onQuery, onRun, onAccept, o
 
   return (
     <div className="guided-panel">
-      <div className="mode-panel-head"><div><span className="mode-icon"><Sparkles size={16} /></span><div><div className="eyebrow">STEP-BY-STEP WORKFLOW</div><h3>Beginner</h3></div></div><button onClick={onShowPro} aria-label="Open Pro workspace"><SlidersHorizontal size={15} /></button></div>
+      <div className="mode-panel-head"><div><span className="mode-icon"><Sparkles size={16} /></span><div><div className="eyebrow">STEP-BY-STEP WORKFLOW</div><h3>Guided</h3></div></div><button onClick={onShowPro} aria-label="Open engineering workspace"><SlidersHorizontal size={15} /></button></div>
       {!proposal ? (
         <>
           <div className="guided-hero"><span>STEP 1 · REQUEST</span><h2>What do you want the rover to achieve?</h2><p>Describe the result. Forma Labs checks which parts, files, and constraints are affected.</p></div>
           <label className="guided-objective"><textarea value={query} onChange={(event) => onQuery(event.target.value)} placeholder="For example: Increase payload by 30%" /><button disabled={loading} onClick={() => onRun(query || 'Increase payload capacity')}><Sparkles size={14} /> {loading ? 'Checking project data…' : 'Generate change proposal'}</button></label>
           <div className="guided-examples"><button onClick={() => { onQuery('Increase payload capacity'); onRun('Increase payload capacity'); }}>Increase payload 30% <ChevronRight size={12} /></button><button onClick={() => { onQuery('Increase runtime to 4 hours without changing mission duty cycle.'); onRun('Increase runtime to 4 hours without changing mission duty cycle.'); }}>Reach four-hour runtime <ChevronRight size={12} /></button><button onClick={() => { const objective = 'Make the rover camera mount 25 mm taller so it can see over a 90 mm obstacle.'; onQuery(objective); onRun(objective); }}>Raise camera mount 25 mm <ChevronRight size={12} /></button><button onClick={onAnalyzeJ12}>Replace unavailable J12 <ChevronRight size={12} /></button></div>
-          {error && <div className="backend-error">{error}</div>}
+          {error && <div className="backend-error" role="alert"><strong>Analysis unavailable</strong><p>{error}</p><button disabled={loading} onClick={() => onRun(query)}>Retry request</button><button onClick={onSample}>Run sample walkthrough</button></div>}
           <button className="scanner-entry" onClick={onOpenScanner}><Camera size={15} /><span><b>Start from a physical part</b><small>Take a photo or upload an image</small></span><ChevronRight size={13} /></button>
         </>
       ) : (
@@ -1161,10 +1167,10 @@ function GuidedPanel({ state, query, loading, error, onQuery, onRun, onAccept, o
           {accepted && realization && <div className={`guided-realization-result ${realization.toolMode}`}><div>{realization.toolMode === 'local' ? <CheckCircle2 size={17} /> : <AlertTriangle size={17} />}<span><small>{realization.toolMode === 'local' ? 'OPENCAD RESULT' : 'SIMULATED DEMO RESULT'}</small><b>Camera Mount Updated</b></span></div><p>Height increased to {realization.requestedChange.heightMm.to} mm. Chassis and camera clearance checks passed.</p><small>{realization.toolMode === 'local' ? 'Real OCCT geometry rebuilt locally.' : 'No OpenCAD operation or CAD file was generated.'}</small></div>}
           {showWhy && <div className="guided-why panel-enter"><b>Why this change?</b><p>{proposal.why}</p><b>Next action</b><p>{proposal.nextAction}</p></div>}
           <div className="guided-actions">
-            {proposal.status === 'validated' && !proposal.openCad.required && <button className="primary" onClick={onAccept}><Check size={13} /> Accept and create {proposal.targetRevision}</button>}
+            {proposal.status === 'validated' && !proposal.openCad.required && <button className="primary" onClick={onAccept}><Check size={13} /> Review {proposal.targetRevision}</button>}
             {proposal.status === 'validated' && proposal.openCad.required && <button className="primary" onClick={onOpenCad}><Wrench size={13} /> Adjust Physical Design</button>}
-            {accepted && <button className="primary" onClick={onShowPro}><Eye size={13} /> Inspect {state.currentRevision} in Pro</button>}
-            {rejected && <button className="primary" onClick={onShowPro}><SlidersHorizontal size={13} /> Resolve fixed constraint in Pro</button>}
+            {accepted && <button className="primary" onClick={onShowPro}><Eye size={13} /> Inspect {state.currentRevision} in Workspace</button>}
+            {rejected && <button className="primary" onClick={onShowPro}><SlidersHorizontal size={13} /> Resolve fixed constraint in Workspace</button>}
             <button onClick={() => onRun('Increase runtime to 4 hours without changing mission duty cycle.')}><Activity size={13} /> Check runtime alternative</button>
             <button onClick={() => setShowWhy((value) => !value)}><Info size={13} /> {showWhy ? 'Hide explanation' : 'Why?'}</button>
             <button onClick={onShowPro}><SlidersHorizontal size={13} /> Technical details</button>
@@ -1237,7 +1243,7 @@ function ProposalCard({ proposal, realization, experience, onAccept, onOpenCad, 
   onShowGraph: () => void;
   onShowPro: () => void;
 }) {
-  const statusCopy = proposal.status === 'accepted' ? `${proposal.targetRevision} · APPLIED` : proposal.status === 'rejected' ? 'REJECTED · CONSTRAINT CONFLICT' : 'VALIDATED PROPOSAL';
+  const statusCopy = proposal.status === 'accepted' ? `${proposal.targetRevision} · APPLIED` : proposal.status === 'rejected' ? 'REJECTED · CONSTRAINT CONFLICT' : 'CANDIDATE · DATASET CHECKED';
   return (
     <div className={`recommendation proposal-card panel-enter ${proposal.status}`}>
       <div className="recommendation-label"><Zap size={13} /> {statusCopy}</div>
@@ -1254,7 +1260,7 @@ function ProposalCard({ proposal, realization, experience, onAccept, onOpenCad, 
           <EvidenceList evidence={proposal.evidence} limit={3} />
         </>
       ) : <div className="guided-card-copy"><b>Why</b><span>{proposal.why}</span><b>Next</b><span>{proposal.nextAction}</span></div>}
-      <div className="affected-line"><span>{proposal.affectedArtifactIds.length} affected · {proposal.changed.length} changed</span><div>{proposal.status === 'validated' && !proposal.openCad.required && <button className="commit-button" onClick={onAccept}><Check size={11} /> Create {proposal.targetRevision}</button>}{proposal.status === 'validated' && proposal.openCad.required && <button className="commit-button" onClick={onOpenCad}><Wrench size={11} /> Open in OpenCAD</button>}{experience === 'guided' && <button onClick={onShowPro}>Details</button>}<button onClick={onShowGraph}>Graph <ChevronRight size={12} /></button></div></div>
+      <div className="affected-line"><span>{proposal.affectedArtifactIds.length} affected · {proposal.changed.length} changed</span><div>{proposal.status === 'validated' && !proposal.openCad.required && <button className="commit-button" onClick={onAccept}><Check size={11} /> Review {proposal.targetRevision}</button>}{proposal.status === 'validated' && proposal.openCad.required && <button className="commit-button" onClick={onOpenCad}><Wrench size={11} /> Open in OpenCAD</button>}{experience === 'guided' && <button onClick={onShowPro}>Details</button>}<button onClick={onShowGraph}>Graph <ChevronRight size={12} /></button></div></div>
     </div>
   );
 }
@@ -1375,7 +1381,7 @@ function EvidenceList({ evidence, limit = 3 }: { evidence: AgentResponse['eviden
     <div className="evidence-list" aria-label="Corpus evidence">
       {evidence.slice(0, limit).map((item) => (
         <div className="evidence-row" key={item.sourceFile}>
-          <span>{String(item.score).padStart(2, '0')}</span>
+          <span aria-label="Source"><FileText size={16} /></span>
           <div><b>{item.title}</b><small>{item.sourceFile}</small><p>{item.excerpt}</p></div>
         </div>
       ))}
@@ -1433,6 +1439,7 @@ function AgentPanel({ productCandidateId, onClose, onArtifacts }: { productCandi
     setLoading(true);
     setError('');
     setDemoAnswer(demo);
+    setAnswer(null);
     try {
       const result = await askAgent(activeAgent, submittedQuestion, productCandidateId, demo);
       setAnswer(result);
@@ -1451,7 +1458,7 @@ function AgentPanel({ productCandidateId, onClose, onArtifacts }: { productCandi
       <div className={`backend-state ${health ? 'online' : ''}`}><span /><div><b>{health ? 'Dataset ready' : 'Loading dataset...'}</b><small>{health ? `${health.indexedDocuments} indexed documents · ${health.artifacts} artifacts · ${health.scenarios} scenarios` : 'Building the local search index'}</small></div></div>
       <div className="agent-list">
         {agents.map(({ kind, name, copy, Icon }) => (
-          <button className={`agent-card ${activeAgent === kind ? 'active' : ''}`} key={kind} onClick={() => selectAgent(kind)}>
+          <button className={`agent-card ${activeAgent === kind ? 'active' : ''}`} key={kind} disabled={loading} onClick={() => selectAgent(kind)}>
             <span className="agent-icon"><Icon size={16} /></span>
             <span><strong>{name}</strong><small>{copy}</small></span>
             <ChevronRight size={14} />
@@ -1459,13 +1466,13 @@ function AgentPanel({ productCandidateId, onClose, onArtifacts }: { productCandi
         ))}
       </div>
       <button className="agent-demo-button" disabled={loading} onClick={() => void submit(AGENT_PROMPTS[activeAgent], true)}><Play size={13} /> {loading && demoAnswer ? 'Running sample…' : `Run sample ${activeAgent} answer`}</button>
-      <div className="demo-mode-note"><b>{inferenceStatus?.connected ? 'Live NVIDIA reasoning' : 'Live inference unavailable'}</b><span>{inferenceStatus?.connected ? 'The selected NVIDIA model reasons over bundled project evidence; artifact IDs and validated engineering state remain protected.' : 'Normal questions require the hosted model. The sample button remains available as an explicitly labeled dataset demonstration.'}</span></div>
-      <label className="agent-query"><span>ASK {activeAgent.toUpperCase()}</span><textarea value={question} onChange={(event) => { setQuestion(event.target.value); setDemoAnswer(false); }} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void submit(); } }} /><button disabled={loading} onClick={() => void submit()}><Send size={13} /> {loading && !demoAnswer ? 'Reading project files...' : 'Search project data'}</button></label>
+      <div className="demo-mode-note"><b>{inferenceStatus?.connected ? 'Live advisory reasoning' : 'Live inference unavailable'}</b><span>{inferenceStatus?.connected ? 'The configured model reasons over bundled project evidence; artifact IDs and validated engineering state remain protected.' : 'Normal questions require the hosted model. The sample button remains available as an explicitly labeled dataset demonstration.'}</span></div>
+      <label className="agent-query"><span>ASK {activeAgent.toUpperCase()}</span><textarea value={question} onChange={(event) => { setQuestion(event.target.value); }} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void submit(); } }} /><button disabled={loading} onClick={() => void submit()}><Send size={13} /> {loading && !demoAnswer ? 'Reading project files...' : 'Search project data'}</button></label>
       {error && <div className="backend-error">{error}</div>}
       {answer && (
         <div className="agent-response panel-enter">
-          <div className="agent-response-head"><span>{demoAnswer ? 'SAMPLE ANSWER' : answer.mode === 'ground-truth' ? 'MATCHED DATASET ANSWER' : 'SEARCH RESULT'}</span><b>{Math.round(answer.confidence * 100)}% evidence · {answer.latencyMs >= 1000 ? `${(answer.latencyMs / 1000).toFixed(1)}s` : `${answer.latencyMs}ms`}</b></div>
-          <p>{answer.answer}</p>
+          <div className="agent-response-head"><span>{demoAnswer ? 'SAMPLE ANSWER' : answer.mode === 'ground-truth' ? 'MATCHED DATASET ANSWER' : 'SEARCH RESULT'}</span><b>{answer.evidence.length} linked sources · {answer.latencyMs >= 1000 ? `${(answer.latencyMs / 1000).toFixed(1)}s` : `${answer.latencyMs}ms`}</b></div>
+          <p>{answer.answer}</p><p className="review-note">Context: {answer.structuredState.revision}. Sources are bundled reference records; coverage and physical correctness have not been independently verified.</p>
           <div className="agent-artifacts">{answer.artifactIds.slice(0, 8).map((id) => <span key={id}>{id}</span>)}</div>
           <EvidenceList evidence={answer.evidence} limit={3} />
         </div>

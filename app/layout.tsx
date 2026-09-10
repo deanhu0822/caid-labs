@@ -4,6 +4,7 @@ import './globals.css';
 import './start-from-scratch.css';
 import './demo-walkthrough.css';
 import './opencad-workspace.css';
+import './workflow-improvements.css';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
