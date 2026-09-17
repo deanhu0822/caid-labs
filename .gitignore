@@ -40,3 +40,6 @@ next-env.d.ts
 *.tsbuildinfo
 __pycache__/
 *.py[cod]
+
+# Persistent local change workspace
+/.forma/
