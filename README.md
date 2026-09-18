@@ -16,7 +16,7 @@ Think of it as a GitHub-like coordination layer for hardware engineering: struct
 
 > Forma does not replace CAD, ECAD, source control, PLM, ERP, or test systems. The product direction is to connect their authoritative artifacts into a coordinated product history.
 
-## How Forma works
+## How it works
 
 The primary workflow turns an engineering request into a saved design revision:
 
