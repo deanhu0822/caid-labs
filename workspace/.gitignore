@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.DS_Store
+*.tsbuildinfo
+test-results/
+.env*
+.env.local
+.env.*.local
+data/
+
+!.env.example
+
+# Local run outputs may contain private inputs and traces.
+outputs/

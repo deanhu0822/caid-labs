@@ -1,5 +1,7 @@
 # Caid Labs
 
+> The [evidence-linked workspace](workspace/README.md) is an early local preview with Anthropic analysis and a product graph. It is separate from the existing application described below; team sign-in and shared reviews are still under development.
+
 **A shared engineering workspace for building physical products.**
 
 Most hardware teams do not struggle with design. They struggle with organization, context, and coordination:
@@ -10,11 +12,11 @@ Most hardware teams do not struggle with design. They struggle with organization
 - Requirements and test evidence live in documents.
 - Decisions disappear into chat threads and meetings.
 
-Forma Labs brings the engineering change around those artifacts into one reviewable record. It gives a team a clear answer to four questions: **what changed, why it changed, what it affects, and who accepted the remaining risk**.
+Caid Labs brings the engineering change around those artifacts into one reviewable record. It gives a team a clear answer to four questions: **what changed, why it changed, what it affects, and who accepted the remaining risk**.
 
 Think of it as a GitHub-like coordination layer for hardware engineering: structured change requests, measurable requirements, design alternatives, linked evidence, independent reviews, and immutable product revisions.
 
-> Forma does not replace CAD, ECAD, source control, PLM, ERP, or test systems. The product direction is to connect their authoritative artifacts into a coordinated product history.
+> Caid Labs does not replace CAD, ECAD, source control, PLM, ERP, or test systems. The product direction is to connect their authoritative artifacts into a coordinated product history.
 
 ## How it works
 
@@ -31,7 +33,7 @@ flowchart LR
     G --> H[Immutable product revision]
 ```
 
-For example, “increase rover payload to 10.4 kg” is not enough to approve a design. Forma asks for the operating conditions, acceptance method, alternatives considered, affected components, supporting calculations or tests, source revisions, limitations, and the responsible reviewers.
+For example, “increase rover payload to 10.4 kg” is not enough to approve a design. Caid Labs asks for the operating conditions, acceptance method, alternatives considered, affected components, supporting calculations or tests, source revisions, limitations, and the responsible reviewers.
 
 Every saved revision retains:
 
@@ -72,7 +74,7 @@ The included rover data and walkthroughs are synthetic engineering fixtures. Sam
 
 ### Guarded inference
 
-Forma supports server-selected `mock`, `huggingface`, `nvidia-build`, and `local` inference providers. Model output is advisory. It cannot change protected artifact IDs, pass the canonical semantic gates, approve a change, or create a product revision.
+Caid Labs supports server-selected `mock`, `huggingface`, `nvidia-build`, and `local` inference providers. Model output is advisory. It cannot change protected artifact IDs, pass the canonical semantic gates, approve a change, or create a product revision.
 
 When live inference is unavailable, the normal request fails visibly and remains available for retry. Deterministic examples run only through explicitly labeled sample actions.
 
@@ -111,7 +113,7 @@ They are not yet synchronized into one production product record. Closing that b
 
 ## Current limits and next priorities
 
-Forma is an engineering workflow prototype and small-team persistent change system. It is not yet a production system of record for a hardware organization.
+Caid Labs is an engineering workflow prototype and small-team persistent change system. It is not yet a production system of record for a hardware organization.
 
 | Area | Current state | Priority |
 | --- | --- | --- |
@@ -229,6 +231,6 @@ Before enabling persistent changes on Vercel, replace the SQLite adapter with a 
 
 ## Product principle
 
-CAD tools create geometry. Git stores code. ERP manages purchasing. Chat enables conversation. Forma Labs turns their fragmented output into coordinated engineering decisions and a trustworthy product history.
+CAD tools create geometry. Git stores code. ERP manages purchasing. Chat enables conversation. Caid Labs turns their fragmented output into coordinated engineering decisions and a trustworthy product history.
 
 Better hardware starts with better engineering software.
