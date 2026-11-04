@@ -49,6 +49,9 @@ const AssemblyGraph = lazy(() =>
 );
 
 const EMPTY_DRAFT: Draft = { request: "", sources: [] };
+// The hosted preview has no authenticated analysis service yet. Never imply
+// that its browser-only drafting is the live Anthropic workflow.
+const HOSTED_PREVIEW = import.meta.env.VITE_CAID_HOSTED_PREVIEW === "1";
 type SaveState = "loading" | "saving" | "saved" | "error";
 
 export default function App() {
@@ -73,6 +76,7 @@ export default function App() {
   const [runId, setRunId] = useState<string | null>(null);
   const [pendingAnalysis, setPendingAnalysis] = useState(false);
   useEffect(() => {
+    if (HOSTED_PREVIEW) return;
     void analysisStatus()
       .then(setConnection)
       .catch(() => setConnection(null));
@@ -416,7 +420,7 @@ export default function App() {
                   : "Opening…"}
           </span>
           <button className="demo-badge" onClick={() => setAbout(true)}>
-            Local workspace
+            {HOSTED_PREVIEW ? "Browser preview" : "Local workspace"}
           </button>
 {view!=="Product graph"&&(          <button
             className="icon-button mobile-menu"
@@ -540,6 +544,12 @@ export default function App() {
                   Bring your product description, images and documents. Keep the
                   evidence and decisions together.
                 </p>
+                {HOSTED_PREVIEW && (
+                  <p role="status">
+                    Browser preview: drafts and files stay in this browser. Live
+                    AI analysis and shared team access are not connected yet.
+                  </p>
+                )}
                 <button
                   className="primary-button"
                   onClick={() => setView("Objective")}
@@ -793,7 +803,7 @@ export default function App() {
                     event.key === "Enter"
                   ) {
                     event.preventDefault();
-                    void prepareBrief();
+                    void prepareBrief(HOSTED_PREVIEW ? "local" : "live");
                   }
                 }}
                 onPaste={(event) => {
@@ -873,8 +883,9 @@ export default function App() {
               <p className="input-hint">
                 Images, PDF, text or CSV · drop or paste here
                 <br />
-                Up to 8 files · images 5 MB, other files 10 MB · 24 MB total for
-                analysis
+                {HOSTED_PREVIEW
+                  ? "Up to 8 files · 10 MB each"
+                  : "Up to 8 files · images 5 MB, other files 10 MB · 24 MB total for analysis"}
               </p>
               <button
                 className="primary-button review-button"
@@ -883,9 +894,9 @@ export default function App() {
                   !draft.request.trim() ||
                   !!busy ||
                   !ready ||
-                  !connection?.configured
+                  (!HOSTED_PREVIEW && !connection?.configured)
                 }
-                onClick={() => void prepareBrief()}
+                onClick={() => void prepareBrief(HOSTED_PREVIEW ? "local" : "live")}
               >
                 {busy ? (
                   <>
@@ -894,7 +905,7 @@ export default function App() {
                   </>
                 ) : (
                   <>
-                    Generate proposal
+                    {HOSTED_PREVIEW ? "Draft from source text" : "Generate proposal"}
                     <ArrowRight size={16} />
                   </>
                 )}
@@ -911,11 +922,13 @@ export default function App() {
                 </button>
               )}
               <p className="composer-footnote">
-                {connection?.configured
+                {HOSTED_PREVIEW
+                  ? "This preview reads source text in your browser. It does not analyze images visually or use a generative model."
+                  : connection?.configured
                   ? `Anthropic · ${connection.model}. Original attachments are sent for analysis. Drafts require human review.`
                   : "Anthropic is not connected. Your objective and attachments are saved locally."}
               </p>
-              {!connection?.configured && (
+              {!HOSTED_PREVIEW && !connection?.configured && (
                 <button
                   className="text-button"
                   onClick={() =>
@@ -938,7 +951,7 @@ export default function App() {
                   Resume analysis
                 </button>
               )}
-              <details className="scope-details">
+              {!HOSTED_PREVIEW && <details className="scope-details">
                 <summary>Local reference draft</summary>
                 <p className="composer-footnote">
                   Extracts relevant text without a model. This does not perform
@@ -951,7 +964,7 @@ export default function App() {
                 >
                   Draft from source text
                 </button>
-              </details>
+              </details>}
             </section>
           </aside>
         </div>
@@ -1004,9 +1017,9 @@ export default function App() {
               <div>
                 <dt>Live analysis</dt>
                 <dd>
-                  Anthropic analyzes your objective and original attachments in
-                  bounded evidence, proposal and independent review stages.
-                  Drafts remain editable and require human judgment.
+                  {HOSTED_PREVIEW
+                    ? "Live AI analysis is not connected in this browser preview. Drafting uses source text and does not visually interpret images."
+                    : "Anthropic analyzes your objective and original attachments in bounded evidence, proposal and independent review stages. Drafts remain editable and require human judgment."}
                 </dd>
               </div>
               <div>
@@ -1021,17 +1034,17 @@ export default function App() {
               <div>
                 <dt>Local storage</dt>
                 <dd>
-                  Editable reviews are kept in this browser. Live run snapshots
-                  and traces are retained by the local analysis service. Export
-                  a review to keep a separate copy.
+                  {HOSTED_PREVIEW
+                    ? "Editable reviews and original attachments are kept in this browser. Export a review to keep a separate copy."
+                    : "Editable reviews are kept in this browser. Live run snapshots and traces are retained by the local analysis service. Export a review to keep a separate copy."}
                 </dd>
               </div>
               <div>
                 <dt>Deployment scope</dt>
                 <dd>
-                  This is a single-user local workspace. Shared team identity,
-                  authenticated approvals and hosted operations are not
-                  configured. No hardware is controlled or validated.
+                  {HOSTED_PREVIEW
+                    ? "This is a single-user browser preview. Shared team identity, authenticated approvals and hosted AI analysis are not configured. No hardware is controlled or validated."
+                    : "This is a single-user local workspace. Shared team identity, authenticated approvals and hosted operations are not configured. No hardware is controlled or validated."}
                 </dd>
               </div>
             </dl>

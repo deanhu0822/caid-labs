@@ -148,11 +148,11 @@ export function DemoWalkthrough({ runtime, proposal, revision, onPause, onRestar
   const complete = runtime.step === DEMO_STAGES.length - 1;
   const progress = ((runtime.step + 1) / DEMO_STAGES.length) * 100;
   return (
-    <div className={`demo-layer demo-phase-${stage.phase}`} role="dialog" aria-modal="false" aria-label="Forma Labs guided demo">
+    <div className={`demo-layer demo-phase-${stage.phase}`} role="dialog" aria-modal="false" aria-label="Caid Labs guided demo">
       <div className="demo-backdrop" />
       <section className="demo-walkthrough">
         <header>
-          <div className="demo-tour-title"><span className="demo-tour-mark"><Play size={13} /></span><div><small>FORMA LABS WALKTHROUGH</small><b>{stage.label}</b></div></div>
+          <div className="demo-tour-title"><span className="demo-tour-mark"><Play size={13} /></span><div><small>CAID LABS WALKTHROUGH</small><b>{stage.label}</b></div></div>
           <div className="demo-stage-number"><span>{runtime.step + 1}</span> / {DEMO_STAGES.length}</div>
           <button onClick={onExit} aria-label="Exit demo"><X size={16} /></button>
         </header>

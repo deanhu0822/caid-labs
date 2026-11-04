@@ -43,3 +43,6 @@ __pycache__/
 
 # Persistent local change workspace
 /.forma/
+
+# Generated from the separate workspace during the hosted build
+/public/_workspace/

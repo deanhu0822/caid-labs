@@ -630,7 +630,7 @@ export default function Home() {
     <main className={`app-shell ${engineering.experienceMode}-experience ${mode === 'builder' ? 'change-workspace' : ''} ${engineering.experienceMode === 'pro' && mode === 'graph' && focusedNodeId ? 'artifact-preview-open' : ''}`}>
       <header className="topbar">
         <div className="brand-mark"><GitBranch size={16} /></div>
-        <div className="brand">FORMA LABS <span>/</span> {engineering.project.id} <span>/</span> {revision.toLowerCase().replace(' ', '-')}</div>
+        <div className="brand">CAID LABS <span>/</span> {engineering.project.id} <span>/</span> {revision.toLowerCase().replace(' ', '-')}</div>
         <div className="experience-switch" aria-label="Experience mode">
           <button aria-label="Guided mode" className={engineering.experienceMode === 'guided' ? 'active' : ''} onClick={() => switchExperience('guided')}><Sparkles size={12} /><span><b>Guided</b><small>Step-by-step workflow</small></span></button>
           <button aria-label="Workspace mode" className={engineering.experienceMode === 'pro' ? 'active' : ''} onClick={() => switchExperience('pro')}><SlidersHorizontal size={12} /><span><b>Workspace</b><small>Engineering workspace</small></span></button>
@@ -858,7 +858,7 @@ export default function Home() {
       {howOpen && (
         <div className="modal-backdrop overlay-enter" onMouseDown={(event) => { if (event.target === event.currentTarget) setHowOpen(false); }}>
           <section className="how-modal modal-enter">
-            <header><div><div className="eyebrow">CHANGE WORKFLOW</div><h2>How Forma Labs works</h2></div><button onClick={() => setHowOpen(false)}><X size={17} /></button></header>
+            <header><div><div className="eyebrow">CHANGE WORKFLOW</div><h2>How Caid Labs works</h2></div><button onClick={() => setHowOpen(false)}><X size={17} /></button></header>
             <p>Guided and Workspace use the same project data. Guided summarizes a proposed change; Workspace shows its edits, checks, and source files.</p>
             <div className="forma-flow">
               {['Change request', 'Project data', 'Dependencies', 'Proposed edits', 'Validation checks', 'New revision', 'Updated graph'].map((label, index) => <div key={label}><span>{String(index + 1).padStart(2, '0')}</span><b>{label}</b>{index < 6 && <ChevronRight size={13} />}</div>)}
@@ -1090,7 +1090,7 @@ function GuidedRail({ state, onConstraint }: { state: EngineeringState; onConstr
     <div className="guided-rail">
       <div className="side-heading"><div className="eyebrow">GUIDED BUILD</div><span>{state.currentRevision}</span></div>
       <div className="guided-progress"><i className="done" /><i className={state.proposal ? 'done' : 'active'} /><i className={state.proposal?.status === 'accepted' ? 'done' : ''} /></div>
-      <div className="guided-step-copy"><b>{state.proposal?.status === 'accepted' ? 'Revision created' : state.proposal ? 'Proposal ready' : 'Define your goal'}</b><span>{state.proposal?.status === 'accepted' ? `${state.currentRevision} is now the current revision.` : state.proposal ? 'Review the required edits and validation checks.' : 'Forma Labs will check affected parts, files, and constraints.'}</span></div>
+      <div className="guided-step-copy"><b>{state.proposal?.status === 'accepted' ? 'Revision created' : state.proposal ? 'Proposal ready' : 'Define your goal'}</b><span>{state.proposal?.status === 'accepted' ? `${state.currentRevision} is now the current revision.` : state.proposal ? 'Review the required edits and validation checks.' : 'Caid Labs will check affected parts, files, and constraints.'}</span></div>
       <div className="guided-choice-group"><div className="eyebrow">WHAT MATTERS MOST?</div>{['Balanced', 'Longer runtime', 'Lower cost'].map((value) => <button key={value} className={priority === value ? 'active' : ''} onClick={() => onConstraint({ key: 'priority', label: 'Design priority', value, source: 'guided' })}>{value}<ChevronRight size={12} /></button>)}</div>
       {state.constraints.length > 0 && <div className="constraint-summary"><div className="eyebrow">ACTIVE CONSTRAINTS</div>{state.constraints.map((constraint) => <span key={constraint.key}><Lock size={9} /> {constraint.label}: <b>{constraint.value}{constraint.unit ? ` ${constraint.unit}` : ''}</b></span>)}</div>}
       {state.scannerObservation && <div className="physical-observation"><Camera size={14} /><div><b>Physical observation</b><span>{state.scannerObservation.label} linked to graph</span></div></div>}
@@ -1147,7 +1147,7 @@ function GuidedPanel({ state, query, loading, error, onQuery, onRun, onSample, o
       <div className="mode-panel-head"><div><span className="mode-icon"><Sparkles size={16} /></span><div><div className="eyebrow">STEP-BY-STEP WORKFLOW</div><h3>Guided</h3></div></div><button onClick={onShowPro} aria-label="Open engineering workspace"><SlidersHorizontal size={15} /></button></div>
       {!proposal ? (
         <>
-          <div className="guided-hero"><span>STEP 1 · REQUEST</span><h2>What do you want the rover to achieve?</h2><p>Describe the result. Forma Labs checks which parts, files, and constraints are affected.</p></div>
+          <div className="guided-hero"><span>STEP 1 · REQUEST</span><h2>What do you want the rover to achieve?</h2><p>Describe the result. Caid Labs checks which parts, files, and constraints are affected.</p></div>
           <label className="guided-objective"><textarea value={query} onChange={(event) => onQuery(event.target.value)} placeholder="For example: Increase payload by 30%" /><button disabled={loading} onClick={() => onRun(query || 'Increase payload capacity')}><Sparkles size={14} /> {loading ? 'Checking project data…' : 'Generate change proposal'}</button></label>
           <div className="guided-examples"><button onClick={() => { onQuery('Increase payload capacity'); onRun('Increase payload capacity'); }}>Increase payload 30% <ChevronRight size={12} /></button><button onClick={() => { onQuery('Increase runtime to 4 hours without changing mission duty cycle.'); onRun('Increase runtime to 4 hours without changing mission duty cycle.'); }}>Reach four-hour runtime <ChevronRight size={12} /></button><button onClick={() => { const objective = 'Make the rover camera mount 25 mm taller so it can see over a 90 mm obstacle.'; onQuery(objective); onRun(objective); }}>Raise camera mount 25 mm <ChevronRight size={12} /></button><button onClick={onAnalyzeJ12}>Replace unavailable J12 <ChevronRight size={12} /></button></div>
           {error && <div className="backend-error" role="alert"><strong>Analysis unavailable</strong><p>{error}</p><button disabled={loading} onClick={() => onRun(query)}>Retry request</button><button onClick={onSample}>Run sample walkthrough</button></div>}

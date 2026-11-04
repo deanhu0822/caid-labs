@@ -335,7 +335,7 @@ export function StartFromScratch({ onClose, onCreate }: { onClose: () => void; o
 
               <div className="clarification-heading"><span>ONLY THE DECISIONS THAT CHANGE THE DESIGN</span><h3>Clarify the important uncertainty</h3></div>
               <div className="clarification-grid">{QUESTIONS.map((question) => <section key={question.key}><b>{question.title}</b><div>{question.choices.map((choice) => <button className={answers[question.key] === choice ? 'active' : ''} onClick={() => setAnswers((current) => ({ ...current, [question.key]: choice }))} key={choice}>{choice}{answers[question.key] === choice && <Check size={11} />}</button>)}</div></section>)}</div>
-              <div className="human-forma-note"><span><b>You</b> clarify goals and priorities.</span><ArrowRight size={13} /><span><b>Forma Labs</b> organizes components and dependencies.</span></div>
+              <div className="human-forma-note"><span><b>You</b> clarify goals and priorities.</span><ArrowRight size={13} /><span><b>Caid Labs</b> organizes components and dependencies.</span></div>
               <footer className="scratch-footer"><button className="secondary" onClick={() => setPhase('input')}><ArrowLeft size={13} /> Back</button><button className="primary" disabled={!answers.terrain || !answers.priority || !answers.budget} onClick={() => void generateArchitecture()}>Generate Product Architecture <ArrowRight size={13} /></button></footer>
             </div>
           )}

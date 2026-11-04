@@ -1,5 +1,5 @@
 {
-  "name": "forma-labs",
+  "name": "caid-labs",
   "version": "0.1.0",
   "private": true,
   "engines": {
@@ -7,7 +7,8 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm run build:workspace && next build",
+    "build:workspace": "node scripts/build-workspace.mjs",
     "start": "node scripts/start.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next"
   },

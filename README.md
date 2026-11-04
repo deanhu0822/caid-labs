@@ -1,6 +1,6 @@
 # Caid Labs
 
-> The [evidence-linked workspace](workspace/README.md) is an early local preview with Anthropic analysis and a product graph. It is separate from the existing application described below; team sign-in and shared reviews are still under development.
+> The [evidence-linked workspace](workspace/README.md) is available at `/workspace` as a browser preview. It provides source-text drafting and a product graph; live Anthropic analysis and shared teams remain available only as local or unfinished development work. The earlier graph remains available at `/graph`.
 
 **A shared engineering workspace for building physical products.**
 

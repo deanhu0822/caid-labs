@@ -4,6 +4,10 @@ This local workspace explores hardware engineering objectives using attached ima
 
 **Release status: early development.** This is a local, single-user application, not a production team deployment. Supabase identity verification and workspace-record endpoints are development foundations; sign-in, shared review UI, authenticated analysis, shared attachments, and production operations are not complete. Generated suggestions and relationships require human review. No physical engineering result or release approval is implied.
 
+## Hosted browser preview
+
+On Vercel the workspace is available at `/workspace`. It stores drafts and attachments in that browser and uses local source-text drafting; it does not run live Anthropic analysis or share work between people. Use the local workflow below for the implemented live analysis path. The earlier graph remains at `/graph`.
+
 ## Run locally
 
 Requires Node.js 26 or newer.

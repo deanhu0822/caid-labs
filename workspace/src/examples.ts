@@ -65,7 +65,7 @@ export async function loadExample(id: string): Promise<Draft> {
       ],
     };
   if (id === "test") {
-    const response = await fetch("/examples/bench-conditions.pdf");
+    const response = await fetch(`${import.meta.env.BASE_URL}examples/bench-conditions.pdf`);
     if (!response.ok) throw new Error("The sample PDF could not be opened.");
     const pdf = await importFile(
       new File([await response.blob()], "bench-conditions.pdf", {

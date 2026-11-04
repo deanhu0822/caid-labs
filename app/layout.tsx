@@ -20,17 +20,17 @@ const deploymentHost = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.
 
 export const metadata: Metadata = {
   metadataBase: new URL(deploymentHost ? `https://${deploymentHost}` : 'http://localhost:3000'),
-  title: 'Forma Labs — Rover Engineering Workspace',
+  title: 'Caid Labs — Rover Engineering Workspace',
   description: 'Review rover parts, dependencies, engineering changes, revisions, and validation results.',
   icons: { icon: '/favicon.svg' },
   openGraph: {
-    title: 'Forma Labs — Rover Engineering Workspace',
+    title: 'Caid Labs — Rover Engineering Workspace',
     description: 'Review how rover changes affect mechanical, electrical, firmware, BOM, manufacturing, supplier, and test artifacts.',
-    images: [{ url: '/og.png', width: 1536, height: 864, alt: 'Forma Labs rover engineering graph' }],
+    images: [{ url: '/og.png', width: 1536, height: 864, alt: 'Caid Labs rover engineering graph' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Forma Labs — Rover Engineering Workspace',
+    title: 'Caid Labs — Rover Engineering Workspace',
     description: 'Review rover dependencies, proposed changes, validation results, and revisions.',
     images: ['/og.png'],
   },

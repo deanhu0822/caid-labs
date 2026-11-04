@@ -1,0 +1,12 @@
+.git
+.vercel
+node_modules
+workspace/node_modules
+workspace/dist
+public/_workspace
+.next
+.env*
+workspace/.env*
+workspace/data
+workspace/outputs
+*.tsbuildinfo
